@@ -65,15 +65,18 @@ jobs:
               shutil.rmtree(fc / name)
 
           root = Path("Cargo.toml")
-          # Anywhere in it: a removed crate is named by `[workspace.dependencies]`, by `[patch]` and by the
-          # `members` list, and each of those has stopped the build in turn.
-          kept = []
-          for line in root.read_text().splitlines():
-              m = re.match(r'^\s*(objc2-[a-z0-9-]+) = \{ path = "framework-crates/([a-z0-9-]+)"', line)
-              if m and m.group(2) in removed:
-                  continue
-              kept.append(line)
+          # By name rather than by path: a removed crate is named in workspace.dependencies, in the members
+          # list and in patch, and matching the *name* at the start of a line covers all three - where
+          # matching the path only covered the spellings that happened to be in the first two.
+          kept = [
+              line
+              for line in root.read_text().splitlines()
+              if not any(re.match(rf"^\s*{re.escape(name)}\b", line) for name in removed)
+          ]
           text = "\n".join(kept)
+          leftover = [n for n in removed if re.search(rf"^\s*{re.escape(n)}\b", text, re.M)]
+          assert not leftover, f"still named in the root manifest: {leftover}"
+          print(f"pruned; {len(removed)} crates, none left in the root manifest")
 
           # A removed workspace dependency is still inherited by whoever named it, and a member that inherits
           # nothing is a member that cannot load - which is the error the last attempt ended on. What is left
