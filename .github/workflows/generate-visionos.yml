@@ -1,9 +1,12 @@
 name: generate visionOS bindings
 
-# The generator needs all ten platform SDKs and a libclang from the same era as the headers, which is
-# what a macOS runner with Xcode is and what a borrowed Linux tree is not. This runs it on the real thing
-# and uploads the result: Rust declarations of the API, which is what `objc2` publishes and what nobody
-# redistributes an SDK for.
+# The generator needs all ten platform SDKs and a libclang from the same era as the headers, which is what a
+# macOS runner with Xcode is and what a borrowed Linux tree is not.
+#
+# It runs **all** the frameworks, and that is not thoroughness: a run rewrites its crate's feature list from
+# the SDK it read, and the sibling crates that name those features are only rewritten in the same pass. One
+# framework on its own produces a workspace that cannot resolve - which is why upstream's own CI runs `all`
+# too, and why the attempts here to do one at a time kept failing one level further down.
 
 on:
   workflow_dispatch:
@@ -14,7 +17,7 @@ on:
 jobs:
   generate:
     runs-on: macos-26
-    timeout-minutes: 120
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
 
@@ -28,44 +31,29 @@ jobs:
       - name: Build the translator
         run: cargo build --release -p header-translator
 
-      # One framework per run, and the manifests are put back in between: a run rewrites its crate's
-      # feature list from the SDK it read, and a second run then cannot resolve the workspace.
-      - name: ARKit, from the visionOS SDK
+      # A clean slate: this branch carries real generated directories, and the translator's `create_dir_all`
+      # on a path that already exists as a symlink is an EPERM on macOS.
+      - name: Generate
         run: |
           set -euo pipefail
-          # A clean slate: the tree this branch carries already has these paths, and the translator's
-          # `create_dir_all` on a path that exists as a symlink or a file is an EPERM on macOS rather
-          # than the no-op it is elsewhere.
           rm -rf generated framework-crates/objc2-ar-kit/src/generated
           rm -rf framework-crates/objc2-compositor-services/src/generated
-          cargo run --release -p header-translator --bin header-translator objc2-ar-kit
-          mkdir -p out
-          cp -a generated/ARKit out/ARKit
-          # The whole crate, not just its generated module: a run rewrites the feature list in its
-          # Cargo.toml *and* the `use` lines its lib.rs starts with, and the checked-in copies of both
-          # are the iOS run's. Collecting one piece at a time is how the last three attempts failed.
-          mkdir -p out/crates
-          cp -a framework-crates/objc2-ar-kit out/crates/
+          cargo run --release -p header-translator --bin header-translator all
 
-
-      - name: Manifests back
-        run: git checkout -- Cargo.toml framework-crates
-
-      - name: CompositorServices, from the visionOS SDK
+      - name: Collect the two crates this is for
         run: |
           set -euo pipefail
-          rm -rf generated framework-crates/objc2-compositor-services/src/generated
-          cargo run --release -p header-translator --bin header-translator objc2-compositor-services
-          cp -a generated/CompositorServices out/CompositorServices
+          mkdir -p out/crates
+          cp -a framework-crates/objc2-ar-kit out/crates/
           cp -a framework-crates/objc2-compositor-services out/crates/
-
+          du -sh out
 
       - name: What the backend needs
         run: |
           set -euo pipefail
-          for n in ar_session_create ar_hand_tracking_provider_get_latest_anchors \
-                   cp_view_get_transform cp_drawable_set_device_anchor cp_drawable_set_depth_range; do
-            if grep -rq "fn $n" out; then echo "  generated  $n"; else echo "  MISSING    $n"; fi
+          for n in ar_plane_detection_provider_create ar_plane_anchors_enumerate_anchors_f \
+                   cp_drawable_set_device_anchor ar_session_create; do
+            if grep -rq "fn $n" out/crates; then echo "  generated  $n"; else echo "  MISSING    $n"; fi
           done
 
       - uses: actions/upload-artifact@v7
