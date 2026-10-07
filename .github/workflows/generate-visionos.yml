@@ -33,6 +33,11 @@ jobs:
       - name: ARKit, from the visionOS SDK
         run: |
           set -euo pipefail
+          # A clean slate: the tree this branch carries already has these paths, and the translator's
+          # `create_dir_all` on a path that exists as a symlink or a file is an EPERM on macOS rather
+          # than the no-op it is elsewhere.
+          rm -rf generated framework-crates/objc2-ar-kit/src/generated
+          rm -rf framework-crates/objc2-compositor-services/src/generated
           cargo run --release -p header-translator --bin header-translator objc2-ar-kit
           mkdir -p out
           cp -a generated/ARKit out/ARKit
@@ -48,6 +53,7 @@ jobs:
       - name: CompositorServices, from the visionOS SDK
         run: |
           set -euo pipefail
+          rm -rf generated framework-crates/objc2-compositor-services/src/generated
           cargo run --release -p header-translator --bin header-translator objc2-compositor-services
           cp -a generated/CompositorServices out/CompositorServices
           cp framework-crates/objc2-compositor-services/Cargo.toml out/manifests/objc2-compositor-services.toml
