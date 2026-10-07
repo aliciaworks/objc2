@@ -43,13 +43,21 @@ jobs:
           rm -rf framework-crates/objc2-compositor-services/src/generated
           cargo run --release -p header-translator --bin header-translator all
 
-      - name: Collect the two crates this is for
+      # Two things, and they are for different reasons. The two crates carry the whole crate, because a
+      # run rewrites a feature list in its Cargo.toml and the imports its lib.rs opens with. Every manifest
+      # in the closure is carried because cargo resolves the whole workspace before it builds anything, so a
+      # member left on the iOS run's feature names is a workspace that does not resolve.
+      - name: Collect what a consumer needs
         run: |
           set -euo pipefail
-          mkdir -p out/crates
+          mkdir -p out/crates out/manifests
           cp -a framework-crates/objc2-ar-kit out/crates/
           cp -a framework-crates/objc2-compositor-services out/crates/
-          du -sh out
+          for d in framework-crates/*/; do
+            [ -f "$d/Cargo.toml" ] && cp "$d/Cargo.toml" "out/manifests/$(basename "${d%/}").toml"
+          done
+          echo "crates:    $(ls out/crates)"
+          echo "manifests: $(ls out/manifests | wc -l)"
 
       - name: What the backend needs
         run: |
