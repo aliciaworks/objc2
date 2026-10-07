@@ -65,10 +65,12 @@ jobs:
               shutil.rmtree(fc / name)
 
           root = Path("Cargo.toml")
+          # Anywhere in it: a removed crate is named by `[workspace.dependencies]`, by `[patch]` and by the
+          # `members` list, and each of those has stopped the build in turn.
           kept = []
           for line in root.read_text().splitlines():
-              m = re.match(r'^(objc2-[a-z0-9-]+) = \{ path = "framework-crates/([a-z0-9-]+)"', line)
-              if m and m.group(2) in removed and line.rstrip().endswith("}"):
+              m = re.match(r'^\s*(objc2-[a-z0-9-]+) = \{ path = "framework-crates/([a-z0-9-]+)"', line)
+              if m and m.group(2) in removed:
                   continue
               kept.append(line)
           text = "\n".join(kept)
