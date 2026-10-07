@@ -72,11 +72,11 @@ jobs:
           # A removed workspace dependency is still inherited by whoever named it, and a member that inherits
           # nothing is a member that cannot load - which is the error the last attempt ended on. What is left
           # of crates/ is what the tool itself needs; the test and example crates are not.
+          # Their directories stay and only their membership goes: the tool's last steps write into paths inside
+          # crates/ and examples/ without checking that they are there, so a deleted directory is a panic after
+          # the generation has already finished - which is exactly how the last two attempts ended.
           keep_crates = ["objc2", "objc2-encode", "objc2-exception-helper", "objc2-proc-macros",
                          "block2", "dispatch2", "header-translator"]
-          for d in sorted(Path("crates").iterdir()):
-              if d.is_dir() and d.name not in keep_crates:
-                  shutil.rmtree(d)
           members = "\n".join(f'    "crates/{c}",' for c in keep_crates) + '\n    "framework-crates/*",'
           text = re.sub(r"members = \[[^]]*\]", f"members = [\n{members}\n]", text, count=1)
           root.write_text(text)
