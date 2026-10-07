@@ -66,8 +66,20 @@ jobs:
               if m and m.group(2) in removed and line.rstrip().endswith("}"):
                   continue
               kept.append(line)
-          root.write_text("\n".join(kept) + "\n")
-          print(f"removed {len(removed)}: {' '.join(sorted(removed))}")
+          text = "\n".join(kept)
+
+          # A removed workspace dependency is still inherited by whoever named it, and a member that inherits
+          # nothing is a member that cannot load - which is the error the last attempt ended on. What is left
+          # of crates/ is what the tool itself needs; the test and example crates are not.
+          keep_crates = ["objc2", "objc2-encode", "objc2-exception-helper", "objc2-proc-macros",
+                         "block2", "dispatch2", "header-translator"]
+          for d in sorted(Path("crates").iterdir()):
+              if d.is_dir() and d.name not in keep_crates:
+                  shutil.rmtree(d)
+          members = "\n".join(f'    "crates/{c}",' for c in keep_crates) + '\n    "framework-crates/*",'
+          text = re.sub(r"members = \[[^]]*\]", f"members = [\n{members}\n]", text, count=1)
+          root.write_text(text)
+          print(f"removed {len(removed)} framework crates: {' '.join(sorted(removed))}")
           INNER
 
       - name: Build the translator
