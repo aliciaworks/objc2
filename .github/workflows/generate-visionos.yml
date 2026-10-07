@@ -19,7 +19,7 @@ on:
 
 jobs:
   generate:
-    runs-on: xcode-27-arm64
+    runs-on: xcode-27
     timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
