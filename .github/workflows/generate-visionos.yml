@@ -26,10 +26,17 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      # Upstream generates with Xcode 27, and the headers decide what the translator meets - so the newest
+      # Xcode the image carries is the one to use, not the image's default. `sort -V` so that 27.0 beats
+      # 26.6 rather than sorting as text.
       - name: Which Xcode
         run: |
-          xcode-select -p
-          xcodebuild -version
+          set -euo pipefail
+          ls -d /Applications/Xcode*.app || true
+          pick="$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          echo "using ${pick}"
+          echo "DEVELOPER_DIR=${pick}/Contents/Developer" >> "$GITHUB_ENV"
+          DEVELOPER_DIR="${pick}/Contents/Developer" xcodebuild -version
 
       - name: Build the translator
         run: cargo build --release -p header-translator
