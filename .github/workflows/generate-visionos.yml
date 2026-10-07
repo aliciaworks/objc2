@@ -58,8 +58,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out/crates out/manifests
-          cp -a framework-crates/objc2-ar-kit out/crates/
-          cp -a framework-crates/objc2-compositor-services out/crates/
+          # `-L`: `src/generated` is a symlink into the top-level `generated/` upstream, and copying the link
+          # rather than what it points at produces a crate whose `mod generated;` finds nothing.
+          cp -aL framework-crates/objc2-ar-kit out/crates/
+          cp -aL framework-crates/objc2-compositor-services out/crates/
+          cp -a generated out/
           for d in framework-crates/*/; do
             [ -f "$d/Cargo.toml" ] && cp "$d/Cargo.toml" "out/manifests/$(basename "${d%/}").toml"
           done
