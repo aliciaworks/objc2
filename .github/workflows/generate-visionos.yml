@@ -1,20 +1,23 @@
 name: generate visionOS bindings
 
-# The generator needs all ten platform SDKs and a libclang from the same era as the headers, which is what a
-# macOS runner with Xcode is and what a borrowed Linux tree is not.
+# The generator needs all ten platform SDKs and a libclang of the same era as the headers, which is what a
+# macOS runner with Xcode is and what a borrowed Linux tree is not. It also needs **Xcode 27**: on the
+# macOS 26 image's default 26.6 it panics reading the module map of a framework that declares iOS, and that
+# is where upstream runs too.
 #
-# It runs **all** the frameworks, and that is not thoroughness: a run rewrites its crate's feature list from
-# the SDK it read, and the sibling crates that name those features are only rewritten in the same pass. One
-# framework on its own produces a workspace that cannot resolve - which is why upstream's own CI runs `all`
-# too, and why the attempts here to do one at a time kept failing one level further down.
+# It runs **all** the frameworks, because a run rewrites its crate's feature list from the SDK it read and the
+# sibling crates that name those features are only rewritten in the same pass.
+#
+# Two things are done to the tree first, and both are the same lesson: this fork reads ARKit from the SDK that
+# has the visionOS module, which renames its features from class names to header names - so the crates that
+# consume it, generated against the old names, cannot resolve, and neither can the root manifest's entries for
+# the crates that go. Both are removed before anything is built.
 
 on:
   workflow_dispatch:
   push:
     paths:
       - '.github/workflows/generate-visionos.yml'
-      # So that putting a run's manifests back, or fixing one, is also a run: nothing here commits, so
-      # this cannot loop.
       - 'framework-crates/**'
 
 jobs:
@@ -26,9 +29,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
-      # Upstream generates with Xcode 27, and the headers decide what the translator meets - so the newest
-      # Xcode the image carries is the one to use, not the image's default. `sort -V` so that 27.0 beats
-      # 26.6 rather than sorting as text.
+      # Upstream generates with Xcode 27; the image's default is not it.
       - name: Which Xcode
         run: |
           set -euo pipefail
@@ -38,32 +39,26 @@ jobs:
           echo "DEVELOPER_DIR=${pick}/Contents/Developer" >> "$GITHUB_ENV"
           DEVELOPER_DIR="${pick}/Contents/Developer" xcodebuild -version
 
-      - name: Build the translator
-        run: cargo build --release -p header-translator
-
-      # A clean slate: this branch carries real generated directories, and the translator's `create_dir_all`
-      # on a path that already exists as a symlink is an EPERM on macOS.
-      - name: Generate
+      # Before the build, because a workspace that cannot resolve cannot build anything - including the tool
+      # that is supposed to regenerate it. A workspace dependency whose path has been deleted is the other half
+      # of that, and leaving it out is what stopped an earlier attempt.
+      - name: Drop what cannot resolve
         run: |
           set -euo pipefail
-          # The crates that consume `objc2-ar-kit` were generated against its iOS feature names, and
-          # reading ARKit from the visionOS SDK renames them (a class name becomes a header name). They are
-          # not needed here, so they go - along with the root manifest entries that point at them, because a
-          # workspace dependency whose path is gone is a workspace that does not resolve.
           python3 - <<'INNER'
-          import re
+          import re, shutil
           from pathlib import Path
+
           fc = Path("framework-crates")
           keep = {"objc2-ar-kit", "objc2-compositor-services"}
-          removed = set()
-          for d in sorted(fc.iterdir()):
-              if not d.is_dir() or d.name in keep:
-                  continue
-              text = (d / "Cargo.toml").read_text()
-              if "objc2-ar-kit" in text:
-                  removed.add(d.name)
+          removed = {
+              d.name
+              for d in fc.iterdir()
+              if d.is_dir() and d.name not in keep and "objc2-ar-kit" in (d / "Cargo.toml").read_text()
+          }
           for name in removed:
-              import shutil; shutil.rmtree(fc / name)
+              shutil.rmtree(fc / name)
+
           root = Path("Cargo.toml")
           kept = []
           for line in root.read_text().splitlines():
@@ -72,22 +67,25 @@ jobs:
                   continue
               kept.append(line)
           root.write_text("\n".join(kept) + "\n")
-          print(f"removed {len(removed)} consumers of objc2-ar-kit: {' '.join(sorted(removed))}")
+          print(f"removed {len(removed)}: {' '.join(sorted(removed))}")
           INNER
+
+      - name: Build the translator
+        run: cargo build --release -p header-translator
+
+      - name: Generate
+        run: |
+          set -euo pipefail
           rm -rf generated framework-crates/objc2-ar-kit/src/generated
           rm -rf framework-crates/objc2-compositor-services/src/generated
           cargo run --release -p header-translator --bin header-translator all
 
-      # Two things, and they are for different reasons. The two crates carry the whole crate, because a
-      # run rewrites a feature list in its Cargo.toml and the imports its lib.rs opens with. Every manifest
-      # in the closure is carried because cargo resolves the whole workspace before it builds anything, so a
-      # member left on the iOS run's feature names is a workspace that does not resolve.
+      # `-L`: `src/generated` is a symlink into the top-level `generated/` upstream, and copying the link rather
+      # than what it points at produces a crate whose `mod generated;` finds nothing.
       - name: Collect what a consumer needs
         run: |
           set -euo pipefail
           mkdir -p out/crates out/manifests
-          # `-L`: `src/generated` is a symlink into the top-level `generated/` upstream, and copying the link
-          # rather than what it points at produces a crate whose `mod generated;` finds nothing.
           cp -aL framework-crates/objc2-ar-kit out/crates/
           cp -aL framework-crates/objc2-compositor-services out/crates/
           cp -a generated out/
@@ -96,6 +94,7 @@ jobs:
           done
           echo "crates:    $(ls out/crates)"
           echo "manifests: $(ls out/manifests | wc -l)"
+          ls out/crates/objc2-ar-kit/src/generated | head -5
 
       - name: What the backend needs
         run: |
