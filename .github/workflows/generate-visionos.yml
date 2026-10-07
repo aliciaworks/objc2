@@ -19,6 +19,7 @@ on:
     paths:
       - '.github/workflows/generate-visionos.yml'
       - 'framework-crates/**'
+      - 'crates/header-translator/**'
 
 jobs:
   generate:
