@@ -87,7 +87,10 @@ impl UnexposedAttr {
             | "OPENGL_BRIDGED_TYPE"
             | "CF_BRIDGED_MUTABLE_TYPE" => {
                 let mut args = get_arguments().into_iter();
-                let ty = args.next().unwrap().to_string();
+                // PATCH: an attribute with no argument is not this one. Apple's visionOS headers have
+                // macros this list has never seen, and the answer is to skip them, not to crash.
+                let Some(first) = args.next() else { return Ok(None) };
+                let ty = first.to_string();
                 assert!(
                     args.next().is_none(),
                     "invalid number of arguments in error macro"
