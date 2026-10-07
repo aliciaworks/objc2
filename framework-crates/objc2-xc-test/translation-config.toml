@@ -1,0 +1,36 @@
+framework = "XCTest"
+crate = "objc2-xc-test"
+required-crates = ["objc2", "objc2-foundation", "bitflags"]
+located-outside-sdk = true
+custom-lib-rs = true
+# Xcode 5.0
+macos = "10.9"
+maccatalyst = "13.0"
+ios = "7.0"
+tvos = "9.0"
+watchos = "2.0"
+visionos = "1.0"
+
+class.XCTIssue.counterpart.mutable-subclass = "XCTest.XCTMutableIssue"
+class.XCTMutableIssue.counterpart.immutable-superclass = "XCTest.XCTIssue"
+
+# Uses va_list
+class.XCTestLog.methods."testLogWithFormat:arguments:".skipped = true
+
+# All usage has (XCT_SWIFT_SENDABLE XCWaitCompletionHandler)
+typedef.XCWaitCompletionHandler.sendable = true
+
+##
+## Safety
+##
+
+# SAFETY: XCTest is well-behaved, and since it's only used for test code, it
+# doesn't matter _that_ much anyhow if it's unsound (though we'd still like to
+# avoid it of course).
+unsafe-default-safety.documentation-is-reviewed = true
+
+# Using NSInvocation is perilous, since it doesn't retain its target.
+class.XCTestCase.methods."testCaseWithInvocation:".unsafe = true
+class.XCTestCase.methods."initWithInvocation:".unsafe = true
+class.XCTestCase.methods.invocation.unsafe = true
+class.XCTestCase.methods."setInvocation:".unsafe = true

@@ -1,0 +1,24 @@
+framework = "InputMethodKit"
+crate = "objc2-input-method-kit"
+required-crates = ["objc2", "objc2-foundation"]
+macos = "10.5"
+
+# Needs `TISInputSourceRef` from Carbon (HIToolbox)
+class.IMKCandidates.methods."setSelectionKeysKeylayout:".skipped = true
+class.IMKCandidates.methods.selectionKeysKeylayout.skipped = true
+
+static.kIMKCommandClientName.nullability = "nonnull"
+static.kIMKCommandMenuItemName.nullability = "nonnull"
+static.IMKCandidatesOpacityAttributeName.nullability = "nonnull"
+static.IMKCandidatesSendServerKeyEventFirst.nullability = "nonnull"
+static.IMKControllerClass.nullability = "nonnull"
+static.IMKDelegateClass.nullability = "nonnull"
+static.IMKModeDictionary.nullability = "nonnull"
+
+protocol.IMKMouseHandling.methods."mouseDownOnCharacterIndex:coordinate:withModifier:continueTracking:client:".arguments.3.bounds = "single"
+
+# Needs `IMKTextInput`, which is defined in `Carbon` for some reason
+class.IMKInputController.methods.client.skipped = true
+
+# TODO: Re-enable these once the relevant frameworks are present
+class.IMKServer.skipped-protocols = ["IMKServerProxy"]

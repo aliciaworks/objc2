@@ -1,0 +1,37 @@
+framework = "HealthKit"
+crate = "objc2-health-kit"
+required-crates = ["objc2", "objc2-foundation"]
+custom-lib-rs = true
+macos = "13.0"
+maccatalyst = "13.0"
+ios = "8.0"
+watchos = "2.0"
+visionos = "1.0"
+
+external.CLLocation.module = "CoreLocation.CLLocation"
+
+# Emit this.
+const.HKUnitMolarMassBloodGlucose.skipped = false
+
+fn.HKAppleWalkingSteadinessClassificationForQuantity.arguments.1.bounds = "single"
+
+# Make functions be methods on relevant items.
+fn.HKAppleWalkingSteadinessMinimumQuantityForClassification.implementor = "HealthKit.HKAppleWalkingSteadinessClassification.HKAppleWalkingSteadinessClassification"
+fn.HKAppleWalkingSteadinessMinimumQuantityForClassification.renamed = "minimum"
+fn.HKAppleWalkingSteadinessMaximumQuantityForClassification.implementor = "HealthKit.HKAppleWalkingSteadinessClassification.HKAppleWalkingSteadinessClassification"
+fn.HKAppleWalkingSteadinessMaximumQuantityForClassification.renamed = "maximum"
+
+fn.HKAppleSleepingBreathingDisturbancesMinimumQuantityForClassification.implementor = "HealthKit.HKAppleSleepingBreathingDisturbancesClassification.HKAppleSleepingBreathingDisturbancesClassification"
+fn.HKAppleSleepingBreathingDisturbancesMinimumQuantityForClassification.renamed = "minimum"
+
+fn.HKMinimumScoreForGAD7AssessmentRisk.implementor = "HealthKit.HKGAD7Assessment.HKGAD7AssessmentRisk"
+fn.HKMinimumScoreForGAD7AssessmentRisk.renamed = "minimum"
+fn.HKMaximumScoreForGAD7AssessmentRisk.implementor = "HealthKit.HKGAD7Assessment.HKGAD7AssessmentRisk"
+fn.HKMaximumScoreForGAD7AssessmentRisk.renamed = "maximum"
+fn.HKMinimumScoreForPHQ9AssessmentRisk.implementor = "HealthKit.HKPHQ9Assessment.HKPHQ9AssessmentRisk"
+fn.HKMinimumScoreForPHQ9AssessmentRisk.renamed = "minimum"
+fn.HKMaximumScoreForPHQ9AssessmentRisk.implementor = "HealthKit.HKPHQ9Assessment.HKPHQ9AssessmentRisk"
+fn.HKMaximumScoreForPHQ9AssessmentRisk.renamed = "maximum"
+
+fn.HKCategoryValueSleepAnalysisAsleepValues.implementor = "HealthKit.HKCategoryValues.HKCategoryValueSleepAnalysis"
+fn.HKCategoryValueSleepAnalysisAsleepValues.renamed = "allAsleepValues" # Same naming as Swift

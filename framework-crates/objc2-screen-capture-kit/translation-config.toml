@@ -1,0 +1,21 @@
+framework = "ScreenCaptureKit"
+crate = "objc2-screen-capture-kit"
+required-crates = ["objc2", "objc2-foundation"]
+custom-lib-rs = true
+macos = "12.3"
+
+# The header is incorrectly written, it's written as:
+# @interface SCContentSharingPickerConfiguration <NSCopying>: NSObject
+#
+# While the intention was:
+# @interface SCContentSharingPickerConfiguration : NSObject <NSCopying>
+class.SCContentSharingPickerConfiguration.generics = []
+
+###
+### Safety
+###
+
+# SAFETY: ScreenCaptureKit methods are well-behaved.
+unsafe-default-safety.documentation-is-reviewed = true
+# ScreenCaptureKit is internally bounds-checked.
+unsafe-default-safety.bounds-checked-internally = true

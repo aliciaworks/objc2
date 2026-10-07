@@ -1,0 +1,13 @@
+framework = "Accessibility"
+crate = "objc2-accessibility"
+required-crates = ["objc2", "objc2-foundation"]
+custom-lib-rs = true
+macos = "11.0"
+maccatalyst = "14.0"
+ios = "14.0"
+tvos = "14.0"
+watchos = "7.0"
+visionos = "1.0"
+
+# Both static and enum.
+static.AXFeatureOverrideSessionErrorDomain.skipped = true

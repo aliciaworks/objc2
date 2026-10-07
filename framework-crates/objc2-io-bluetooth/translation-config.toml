@@ -1,0 +1,127 @@
+framework = "IOBluetooth"
+crate = "objc2-io-bluetooth"
+required-crates = []
+custom-lib-rs = true
+macos = "10.2"
+
+# Treated as recursive, because it cannot be found
+class.IOBluetoothDevicePair.skipped-protocols = ["CBCentralManagerDelegate"]
+
+# Unclear which types these protocol impls return (inherited from NSData).
+class.IOBluetoothSDPUUID.skipped-protocols = ["NSCopying", "NSMutableCopying"]
+
+# TODO: Merge these somehow
+typedef.IOBluetoothDeviceRef.renamed = "IOBluetoothDeviceRef"
+typedef.IOBluetoothL2CAPChannelRef.renamed = "IOBluetoothL2CAPChannelRef"
+typedef.IOBluetoothObjectRef.renamed = "IOBluetoothObjectRef"
+typedef.IOBluetoothRFCOMMChannelRef.renamed = "IOBluetoothRFCOMMChannelRef"
+typedef.IOBluetoothSDPUUIDRef.renamed = "IOBluetoothSDPUUIDRef"
+typedef.IOBluetoothSDPDataElementRef.renamed = "IOBluetoothSDPDataElementRef"
+typedef.IOBluetoothSDPServiceRecordRef.renamed = "IOBluetoothSDPServiceRecordRef"
+typedef.IOBluetoothUserNotificationRef.renamed = "IOBluetoothUserNotificationRef"
+
+# Needs va_list
+fn.IOBluetoothPackDataList.skipped = true
+fn.IOBluetoothUnpackDataList.skipped = true
+
+# ns_consumes_self / NS_REPLACES_RECEIVER
+class.IOBluetoothDevice.methods."awakeAfterUsingCoder:".skipped = true
+
+# Overflows c_uint.
+const.kBluetoothHCIEventMaskLEDefault64Bit.skipped = true
+const.kBluetoothHCIEventMaskDefault64Bit.skipped = true
+const.kBluetoothHCIEventMaskAll64Bit.skipped = true
+const.kBluetoothHCIEventMaskFlowSpecificationCompleteEvent.skipped = true
+const.kBluetoothHCIEventMaskInquiryResultWithRSSIEvent.skipped = true
+const.kBluetoothHCIEventMaskReadRemoteExtendedFeaturesCompleteEvent.skipped = true
+const.kBluetoothHCIEventMaskSynchronousConnectionCompleteEvent.skipped = true
+const.kBluetoothHCIEventMaskSynchronousConnectionChangedEvent.skipped = true
+const.kBluetoothHCIEventMaskSniffSubratingEvent.skipped = true
+const.kBluetoothHCIEventMaskExtendedInquiryResultEvent.skipped = true
+const.kBluetoothHCIEventMaskEncryptionChangeEvent.skipped = true
+const.kBluetoothHCIEventMaskEncryptionKeyRefreshCompleteEvent.skipped = true
+const.kBluetoothHCIEventMaskLinkSupervisionTimeoutChangedEvent.skipped = true
+const.kBluetoothHCIEventMaskEnhancedFlushCompleteEvent.skipped = true
+const.kBluetoothHCIEventMaskIOCapabilityRequestEvent.skipped = true
+const.kBluetoothHCIEventMaskIOCapabilityRequestReplyEvent.skipped = true
+const.kBluetoothHCIEventMaskUserConfirmationRequestEvent.skipped = true
+const.kBluetoothHCIEventMaskUserPasskeyRequestEvent.skipped = true
+const.kBluetoothHCIEventMaskRemoteOOBDataRequestEvent.skipped = true
+const.kBluetoothHCIEventMaskSimplePairingCompleteEvent.skipped = true
+const.kBluetoothHCIEvnetMaskLinkSupervisionTimeoutChangedEvent.skipped = true
+const.kBluetoothHCIEvnetMaskEnhancedFlushCompleteEvent.skipped = true
+const.kBluetoothHCIEventMaskUserPasskeyNotificationEvent.skipped = true
+const.kBluetoothHCIEventMaskKeypressNotificationEvent.skipped = true
+const.kBluetoothHCIEventMaskRemoteHostSupportedFeaturesNotificationEvent.skipped = true
+const.kBluetoothHCIEventMaskLEMetaEvent.skipped = true
+
+typedef.OBEXSessionRef.renamed = "OBEXSessionRef" # TODO: Merge OBEXSession and OBEXSessionRef somehow
+
+# Redefined to avoid encoding error when used in `setOBEXSessionOpenConnectionCallback:refCon:`
+typedef.IOBluetoothOBEXSessionOpenConnectionCallback.skipped = true
+
+##
+## Pointer bounds
+##
+
+fn.IOBluetoothNSStringToDeviceAddress.arguments.1.bounds = "single"
+fn.IOBluetoothNSStringFromDeviceAddress.arguments.0.bounds = "single"
+fn.IOBluetoothNSStringFromDeviceAddressColon.arguments.0.bounds = "single"
+fn.IOBluetoothFindNumberOfRegistryEntriesOfClassName.arguments.0.bounds = "null-terminated"
+class.IOBluetoothDevice.methods."deviceWithAddress:".arguments.0.bounds = "single"
+class.IOBluetoothDevice.methods."withAddress:".arguments.0.bounds = "single"
+class.IOBluetoothDevice.methods.getAddress.return.bounds = "single"
+class.IOBluetoothDevicePair.methods."replyPINCode:PINCode:".arguments.1.bounds = "single" # Not counted by `pin_code_size`, only limited by it
+class.NSObject.methods."readRSSIForDeviceComplete:device:info:error:".arguments.2.bounds = "single"
+class.NSObject.methods."readLinkQualityForDeviceComplete:device:info:error:".arguments.2.bounds = "single"
+class.IOBluetoothRFCOMMChannel.methods."writeSimple:length:sleep:bytesSent:".arguments.0.bounds.sized-by = "length"
+class.IOBluetoothRFCOMMChannel.methods."writeSimple:length:sleep:bytesSent:".arguments.3.bounds = "single"
+class.IOBluetoothSDPServiceRecord.methods."getRFCOMMChannelID:".arguments.0.bounds = "single"
+class.IOBluetoothSDPServiceRecord.methods."getL2CAPPSM:".arguments.0.bounds = "single"
+class.IOBluetoothSDPServiceRecord.methods."getServiceRecordHandle:".arguments.0.bounds = "single"
+
+fn.OBEXSessionHasOpenOBEXConnection.arguments.1.bounds = "single"
+fn.OBEXSessionGetMaxPacketLength.arguments.1.bounds = "single"
+fn.OBEXSessionGetAvailableCommandPayloadLength.arguments.2.bounds = "single"
+fn.OBEXSessionGetAvailableCommandResponsePayloadLength.arguments.2.bounds = "single"
+fn.OBEXCreateVEvent.arguments.0.bounds.counted-by = "in_charset_length"
+fn.OBEXCreateVEvent.arguments.2.bounds.counted-by = "in_encoding_length"
+fn.OBEXCreateVEvent.arguments.4.bounds.counted-by = "in_event_start_date_length"
+fn.OBEXCreateVEvent.arguments.6.bounds.counted-by = "in_event_end_date_length"
+fn.OBEXCreateVEvent.arguments.8.bounds.counted-by = "in_alarm_date_length"
+fn.OBEXCreateVEvent.arguments.10.bounds.counted-by = "in_category_length"
+fn.OBEXCreateVEvent.arguments.12.bounds.counted-by = "in_summary_length"
+fn.OBEXCreateVEvent.arguments.14.bounds.counted-by = "in_location_length"
+fn.OBEXCreateVEvent.arguments.16.bounds.counted-by = "in_xirmcluid_length"
+fn.IOBluetoothOBEXSessionCreateWithIOBluetoothSDPServiceRecordRef.arguments.1.bounds = "single"
+fn.IOBluetoothOBEXSessionCreateWithIOBluetoothDeviceRefAndChannelNumber.arguments.2.bounds = "single"
+fn.IOBluetoothOBEXSessionCreateWithIncomingIOBluetoothRFCOMMChannel.arguments.3.bounds = "single"
+class.OBEXSession.methods."serverHandleIncomingData:".arguments.0.bounds = "single"
+class.OBEXSession.methods."clientHandleIncomingData:".arguments.0.bounds = "single"
+
+##
+## Generics
+##
+
+fn.IOBluetoothAddSCOAudioDevice.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"] # Probably
+
+fn.OBEXGetHeaders.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXHeadersToBytes.arguments.0.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddNameHeader.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddDescriptionHeader.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddCountHeader.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddTime4ByteHeader.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddLengthHeader.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddTypeHeader.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddTimeISOHeader.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddTargetHeader.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddHTTPHeader.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddBodyHeader.arguments.3.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddWhoHeader.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddConnectionIDHeader.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddApplicationParameterHeader.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddByteSequenceHeader.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddObjectClassHeader.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddAuthorizationChallengeHeader.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddAuthorizationResponseHeader.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.OBEXAddUserDefinedHeader.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]

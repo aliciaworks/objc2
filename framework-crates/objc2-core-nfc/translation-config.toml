@@ -1,0 +1,8 @@
+framework = "CoreNFC"
+crate = "objc2-core-nfc"
+required-crates = ["bitflags", "objc2", "objc2-foundation"]
+maccatalyst = "13.1"
+ios = "11.0"
+
+# Both protocol and class.
+protocol.NFCReaderSession.renamed = "NFCReaderSessionProtocol"

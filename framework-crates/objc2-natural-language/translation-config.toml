@@ -1,0 +1,13 @@
+framework = "NaturalLanguage"
+crate = "objc2-natural-language"
+required-crates = ["objc2", "objc2-foundation"]
+macos = "10.14"
+maccatalyst = "13.0"
+ios = "12.0"
+tvos = "12.0"
+watchos = "5.0"
+visionos = "1.0"
+
+external.MLModel.module = "CoreML.MLModel"
+
+class.NLEmbedding.methods."getVector:forString:".arguments.0.bounds.counted-by = "self.dimension()"

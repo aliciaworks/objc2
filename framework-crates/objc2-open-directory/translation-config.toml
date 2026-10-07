@@ -1,0 +1,89 @@
+framework = "OpenDirectory"
+crate = "objc2-open-directory"
+required-crates = ["objc2", "objc2-foundation"]
+macos = "10.6"
+maccatalyst = "13.0"
+
+external.SFAuthorization.module = "SecurityFoundation.SFAuthorization"
+
+# Old compatibility aliases
+typedef._ODRecordType.skipped = true
+typedef._ODAttributeType.skipped = true
+typedef._ODAuthenticationType.skipped = true
+
+# These exist both in Objective-C and CF.
+# TODO: Make these somehow be the same type.
+typedef.ODContextRef.renamed = "ODContextRef"
+typedef.ODNodeRef.renamed = "ODNodeRef"
+typedef.ODQueryRef.renamed = "ODQueryRef"
+typedef.ODRecordRef.renamed = "ODRecordRef"
+typedef.ODSessionRef.renamed = "ODSessionRef"
+
+# Conflicts with each other, and it's not clear if one is preferred.
+fn.ODNodeCreateRecord.renamed = "create_record"
+fn.ODNodeCopyRecord.renamed = "copy_record"
+
+##
+## Generics.
+##
+
+fn.ODNodeCopySubnodeNames.return.generics = ["CoreFoundation.CFString.CFString"]
+fn.ODNodeCopyUnreachableSubnodeNames.return.generics = ["CoreFoundation.CFString.CFString"]
+fn.ODNodeCopyDetails.arguments.1.generics = ["OpenDirectory.CFOpenDirectory.CFOpenDirectoryConstants.ODAttributeType"]
+fn.ODNodeCopyDetails.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFArray.CFArray<CoreFoundation.CFType>"]
+fn.ODNodeCopySupportedRecordTypes.return.generics = ["OpenDirectory.CFOpenDirectory.CFOpenDirectoryConstants.ODRecordType"]
+fn.ODNodeCopySupportedAttributes.return.generics = ["OpenDirectory.CFOpenDirectory.CFOpenDirectoryConstants.ODAttributeType"]
+fn.ODNodeSetCredentialsExtended.arguments.3.generics = ["CoreFoundation.CFType"] # CFString or CFData
+fn.ODNodeSetCredentialsExtended.arguments.4.generics = ["CoreFoundation.CFData.CFData"]
+fn.ODNodeCreateRecord.arguments.3.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODNodeCopyPolicies.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODNodeCopySupportedPolicies.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODNodeSetPolicies.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODNodeAddAccountPolicy.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODNodeRemoveAccountPolicy.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODNodeSetAccountPolicies.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODNodeCopyAccountPolicies.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+fn.ODQueryCopyResults.return.generics = ["OpenDirectory.ODRecord.ODRecord"]
+
+fn.ODRecordSetNodeCredentialsExtended.arguments.3.generics = ["CoreFoundation.CFType"] # CFString or CFData
+fn.ODRecordSetNodeCredentialsExtended.arguments.4.generics = ["CoreFoundation.CFData.CFData"]
+fn.ODRecordVerifyPasswordExtended.arguments.2.generics = ["CoreFoundation.CFType"] # CFString or CFData
+fn.ODRecordVerifyPasswordExtended.arguments.3.generics = ["CoreFoundation.CFData.CFData"]
+fn.ODRecordCopyValues.return.generics = ["CoreFoundation.CFType"] # CFString or CFData
+fn.ODRecordCopyDetails.arguments.1.generics = ["OpenDirectory.CFOpenDirectory.CFOpenDirectoryConstants.ODAttributeType"]
+fn.ODRecordCopyDetails.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODRecordCopyPasswordPolicy.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODRecordCopyPolicies.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODRecordCopyEffectivePolicies.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODRecordCopySupportedPolicies.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODRecordSetPolicies.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODRecordAddAccountPolicy.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODRecordRemoveAccountPolicy.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODRecordSetAccountPolicies.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODRecordCopyAccountPolicies.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+fn.ODSessionCreate.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.ODSessionCopyNodeNames.return.generics = ["CoreFoundation.CFString.CFString"]
+
+##
+## Nullability, lifetime and pointer bounds.
+##
+
+# Ensure this is emitted as `Option<&T>`, it's NULL.
+static.kODSessionDefault.nullability = "nullable"
+
+fn.ODSessionCopyNodeNames.arguments.1.nullability = "nullable"
+
+fn.ODNodeCreateCopy.arguments.1.nullability = "nonnull"
+
+fn.ODRecordCopyPasswordPolicy.arguments.1.nullability = "nonnull"
+
+# Prooobably needs to be released by us?
+# Quite unsure, but should segfault if wrong, so then we'll know.
+fn.ODNodeSetCredentialsExtended.arguments.4.lifetime = "out-pointer-retained"
+fn.ODNodeSetCredentialsExtended.arguments.5.lifetime = "out-pointer-retained"
+fn.ODRecordSetNodeCredentialsExtended.arguments.4.lifetime = "out-pointer-retained"
+fn.ODRecordSetNodeCredentialsExtended.arguments.5.lifetime = "out-pointer-retained"
+fn.ODRecordVerifyPasswordExtended.arguments.3.lifetime = "out-pointer-retained"
+fn.ODRecordVerifyPasswordExtended.arguments.4.lifetime = "out-pointer-retained"

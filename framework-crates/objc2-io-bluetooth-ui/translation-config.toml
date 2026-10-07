@@ -1,0 +1,22 @@
+framework = "IOBluetoothUI"
+crate = "objc2-io-bluetooth-ui"
+required-crates = ["objc2", "objc2-foundation", "objc2-app-kit"]
+custom-lib-rs = true
+macos = "10.2"
+
+# TODO: Merge these somehow
+typedef.IOBluetoothPairingControllerRef.renamed = "IOBluetoothPairingControllerRef"
+typedef.IOBluetoothServiceBrowserControllerRef.renamed = "IOBluetoothServiceBrowserControllerRef"
+typedef.IOBluetoothDeviceSelectorControllerRef.renamed = "IOBluetoothDeviceSelectorControllerRef"
+
+##
+## Pointer bounds
+##
+
+class.IOBluetoothDeviceSelectorController.methods."setSearchAttributes:".arguments.0.bounds = "single"
+class.IOBluetoothDeviceSelectorController.methods.getSearchAttributes.return.bounds = "single"
+class.IOBluetoothPairingController.methods."setSearchAttributes:".arguments.0.bounds = "single"
+class.IOBluetoothPairingController.methods.getSearchAttributes.return.bounds = "single"
+class.IOBluetoothServiceBrowserController.methods."discoverWithDeviceAttributes:serviceList:serviceRecord:".arguments.0.bounds = "single"
+class.IOBluetoothServiceBrowserController.methods."setSearchAttributes:".arguments.0.bounds = "single"
+class.IOBluetoothServiceBrowserController.methods.getSearchAttributes.return.bounds = "single"

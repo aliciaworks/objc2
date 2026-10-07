@@ -1,0 +1,8 @@
+framework = "Social"
+crate = "objc2-social"
+required-crates = ["objc2", "objc2-foundation"]
+macos = "10.8"
+maccatalyst = "13.0"
+ios = "6.0"
+
+external.ACAccount.module = "Accounts.ACAccount"

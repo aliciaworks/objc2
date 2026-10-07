@@ -1,0 +1,13 @@
+framework = "ExternalAccessory"
+crate = "objc2-external-accessory"
+required-crates = ["objc2", "objc2-foundation"]
+macos = "10.13"
+maccatalyst = "16.0"
+ios = "3.0"
+tvos = "10.0"
+visionos = "1.0"
+
+typedef.EABluetoothAccessoryPickerCompletion.sendable = true
+
+# Needs the `UIKit` framework
+class.EAWiFiUnconfiguredAccessoryBrowser.methods."configureAccessory:withConfigurationUIOnViewController:".skipped = true

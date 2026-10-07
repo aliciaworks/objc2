@@ -1,0 +1,14 @@
+framework = "MLCompute"
+crate = "objc2-ml-compute"
+required-crates = ["objc2", "objc2-foundation"]
+macos = "11.0"
+maccatalyst = "14.0"
+ios = "14.0"
+tvos = "14.0"
+
+external.MLModel.module = "CoreML.MLModel"
+
+# The internal encoding of this says it takes a float as the second argument,
+# which is inconsistent with the documentation, so to ensure that calling it
+# sound, we avoid emitting it.
+class.MLCTensor.methods."tensorByDequantizingToType:scale:bias:".skipped = true

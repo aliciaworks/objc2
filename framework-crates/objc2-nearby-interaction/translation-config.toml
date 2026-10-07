@@ -1,0 +1,9 @@
+framework = "NearbyInteraction"
+crate = "objc2-nearby-interaction"
+required-crates = ["objc2", "objc2-foundation"]
+macos = "11.0"
+maccatalyst = "14.0"
+ios = "14.0"
+watchos = "8.0"
+
+external.ARSession.module = "ARKit.ARSession"
