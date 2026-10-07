@@ -253,6 +253,13 @@ impl Library {
             writeln!(lib_rs, "#[cfg(feature = \"std\")]")?;
             writeln!(lib_rs, "extern crate std;")?;
             writeln!(lib_rs)?;
+            // The two C typedefs the visionOS ARKit headers use and this project's type database has no
+            // Rust name for. The generated files do `use crate::*`, so a definition here is in scope there.
+            writeln!(lib_rs, "/// `uuid_t`: sixteen bytes. C's, not a Rust type.")?;
+            writeln!(lib_rs, "pub type uuid_t = [u8; 16];")?;
+            writeln!(lib_rs, "/// `OSType`: a four-character code.")?;
+            writeln!(lib_rs, "pub type OSType = u32;")?;
+            writeln!(lib_rs)?;
             writeln!(lib_rs, "mod generated;")?;
             writeln!(lib_rs, "#[allow(unused_imports, unreachable_pub)]")?;
             writeln!(lib_rs, "pub use self::generated::*;")?;

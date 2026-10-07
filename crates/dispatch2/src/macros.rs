@@ -1,3 +1,4 @@
+#[macro_export]
 macro_rules! dispatch_object {
     (
         unsafe impl $type:ident {}
