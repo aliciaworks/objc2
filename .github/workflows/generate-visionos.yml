@@ -29,6 +29,10 @@ jobs:
       - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          # The translator formats what it writes, and asserts that the format succeeded - so a toolchain
+          # without rustfmt is a panic after every framework has been generated.
+          components: rustfmt
 
       # Upstream generates with Xcode 27; the image's default is not it.
       - name: Which Xcode
