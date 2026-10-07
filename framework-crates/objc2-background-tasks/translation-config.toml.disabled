@@ -1,7 +1,0 @@
-framework = "BackgroundTasks"
-crate = "objc2-background-tasks"
-required-crates = ["objc2", "objc2-foundation"]
-maccatalyst = "13.0"
-ios = "13.0"
-tvos = "13.0"
-visionos = "1.0"

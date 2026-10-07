@@ -1,5 +1,0 @@
-[features]
-TVTopShelfItemCollection = [
-    "objc2-foundation/NSArray",
-    "TVTopShelfItem",
-]

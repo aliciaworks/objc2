@@ -1,5 +1,0 @@
-framework = "Messages"
-crate = "objc2-messages"
-required-crates = ["objc2", "objc2-foundation"]
-maccatalyst = "14.0"
-ios = "10.0"

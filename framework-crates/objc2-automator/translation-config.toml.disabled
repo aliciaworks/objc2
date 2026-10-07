@@ -1,7 +1,0 @@
-framework = "Automator"
-crate = "objc2-automator"
-required-crates = ["objc2", "objc2-foundation"]
-macos = "10.4"
-maccatalyst = "14.0"
-
-class.AMWorkflowController.main-thread-only = true

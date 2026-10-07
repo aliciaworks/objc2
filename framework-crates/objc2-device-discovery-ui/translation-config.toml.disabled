@@ -1,4 +1,0 @@
-framework = "DeviceDiscoveryUI"
-crate = "objc2-device-discovery-ui"
-required-crates = ["objc2", "objc2-foundation", "objc2-ui-kit"]
-tvos = "16.0"

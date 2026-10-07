@@ -1,4 +1,0 @@
-framework = "MailKit"
-crate = "objc2-mail-kit"
-required-crates = ["objc2", "objc2-foundation"]
-macos = "12.0"

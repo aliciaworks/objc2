@@ -1,9 +1,0 @@
-framework = "IntentsUI"
-crate = "objc2-intents-ui"
-required-crates = ["objc2", "objc2-foundation"]
-macos = "12.0"
-maccatalyst = "13.0"
-ios = "10.0"
-tvos = "14.0"
-# watchos = "3.2" # Documentation says it's available, but it seems to not be
-visionos = "1.0"
