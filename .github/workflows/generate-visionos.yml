@@ -46,6 +46,34 @@ jobs:
       - name: Generate
         run: |
           set -euo pipefail
+          # The crates that consume `objc2-ar-kit` were generated against its iOS feature names, and
+          # reading ARKit from the visionOS SDK renames them (a class name becomes a header name). They are
+          # not needed here, so they go - along with the root manifest entries that point at them, because a
+          # workspace dependency whose path is gone is a workspace that does not resolve.
+          python3 - <<'INNER'
+          import re
+          from pathlib import Path
+          fc = Path("framework-crates")
+          keep = {"objc2-ar-kit", "objc2-compositor-services"}
+          removed = set()
+          for d in sorted(fc.iterdir()):
+              if not d.is_dir() or d.name in keep:
+                  continue
+              text = (d / "Cargo.toml").read_text()
+              if "objc2-ar-kit" in text:
+                  removed.add(d.name)
+          for name in removed:
+              import shutil; shutil.rmtree(fc / name)
+          root = Path("Cargo.toml")
+          kept = []
+          for line in root.read_text().splitlines():
+              m = re.match(r'^(objc2-[a-z0-9-]+) = \{ path = "framework-crates/([a-z0-9-]+)"', line)
+              if m and m.group(2) in removed and line.rstrip().endswith("}"):
+                  continue
+              kept.append(line)
+          root.write_text("\n".join(kept) + "\n")
+          print(f"removed {len(removed)} consumers of objc2-ar-kit: {' '.join(sorted(removed))}")
+          INNER
           rm -rf generated framework-crates/objc2-ar-kit/src/generated
           rm -rf framework-crates/objc2-compositor-services/src/generated
           cargo run --release -p header-translator --bin header-translator all
