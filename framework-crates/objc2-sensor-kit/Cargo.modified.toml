@@ -1,6 +1,0 @@
-[dependencies]
-objc2-ar-kit = { workspace = true, optional = true, features = [
-    "ARAnchor", # Added
-    "ARFaceAnchor",
-    "objc2",
-] }
