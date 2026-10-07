@@ -99,26 +99,26 @@ jobs:
 
       # `-L`: `src/generated` is a symlink into the top-level `generated/` upstream, and copying the link rather
       # than what it points at produces a crate whose `mod generated;` finds nothing.
-      - name: Collect what a consumer needs
+      # Everything, not a chosen part of it. Three attempts in a row failed on the same thing from three
+      # directions - one crate's manifest, then which crates are members, then only two crates' sources - and
+      # each time the failure was that some part of the tree came from this run and some from the last one.
+      # The generator's output is a whole tree; this takes it as one.
+      - name: Collect what the run produced
         run: |
           set -euo pipefail
-          mkdir -p out/crates out/manifests
-          cp -aL framework-crates/objc2-ar-kit out/crates/
-          cp -aL framework-crates/objc2-compositor-services out/crates/
-          cp -a generated out/
-          for d in framework-crates/*/; do
-            [ -f "$d/Cargo.toml" ] && cp "$d/Cargo.toml" "out/manifests/$(basename "${d%/}").toml"
-          done
-          echo "crates:    $(ls out/crates)"
-          echo "manifests: $(ls out/manifests | wc -l)"
-          ls out/crates/objc2-ar-kit/src/generated | head -5
+          rm -rf out && mkdir -p out
+          # `-L`: `src/generated` is a symlink into the top-level `generated/`, which is upstream's layout.
+          cp -aL framework-crates out/framework-crates
+          cp -a generated out/generated
+          du -sh out
+          echo "crates: $(ls out/framework-crates | wc -l)"
 
       - name: What the backend needs
         run: |
           set -euo pipefail
           for n in ar_plane_detection_provider_create ar_plane_anchors_enumerate_anchors_f \
                    cp_drawable_set_device_anchor ar_session_create; do
-            if grep -rq "fn $n" out/crates; then echo "  generated  $n"; else echo "  MISSING    $n"; fi
+            if grep -rq "fn $n" out/framework-crates; then echo "  generated  $n"; else echo "  MISSING    $n"; fi
           done
 
       - uses: actions/upload-artifact@v7
