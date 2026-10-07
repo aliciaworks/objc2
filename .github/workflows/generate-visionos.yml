@@ -41,10 +41,11 @@ jobs:
           cargo run --release -p header-translator --bin header-translator objc2-ar-kit
           mkdir -p out
           cp -a generated/ARKit out/ARKit
-          # The manifest too: a run rewrites its crate's feature list from the SDK it read, and
-          # the checked-in one is the iOS run's - so the two do not name each other's features.
-          mkdir -p out/manifests
-          cp framework-crates/objc2-ar-kit/Cargo.toml out/manifests/objc2-ar-kit.toml
+          # The whole crate, not just its generated module: a run rewrites the feature list in its
+          # Cargo.toml *and* the `use` lines its lib.rs starts with, and the checked-in copies of both
+          # are the iOS run's. Collecting one piece at a time is how the last three attempts failed.
+          mkdir -p out/crates
+          cp -a framework-crates/objc2-ar-kit out/crates/
 
 
       - name: Manifests back
@@ -56,7 +57,7 @@ jobs:
           rm -rf generated framework-crates/objc2-compositor-services/src/generated
           cargo run --release -p header-translator --bin header-translator objc2-compositor-services
           cp -a generated/CompositorServices out/CompositorServices
-          cp framework-crates/objc2-compositor-services/Cargo.toml out/manifests/objc2-compositor-services.toml
+          cp -a framework-crates/objc2-compositor-services out/crates/
 
 
       - name: What the backend needs
