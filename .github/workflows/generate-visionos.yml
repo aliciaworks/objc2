@@ -13,6 +13,9 @@ on:
   push:
     paths:
       - '.github/workflows/generate-visionos.yml'
+      # So that putting a run's manifests back, or fixing one, is also a run: nothing here commits, so
+      # this cannot loop.
+      - 'framework-crates/**/Cargo.toml'
 
 jobs:
   generate:
