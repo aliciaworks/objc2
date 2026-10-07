@@ -36,7 +36,11 @@ jobs:
           cargo run --release -p header-translator --bin header-translator objc2-ar-kit
           mkdir -p out
           cp -a generated/ARKit out/ARKit
-          ls out/ARKit | head -30
+          # The manifest too: a run rewrites its crate's feature list from the SDK it read, and
+          # the checked-in one is the iOS run's - so the two do not name each other's features.
+          mkdir -p out/manifests
+          cp framework-crates/objc2-ar-kit/Cargo.toml out/manifests/objc2-ar-kit.toml
+
 
       - name: Manifests back
         run: git checkout -- Cargo.toml framework-crates
@@ -46,7 +50,8 @@ jobs:
           set -euo pipefail
           cargo run --release -p header-translator --bin header-translator objc2-compositor-services
           cp -a generated/CompositorServices out/CompositorServices
-          ls out/CompositorServices
+          cp framework-crates/objc2-compositor-services/Cargo.toml out/manifests/objc2-compositor-services.toml
+
 
       - name: What the backend needs
         run: |
