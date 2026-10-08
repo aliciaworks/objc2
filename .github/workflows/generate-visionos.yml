@@ -47,6 +47,35 @@ jobs:
       # Before the build, because a workspace that cannot resolve cannot build anything - including the tool
       # that is supposed to regenerate it. A workspace dependency whose path has been deleted is the other half
       # of that, and leaving it out is what stopped an earlier attempt.
+      # The branch has been mutated by hand across attempts, so every diagnosis made after one of them was made
+      # against a tree whose starting point was unknown - which is what turned one wrong prune into an hour of
+      # them. This restores the two things the trim touches from upstream, and re-applies the one config change
+      # this fork exists for, so a run starts from the same tree every time.
+      - name: Start from upstream
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin main
+          git checkout origin/main -- framework-crates Cargo.toml
+
+          # ARKit read from the SDK that has its visionOS module, and the two skips that were there because
+          # upstream reads that framework from iOS.
+          python3 - <<'INNER'
+          from pathlib import Path
+          p = Path("framework-crates/objc2-ar-kit/translation-config.toml")
+          s = p.read_text()
+          for line in ('maccatalyst = "14.0"\n', 'ios = "11.0"\n'):
+              s = s.replace(line, "")
+          s = s.replace(
+              "# ARKit is generated for iOS, and does not include\n"
+              "# the visionOS module required here.\n"
+              "fn.cp_drawable_set_device_anchor.skipped = true\n"
+              "fn.cp_drawable_get_device_anchor.skipped = true\n",
+              "",
+          )
+          p.write_text(s)
+          print("ARKit config: visionOS only, no device-anchor skips")
+          INNER
+
       - name: Drop what cannot resolve
         run: |
           set -euo pipefail
