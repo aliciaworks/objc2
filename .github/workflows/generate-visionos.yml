@@ -133,6 +133,11 @@ jobs:
           print(f"removed {len(removed)} framework crates: {' '.join(sorted(removed))}")
           INNER
 
+          # `update_list` writes `docs/frameworks_list.md`, and the release this branch is built on
+          # predates the `docs/` directory - a missing directory is a failure *after* the whole
+          # generation has already succeeded.
+          mkdir -p docs
+
       - name: Build the translator
         run: cargo build --release -p header-translator
 
