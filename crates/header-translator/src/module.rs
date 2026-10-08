@@ -27,6 +27,17 @@ impl Module {
         Self::default()
     }
 
+    pub fn refers_to_builtin(&self, name: &str) -> bool {
+        self.stmts
+            .iter()
+            .flat_map(|stmt| stmt.required_items_inner())
+            .any(|item| item.refers_to_builtin(name))
+            || self
+                .submodules
+                .values()
+                .any(|module| module.refers_to_builtin(name))
+    }
+
     pub fn add_stmt(&mut self, stmt: Stmt) {
         self.stmts.push(stmt);
     }

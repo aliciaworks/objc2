@@ -2178,6 +2178,10 @@ impl Ty {
                     "intptr_t" => return Self::Primitive(Primitive::ISize),
                     "uintptr_t" => return Self::Primitive(Primitive::USize),
 
+                    // Present in the visionOS ARKit headers; give it a Rust name
+                    // directly, so it needs no per-crate alias.
+                    "OSType" => return Self::Primitive(Primitive::U32),
+
                     // include/sys/_types/_XXX.h
                     "u_char" => return Self::Primitive(Primitive::UChar),
                     "u_short" => return Self::Primitive(Primitive::UShort),

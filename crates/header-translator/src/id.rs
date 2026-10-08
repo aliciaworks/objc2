@@ -816,6 +816,18 @@ impl PartialEq for ItemTree {
 
 impl Eq for ItemTree {}
 
+impl ItemTree {
+    /// Whether this item, or anything nested inside it, refers to the
+    /// `__builtin__` type with the given name.
+    pub(crate) fn refers_to_builtin(&self, name: &str) -> bool {
+        (self.id.library_name() == "__builtin__" && self.id.name == name)
+            || self
+                .children
+                .iter()
+                .any(|child| child.refers_to_builtin(name))
+    }
+}
+
 impl hash::Hash for ItemTree {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);

@@ -68,6 +68,11 @@ jobs:
           # ARKit's visionOS headers use a GameController trait, and the crate needs the dependency that
           # provides it - which is what this key is for.
           s = s.replace('required-crates = []', 'required-crates = ["objc2-game-controller"]')
+          # The dependency alone is not enough: the generated code references GCDevice
+          # unqualified, so the item must be located in GameController for the crate to
+          # import it. Idempotent, and appended at the end, which is valid TOML.
+          if 'external.GCDevice' not in s:
+              s += '\nexternal.GCDevice.module = "GameController.GCDevice"\n'
           s = s.replace(
               "# ARKit is generated for iOS, and does not include\n"
               "# the visionOS module required here.\n"
