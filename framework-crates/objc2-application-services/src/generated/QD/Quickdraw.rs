@@ -169,7 +169,7 @@ pub struct PixMap {
     pub pixelSize: c_short,
     pub cmpCount: c_short,
     pub cmpSize: c_short,
-    pub pixelFormat: OSType,
+    pub pixelFormat: u32,
     pub pmTable: CTabHandle,
     pub pmExt: *mut c_void,
 }
@@ -191,7 +191,7 @@ unsafe impl Encode for PixMap {
             <c_short>::ENCODING,
             <c_short>::ENCODING,
             <c_short>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <CTabHandle>::ENCODING,
             <*mut c_void>::ENCODING,
         ],

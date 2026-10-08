@@ -855,18 +855,18 @@ unsafe impl RefEncode for AudioTimeStamp {
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct AudioClassDescription {
     /// The four char code codec type.
-    pub mType: OSType,
+    pub mType: u32,
     /// The four char code codec subtype.
-    pub mSubType: OSType,
+    pub mSubType: u32,
     /// The four char code codec manufacturer.
-    pub mManufacturer: OSType,
+    pub mManufacturer: u32,
 }
 
 #[cfg(feature = "objc2")]
 unsafe impl Encode for AudioClassDescription {
     const ENCODING: Encoding = Encoding::Struct(
         "AudioClassDescription",
-        &[<OSType>::ENCODING, <OSType>::ENCODING, <OSType>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING, <u32>::ENCODING],
     );
 }
 

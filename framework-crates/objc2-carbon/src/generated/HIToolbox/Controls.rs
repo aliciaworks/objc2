@@ -658,14 +658,13 @@ pub const vAxisOnly: c_uint = 2;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct ControlID {
-    pub signature: OSType,
+    pub signature: u32,
     pub id: i32,
 }
 
 #[cfg(feature = "objc2")]
 unsafe impl Encode for ControlID {
-    const ENCODING: Encoding =
-        Encoding::Struct("ControlID", &[<OSType>::ENCODING, <i32>::ENCODING]);
+    const ENCODING: Encoding = Encoding::Struct("ControlID", &[<u32>::ENCODING, <i32>::ENCODING]);
 }
 
 #[cfg(feature = "objc2")]
@@ -677,14 +676,13 @@ unsafe impl RefEncode for ControlID {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct ControlKind {
-    pub signature: OSType,
-    pub kind: OSType,
+    pub signature: u32,
+    pub kind: u32,
 }
 
 #[cfg(feature = "objc2")]
 unsafe impl Encode for ControlKind {
-    const ENCODING: Encoding =
-        Encoding::Struct("ControlKind", &[<OSType>::ENCODING, <OSType>::ENCODING]);
+    const ENCODING: Encoding = Encoding::Struct("ControlKind", &[<u32>::ENCODING, <u32>::ENCODING]);
 }
 
 #[cfg(feature = "objc2")]

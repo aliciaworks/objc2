@@ -64,7 +64,7 @@ impl VTTemporalNoiseFilterConfiguration {
             this: Allocated<Self>,
             frame_width: NSInteger,
             frame_height: NSInteger,
-            source_pixel_format: OSType,
+            source_pixel_format: u32,
         ) -> Option<Retained<Self>>;
 
         // -init (unavailable)

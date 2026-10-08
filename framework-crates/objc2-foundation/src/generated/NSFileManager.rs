@@ -2657,14 +2657,14 @@ impl<KeyType: Message, ObjectType: Message> NSDictionary<KeyType, ObjectType> {
         /// - Returns: The value associated with the `NSFileHFSCreatorCode` key, or `0` if the dictionary has no entry for the key.
         #[unsafe(method(fileHFSCreatorCode))]
         #[unsafe(method_family = none)]
-        pub fn fileHFSCreatorCode(&self) -> OSType;
+        pub fn fileHFSCreatorCode(&self) -> u32;
 
         /// Returns the file's HFS type code.
         ///
         /// - Returns: The value associated with the `NSFileHFSTypeCode` key, or `0` if the dictionary has no entry for the key.
         #[unsafe(method(fileHFSTypeCode))]
         #[unsafe(method_family = none)]
-        pub fn fileHFSTypeCode(&self) -> OSType;
+        pub fn fileHFSTypeCode(&self) -> u32;
 
         /// Returns a Boolean value indicating whether the file is immutable.
         ///

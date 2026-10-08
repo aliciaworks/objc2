@@ -10,9 +10,9 @@ use crate::*;
 /// - Returns: A string that encodes `hfsFileTypeCode`. The format of the string is a private implementation detail, but such strings are suitable for inclusion in arrays that also contain file name extension strings.
 #[cfg(feature = "NSString")]
 #[inline]
-pub fn NSFileTypeForHFSTypeCode(hfs_file_type_code: OSType) -> Option<Retained<NSString>> {
+pub fn NSFileTypeForHFSTypeCode(hfs_file_type_code: u32) -> Option<Retained<NSString>> {
     extern "C-unwind" {
-        fn NSFileTypeForHFSTypeCode(hfs_file_type_code: OSType) -> *mut NSString;
+        fn NSFileTypeForHFSTypeCode(hfs_file_type_code: u32) -> *mut NSString;
     }
     let ret = unsafe { NSFileTypeForHFSTypeCode(hfs_file_type_code) };
     unsafe { Retained::retain_autoreleased(ret) }
@@ -28,9 +28,9 @@ pub fn NSFileTypeForHFSTypeCode(hfs_file_type_code: OSType) -> Option<Retained<N
 /// `file_type_string` might not allow `None`.
 #[cfg(feature = "NSString")]
 #[inline]
-pub unsafe fn NSHFSTypeCodeFromFileType(file_type_string: Option<&NSString>) -> OSType {
+pub unsafe fn NSHFSTypeCodeFromFileType(file_type_string: Option<&NSString>) -> u32 {
     extern "C-unwind" {
-        fn NSHFSTypeCodeFromFileType(file_type_string: Option<&NSString>) -> OSType;
+        fn NSHFSTypeCodeFromFileType(file_type_string: Option<&NSString>) -> u32;
     }
     unsafe { NSHFSTypeCodeFromFileType(file_type_string) }
 }

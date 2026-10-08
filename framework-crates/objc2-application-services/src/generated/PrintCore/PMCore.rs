@@ -612,14 +612,14 @@ pub unsafe fn PMGetOrientation(
 #[inline]
 pub unsafe fn PMGetPageFormatExtendedData(
     page_format: PMPageFormat,
-    data_id: OSType,
+    data_id: u32,
     size: Option<&mut u32>,
     extended_data: *mut c_void,
 ) -> OSStatus {
     extern "C-unwind" {
         fn PMGetPageFormatExtendedData(
             page_format: PMPageFormat,
-            data_id: OSType,
+            data_id: u32,
             size: Option<&mut u32>,
             extended_data: *mut c_void,
         ) -> OSStatus;
@@ -731,14 +731,14 @@ pub unsafe fn PMSetOrientation(
 #[inline]
 pub unsafe fn PMSetPageFormatExtendedData(
     page_format: PMPageFormat,
-    data_id: OSType,
+    data_id: u32,
     size: u32,
     extended_data: NonNull<c_void>,
 ) -> OSStatus {
     extern "C-unwind" {
         fn PMSetPageFormatExtendedData(
             page_format: PMPageFormat,
-            data_id: OSType,
+            data_id: u32,
             size: u32,
             extended_data: NonNull<c_void>,
         ) -> OSStatus;
@@ -1408,9 +1408,9 @@ pub unsafe fn PMPrinterGetLocation(printer: PMPrinter) -> Option<CFRetained<CFSt
 /// `printer` must be a valid pointer.
 #[cfg(feature = "PMDefinitions")]
 #[inline]
-pub unsafe fn PMPrinterGetDriverCreator(printer: PMPrinter, creator: &mut OSType) -> OSStatus {
+pub unsafe fn PMPrinterGetDriverCreator(printer: PMPrinter, creator: &mut u32) -> OSStatus {
     extern "C-unwind" {
-        fn PMPrinterGetDriverCreator(printer: PMPrinter, creator: &mut OSType) -> OSStatus;
+        fn PMPrinterGetDriverCreator(printer: PMPrinter, creator: &mut u32) -> OSStatus;
     }
     unsafe { PMPrinterGetDriverCreator(printer, creator) }
 }

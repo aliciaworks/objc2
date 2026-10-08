@@ -44,7 +44,7 @@ impl MLImageConstraint {
         /// The accepted kCVPixelFormatType for the image.
         #[unsafe(method(pixelFormatType))]
         #[unsafe(method_family = none)]
-        pub unsafe fn pixelFormatType(&self) -> OSType;
+        pub unsafe fn pixelFormatType(&self) -> u32;
 
         #[cfg(feature = "MLImageSizeConstraint")]
         /// Detailed image size constraint

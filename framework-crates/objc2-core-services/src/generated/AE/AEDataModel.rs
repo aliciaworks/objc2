@@ -1319,7 +1319,7 @@ pub type AEDisposeExternalUPP = AEDisposeExternalProcPtr;
 /// - `the_desc` might not allow `None`.
 #[inline]
 pub unsafe fn AECreateDescFromExternalPtr(
-    descriptor_type: OSType,
+    descriptor_type: u32,
     data_ptr: *const c_void,
     data_length: Size,
     dispose_callback: Option<AEDisposeExternalUPP>,
@@ -1328,7 +1328,7 @@ pub unsafe fn AECreateDescFromExternalPtr(
 ) -> OSStatus {
     extern "C-unwind" {
         fn AECreateDescFromExternalPtr(
-            descriptor_type: OSType,
+            descriptor_type: u32,
             data_ptr: *const c_void,
             data_length: Size,
             dispose_callback: Option<AEDisposeExternalUPP>,

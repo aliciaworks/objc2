@@ -96,15 +96,15 @@ impl OSALanguage {
 
         #[unsafe(method(type))]
         #[unsafe(method_family = none)]
-        pub unsafe fn r#type(&self) -> OSType;
+        pub unsafe fn r#type(&self) -> u32;
 
         #[unsafe(method(subType))]
         #[unsafe(method_family = none)]
-        pub unsafe fn subType(&self) -> OSType;
+        pub unsafe fn subType(&self) -> u32;
 
         #[unsafe(method(manufacturer))]
         #[unsafe(method_family = none)]
-        pub unsafe fn manufacturer(&self) -> OSType;
+        pub unsafe fn manufacturer(&self) -> u32;
 
         #[unsafe(method(features))]
         #[unsafe(method_family = none)]

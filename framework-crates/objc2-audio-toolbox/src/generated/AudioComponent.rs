@@ -121,9 +121,9 @@ unsafe impl RefEncode for AudioComponentInstantiationOptions {
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct AudioComponentDescription {
-    pub componentType: OSType,
-    pub componentSubType: OSType,
-    pub componentManufacturer: OSType,
+    pub componentType: u32,
+    pub componentSubType: u32,
+    pub componentManufacturer: u32,
     pub componentFlags: u32,
     pub componentFlagsMask: u32,
 }
@@ -133,9 +133,9 @@ unsafe impl Encode for AudioComponentDescription {
     const ENCODING: Encoding = Encoding::Struct(
         "AudioComponentDescription",
         &[
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
         ],

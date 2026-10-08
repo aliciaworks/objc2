@@ -185,7 +185,7 @@ impl NSAppleEventDescriptor {
         /// - Returns: A descriptor with the specified enumerator data type value, or `nil` if an error occurs.
         #[unsafe(method(descriptorWithEnumCode:))]
         #[unsafe(method_family = none)]
-        pub fn descriptorWithEnumCode(enumerator: OSType) -> Retained<NSAppleEventDescriptor>;
+        pub fn descriptorWithEnumCode(enumerator: u32) -> Retained<NSAppleEventDescriptor>;
 
         /// Creates a descriptor initialized with Apple event type `typeSInt32` that stores the specified integer value.
         ///
@@ -206,7 +206,7 @@ impl NSAppleEventDescriptor {
         /// - Returns: A descriptor with the specified type, or `nil` if an error occurs.
         #[unsafe(method(descriptorWithTypeCode:))]
         #[unsafe(method_family = none)]
-        pub fn descriptorWithTypeCode(type_code: OSType) -> Retained<NSAppleEventDescriptor>;
+        pub fn descriptorWithTypeCode(type_code: u32) -> Retained<NSAppleEventDescriptor>;
 
         #[cfg(feature = "NSString")]
         /// Creates a descriptor initialized with type `typeUnicodeText` that stores the text from the specified string.
@@ -442,7 +442,7 @@ impl NSAppleEventDescriptor {
         /// The contents of the descriptor, as an enumeration type, or 0 if an error occurs.
         #[unsafe(method(enumCodeValue))]
         #[unsafe(method_family = none)]
-        pub fn enumCodeValue(&self) -> OSType;
+        pub fn enumCodeValue(&self) -> u32;
 
         /// The contents of the receiver as an integer, coercing (to `typeSInt32`) if necessary.
         ///
@@ -461,7 +461,7 @@ impl NSAppleEventDescriptor {
         /// The contents of the descriptor, as a type, or 0 if an error occurs.
         #[unsafe(method(typeCodeValue))]
         #[unsafe(method_family = none)]
-        pub fn typeCodeValue(&self) -> OSType;
+        pub fn typeCodeValue(&self) -> u32;
 
         #[cfg(feature = "NSString")]
         /// The contents of the receiver as a Unicode text string, coercing to `typeUnicodeText` if necessary.

@@ -10,7 +10,7 @@ use objc2_core_foundation::*;
 use crate::*;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/tecpluginsignature?language=objc)
-pub type TECPluginSignature = OSType;
+pub type TECPluginSignature = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/tecpluginversion?language=objc)
 pub type TECPluginVersion = u32;
@@ -56,7 +56,7 @@ unsafe impl RefEncode for TECSnifferObject {
 }
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/tecpluginsig?language=objc)
-pub type TECPluginSig = OSType;
+pub type TECPluginSig = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/tecconversioninfo?language=objc)
 #[cfg(feature = "TextCommon")]

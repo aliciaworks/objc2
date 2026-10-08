@@ -90,7 +90,7 @@ pub const kIconFamilyType: c_uint = 0x69636e73;
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct IconFamilyElement {
-    pub elementType: OSType,
+    pub elementType: u32,
     pub elementSize: i32,
     pub elementData: [c_uchar; 1],
     _this_is_unsized: (),
@@ -100,11 +100,7 @@ pub struct IconFamilyElement {
 unsafe impl Encode for IconFamilyElement {
     const ENCODING: Encoding = Encoding::Struct(
         "IconFamilyElement",
-        &[
-            <OSType>::ENCODING,
-            <i32>::ENCODING,
-            <[c_uchar; 1]>::ENCODING,
-        ],
+        &[<u32>::ENCODING, <i32>::ENCODING, <[c_uchar; 1]>::ENCODING],
     );
 }
 
@@ -117,7 +113,7 @@ unsafe impl RefEncode for IconFamilyElement {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct IconFamilyResource {
-    pub resourceType: OSType,
+    pub resourceType: u32,
     pub resourceSize: i32,
     pub elements: [IconFamilyElement; 1],
     _this_is_unsized: (),
@@ -128,7 +124,7 @@ unsafe impl Encode for IconFamilyResource {
     const ENCODING: Encoding = Encoding::Struct(
         "IconFamilyResource",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <i32>::ENCODING,
             <[IconFamilyElement; 1]>::ENCODING,
         ],

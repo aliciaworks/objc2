@@ -187,16 +187,14 @@ pub const kHIViewContentNSImage: c_uint = 139;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct HITypeAndCreator {
-    pub r#type: OSType,
-    pub creator: OSType,
+    pub r#type: u32,
+    pub creator: u32,
 }
 
 #[cfg(feature = "objc2")]
 unsafe impl Encode for HITypeAndCreator {
-    const ENCODING: Encoding = Encoding::Struct(
-        "HITypeAndCreator",
-        &[<OSType>::ENCODING, <OSType>::ENCODING],
-    );
+    const ENCODING: Encoding =
+        Encoding::Struct("HITypeAndCreator", &[<u32>::ENCODING, <u32>::ENCODING]);
 }
 
 #[cfg(feature = "objc2")]
@@ -287,14 +285,13 @@ pub const errNeedsCompositedWindow: c_int = -30598;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct HIViewKind {
-    pub signature: OSType,
-    pub kind: OSType,
+    pub signature: u32,
+    pub kind: u32,
 }
 
 #[cfg(feature = "objc2")]
 unsafe impl Encode for HIViewKind {
-    const ENCODING: Encoding =
-        Encoding::Struct("HIViewKind", &[<OSType>::ENCODING, <OSType>::ENCODING]);
+    const ENCODING: Encoding = Encoding::Struct("HIViewKind", &[<u32>::ENCODING, <u32>::ENCODING]);
 }
 
 #[cfg(feature = "objc2")]

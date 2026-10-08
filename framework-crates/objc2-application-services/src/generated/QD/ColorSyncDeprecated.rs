@@ -580,21 +580,21 @@ pub type CMProfileMD5Ptr = *mut CMProfileMD5;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CM2Header {
     pub size: u32,
-    pub CMMType: OSType,
+    pub CMMType: u32,
     pub profileVersion: u32,
-    pub profileClass: OSType,
-    pub dataColorSpace: OSType,
-    pub profileConnectionSpace: OSType,
+    pub profileClass: u32,
+    pub dataColorSpace: u32,
+    pub profileConnectionSpace: u32,
     pub dateTime: CMDateTime,
-    pub CS2profileSignature: OSType,
-    pub platform: OSType,
+    pub CS2profileSignature: u32,
+    pub platform: u32,
     pub flags: u32,
-    pub deviceManufacturer: OSType,
+    pub deviceManufacturer: u32,
     pub deviceModel: u32,
     pub deviceAttributes: [u32; 2],
     pub renderingIntent: u32,
     pub white: CMFixedXYZColor,
-    pub creator: OSType,
+    pub creator: u32,
     pub reserved: [c_char; 44],
 }
 
@@ -604,21 +604,21 @@ unsafe impl Encode for CM2Header {
         "CM2Header",
         &[
             <u32>::ENCODING,
-            <OSType>::ENCODING,
             <u32>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <CMDateTime>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
             <u32>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <[u32; 2]>::ENCODING,
             <u32>::ENCODING,
             <CMFixedXYZColor>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <[c_char; 44]>::ENCODING,
         ],
     );
@@ -634,21 +634,21 @@ unsafe impl RefEncode for CM2Header {
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct CM4Header {
     pub size: u32,
-    pub CMMType: OSType,
+    pub CMMType: u32,
     pub profileVersion: u32,
-    pub profileClass: OSType,
-    pub dataColorSpace: OSType,
-    pub profileConnectionSpace: OSType,
+    pub profileClass: u32,
+    pub dataColorSpace: u32,
+    pub profileConnectionSpace: u32,
     pub dateTime: CMDateTime,
-    pub CS2profileSignature: OSType,
-    pub platform: OSType,
+    pub CS2profileSignature: u32,
+    pub platform: u32,
     pub flags: u32,
-    pub deviceManufacturer: OSType,
+    pub deviceManufacturer: u32,
     pub deviceModel: u32,
     pub deviceAttributes: [u32; 2],
     pub renderingIntent: u32,
     pub white: CMFixedXYZColor,
-    pub creator: OSType,
+    pub creator: u32,
     pub digest: CMProfileMD5,
     pub reserved: [c_char; 28],
 }
@@ -659,21 +659,21 @@ unsafe impl Encode for CM4Header {
         "CM4Header",
         &[
             <u32>::ENCODING,
-            <OSType>::ENCODING,
             <u32>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <CMDateTime>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
             <u32>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <[u32; 2]>::ENCODING,
             <u32>::ENCODING,
             <CMFixedXYZColor>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <CMProfileMD5>::ENCODING,
             <[c_char; 28]>::ENCODING,
         ],
@@ -689,7 +689,7 @@ unsafe impl RefEncode for CM4Header {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct CMTagRecord {
-    pub tag: OSType,
+    pub tag: u32,
     pub elementOffset: u32,
     pub elementSize: u32,
 }
@@ -698,7 +698,7 @@ pub struct CMTagRecord {
 unsafe impl Encode for CMTagRecord {
     const ENCODING: Encoding = Encoding::Struct(
         "CMTagRecord",
-        &[<OSType>::ENCODING, <u32>::ENCODING, <u32>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING, <u32>::ENCODING],
     );
 }
 
@@ -767,7 +767,7 @@ pub type CM2ProfileHandle = *mut *mut CM2Profile;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct CMAdaptationMatrixType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub adaptationMatrix: [Fixed; 9],
 }
@@ -776,7 +776,7 @@ pub struct CMAdaptationMatrixType {
 unsafe impl Encode for CMAdaptationMatrixType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMAdaptationMatrixType",
-        &[<OSType>::ENCODING, <u32>::ENCODING, <[Fixed; 9]>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING, <[Fixed; 9]>::ENCODING],
     );
 }
 
@@ -789,7 +789,7 @@ unsafe impl RefEncode for CMAdaptationMatrixType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMCurveType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub countValue: u32,
     pub data: [u16; 1],
@@ -801,7 +801,7 @@ unsafe impl Encode for CMCurveType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMCurveType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <[u16; 1]>::ENCODING,
@@ -818,7 +818,7 @@ unsafe impl RefEncode for CMCurveType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMDataType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub dataFlag: u32,
     pub data: [c_char; 1],
@@ -830,7 +830,7 @@ unsafe impl Encode for CMDataType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMDataType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <[c_char; 1]>::ENCODING,
@@ -847,7 +847,7 @@ unsafe impl RefEncode for CMDataType {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct CMDateTimeType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub dateTime: CMDateTime,
 }
@@ -856,7 +856,7 @@ pub struct CMDateTimeType {
 unsafe impl Encode for CMDateTimeType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMDateTimeType",
-        &[<OSType>::ENCODING, <u32>::ENCODING, <CMDateTime>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING, <CMDateTime>::ENCODING],
     );
 }
 
@@ -869,7 +869,7 @@ unsafe impl RefEncode for CMDateTimeType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMLut16Type {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub inputChannels: u8,
     pub outputChannels: u8,
@@ -887,7 +887,7 @@ unsafe impl Encode for CMLut16Type {
     const ENCODING: Encoding = Encoding::Struct(
         "CMLut16Type",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u8>::ENCODING,
             <u8>::ENCODING,
@@ -910,7 +910,7 @@ unsafe impl RefEncode for CMLut16Type {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMLut8Type {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub inputChannels: u8,
     pub outputChannels: u8,
@@ -926,7 +926,7 @@ unsafe impl Encode for CMLut8Type {
     const ENCODING: Encoding = Encoding::Struct(
         "CMLut8Type",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u8>::ENCODING,
             <u8>::ENCODING,
@@ -947,7 +947,7 @@ unsafe impl RefEncode for CMLut8Type {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMMultiFunctLutType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub inputChannels: u8,
     pub outputChannels: u8,
@@ -966,7 +966,7 @@ unsafe impl Encode for CMMultiFunctLutType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMMultiFunctLutType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u8>::ENCODING,
             <u8>::ENCODING,
@@ -1025,7 +1025,7 @@ unsafe impl RefEncode for CMMultiFunctCLUTType {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct CMMeasurementType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub standardObserver: u32,
     pub backingXYZ: CMFixedXYZColor,
@@ -1039,7 +1039,7 @@ unsafe impl Encode for CMMeasurementType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMMeasurementType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <CMFixedXYZColor>::ENCODING,
@@ -1059,7 +1059,7 @@ unsafe impl RefEncode for CMMeasurementType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMNamedColorType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub vendorFlag: u32,
     pub count: u32,
@@ -1072,7 +1072,7 @@ unsafe impl Encode for CMNamedColorType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMNamedColorType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
@@ -1117,7 +1117,7 @@ unsafe impl RefEncode for CMNamedColor2EntryType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMNamedColor2Type {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub vendorFlag: u32,
     pub count: u32,
@@ -1133,7 +1133,7 @@ unsafe impl Encode for CMNamedColor2Type {
     const ENCODING: Encoding = Encoding::Struct(
         "CMNamedColor2Type",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
@@ -1199,7 +1199,7 @@ unsafe impl RefEncode for CMNativeDisplayInfo {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMNativeDisplayInfoType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub nativeDisplayInfo: CMNativeDisplayInfo,
     _this_is_unsized: (),
@@ -1210,7 +1210,7 @@ unsafe impl Encode for CMNativeDisplayInfoType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMNativeDisplayInfoType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <CMNativeDisplayInfo>::ENCODING,
         ],
@@ -1226,7 +1226,7 @@ unsafe impl RefEncode for CMNativeDisplayInfoType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMParametricCurveType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub functionType: u16,
     pub reserved2: u16,
@@ -1239,7 +1239,7 @@ unsafe impl Encode for CMParametricCurveType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMParametricCurveType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u16>::ENCODING,
             <u16>::ENCODING,
@@ -1257,7 +1257,7 @@ unsafe impl RefEncode for CMParametricCurveType {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct CMTextDescriptionType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub ASCIICount: u32,
     pub ASCIIName: [u8; 2],
@@ -1268,7 +1268,7 @@ unsafe impl Encode for CMTextDescriptionType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMTextDescriptionType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <[u8; 2]>::ENCODING,
@@ -1285,7 +1285,7 @@ unsafe impl RefEncode for CMTextDescriptionType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMTextType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub text: [u8; 1],
     _this_is_unsized: (),
@@ -1295,7 +1295,7 @@ pub struct CMTextType {
 unsafe impl Encode for CMTextType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMTextType",
-        &[<OSType>::ENCODING, <u32>::ENCODING, <[u8; 1]>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING, <[u8; 1]>::ENCODING],
     );
 }
 
@@ -1308,7 +1308,7 @@ unsafe impl RefEncode for CMTextType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMUnicodeTextType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub text: [UniChar; 1],
     _this_is_unsized: (),
@@ -1318,11 +1318,7 @@ pub struct CMUnicodeTextType {
 unsafe impl Encode for CMUnicodeTextType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMUnicodeTextType",
-        &[
-            <OSType>::ENCODING,
-            <u32>::ENCODING,
-            <[UniChar; 1]>::ENCODING,
-        ],
+        &[<u32>::ENCODING, <u32>::ENCODING, <[UniChar; 1]>::ENCODING],
     );
 }
 
@@ -1357,7 +1353,7 @@ unsafe impl RefEncode for CMScreeningChannelRec {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMScreeningType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub screeningFlag: u32,
     pub channelCount: u32,
@@ -1370,7 +1366,7 @@ unsafe impl Encode for CMScreeningType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMScreeningType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
@@ -1388,16 +1384,16 @@ unsafe impl RefEncode for CMScreeningType {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct CMSignatureType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
-    pub signature: OSType,
+    pub signature: u32,
 }
 
 #[cfg(feature = "objc2")]
 unsafe impl Encode for CMSignatureType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMSignatureType",
-        &[<OSType>::ENCODING, <u32>::ENCODING, <OSType>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING, <u32>::ENCODING],
     );
 }
 
@@ -1410,7 +1406,7 @@ unsafe impl RefEncode for CMSignatureType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMS15Fixed16ArrayType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub value: [Fixed; 1],
     _this_is_unsized: (),
@@ -1420,7 +1416,7 @@ pub struct CMS15Fixed16ArrayType {
 unsafe impl Encode for CMS15Fixed16ArrayType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMS15Fixed16ArrayType",
-        &[<OSType>::ENCODING, <u32>::ENCODING, <[Fixed; 1]>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING, <[Fixed; 1]>::ENCODING],
     );
 }
 
@@ -1433,7 +1429,7 @@ unsafe impl RefEncode for CMS15Fixed16ArrayType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMU16Fixed16ArrayType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub value: [u32; 1],
     _this_is_unsized: (),
@@ -1443,7 +1439,7 @@ pub struct CMU16Fixed16ArrayType {
 unsafe impl Encode for CMU16Fixed16ArrayType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMU16Fixed16ArrayType",
-        &[<OSType>::ENCODING, <u32>::ENCODING, <[u32; 1]>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING, <[u32; 1]>::ENCODING],
     );
 }
 
@@ -1456,7 +1452,7 @@ unsafe impl RefEncode for CMU16Fixed16ArrayType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMUInt8ArrayType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub value: [u8; 1],
     _this_is_unsized: (),
@@ -1466,7 +1462,7 @@ pub struct CMUInt8ArrayType {
 unsafe impl Encode for CMUInt8ArrayType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMUInt8ArrayType",
-        &[<OSType>::ENCODING, <u32>::ENCODING, <[u8; 1]>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING, <[u8; 1]>::ENCODING],
     );
 }
 
@@ -1479,7 +1475,7 @@ unsafe impl RefEncode for CMUInt8ArrayType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMUInt16ArrayType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub value: [u16; 1],
     _this_is_unsized: (),
@@ -1489,7 +1485,7 @@ pub struct CMUInt16ArrayType {
 unsafe impl Encode for CMUInt16ArrayType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMUInt16ArrayType",
-        &[<OSType>::ENCODING, <u32>::ENCODING, <[u16; 1]>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING, <[u16; 1]>::ENCODING],
     );
 }
 
@@ -1502,7 +1498,7 @@ unsafe impl RefEncode for CMUInt16ArrayType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMUInt32ArrayType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub value: [u32; 1],
     _this_is_unsized: (),
@@ -1512,7 +1508,7 @@ pub struct CMUInt32ArrayType {
 unsafe impl Encode for CMUInt32ArrayType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMUInt32ArrayType",
-        &[<OSType>::ENCODING, <u32>::ENCODING, <[u32; 1]>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING, <[u32; 1]>::ENCODING],
     );
 }
 
@@ -1525,7 +1521,7 @@ unsafe impl RefEncode for CMUInt32ArrayType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMUInt64ArrayType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub value: [u32; 1],
     _this_is_unsized: (),
@@ -1535,7 +1531,7 @@ pub struct CMUInt64ArrayType {
 unsafe impl Encode for CMUInt64ArrayType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMUInt64ArrayType",
-        &[<OSType>::ENCODING, <u32>::ENCODING, <[u32; 1]>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING, <[u32; 1]>::ENCODING],
     );
 }
 
@@ -1548,7 +1544,7 @@ unsafe impl RefEncode for CMUInt64ArrayType {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct CMViewingConditionsType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub illuminant: CMFixedXYZColor,
     pub surround: CMFixedXYZColor,
@@ -1560,7 +1556,7 @@ unsafe impl Encode for CMViewingConditionsType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMViewingConditionsType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <CMFixedXYZColor>::ENCODING,
             <CMFixedXYZColor>::ENCODING,
@@ -1578,7 +1574,7 @@ unsafe impl RefEncode for CMViewingConditionsType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMXYZType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub XYZ: [CMFixedXYZColor; 1],
     _this_is_unsized: (),
@@ -1589,7 +1585,7 @@ unsafe impl Encode for CMXYZType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMXYZType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <[CMFixedXYZColor; 1]>::ENCODING,
         ],
@@ -1605,7 +1601,7 @@ unsafe impl RefEncode for CMXYZType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMProfileSequenceDescType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub count: u32,
     pub data: [c_char; 1],
@@ -1617,7 +1613,7 @@ unsafe impl Encode for CMProfileSequenceDescType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMProfileSequenceDescType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <[c_char; 1]>::ENCODING,
@@ -1634,7 +1630,7 @@ unsafe impl RefEncode for CMProfileSequenceDescType {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMUcrBgType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub ucrCount: u32,
     pub ucrValues: [u16; 1],
@@ -1646,7 +1642,7 @@ unsafe impl Encode for CMUcrBgType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMUcrBgType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <[u16; 1]>::ENCODING,
@@ -1682,7 +1678,7 @@ unsafe impl RefEncode for CMIntentCRDVMSize {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMPS2CRDVMSizeType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub count: u32,
     pub intentCRD: [CMIntentCRDVMSize; 1],
@@ -1694,7 +1690,7 @@ unsafe impl Encode for CMPS2CRDVMSizeType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMPS2CRDVMSizeType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <[CMIntentCRDVMSize; 1]>::ENCODING,
@@ -1828,7 +1824,7 @@ unsafe impl RefEncode for CMVideoCardGamma {
 #[repr(C, packed(2))]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct CMVideoCardGammaType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub gamma: CMVideoCardGamma,
     _this_is_unsized: (),
@@ -1839,7 +1835,7 @@ unsafe impl Encode for CMVideoCardGammaType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMVideoCardGammaType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <CMVideoCardGamma>::ENCODING,
         ],
@@ -1855,7 +1851,7 @@ unsafe impl RefEncode for CMVideoCardGammaType {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct CMMakeAndModel {
-    pub manufacturer: OSType,
+    pub manufacturer: u32,
     pub model: u32,
     pub serialNumber: u32,
     pub manufactureDate: u32,
@@ -1870,7 +1866,7 @@ unsafe impl Encode for CMMakeAndModel {
     const ENCODING: Encoding = Encoding::Struct(
         "CMMakeAndModel",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
@@ -1891,7 +1887,7 @@ unsafe impl RefEncode for CMMakeAndModel {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct CMMakeAndModelType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub makeAndModel: CMMakeAndModel,
 }
@@ -1900,11 +1896,7 @@ pub struct CMMakeAndModelType {
 unsafe impl Encode for CMMakeAndModelType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMMakeAndModelType",
-        &[
-            <OSType>::ENCODING,
-            <u32>::ENCODING,
-            <CMMakeAndModel>::ENCODING,
-        ],
+        &[<u32>::ENCODING, <u32>::ENCODING, <CMMakeAndModel>::ENCODING],
     );
 }
 
@@ -1945,7 +1937,7 @@ unsafe impl RefEncode for CMMultiLocalizedUniCodeEntryRec {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct CMMultiLocalizedUniCodeType {
-    pub typeDescriptor: OSType,
+    pub typeDescriptor: u32,
     pub reserved: u32,
     pub entryCount: u32,
     pub entrySize: u32,
@@ -1956,7 +1948,7 @@ unsafe impl Encode for CMMultiLocalizedUniCodeType {
     const ENCODING: Encoding = Encoding::Struct(
         "CMMultiLocalizedUniCodeType",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
@@ -2160,7 +2152,7 @@ unsafe impl RefEncode for NCMConcatProfileSpec {
 #[repr(C)]
 #[allow(clippy::manual_non_exhaustive)]
 pub struct NCMConcatProfileSet {
-    pub cmm: OSType,
+    pub cmm: u32,
     pub flags: u32,
     pub flagsMask: u32,
     pub profileCount: u32,
@@ -2173,7 +2165,7 @@ unsafe impl Encode for NCMConcatProfileSet {
     const ENCODING: Encoding = Encoding::Struct(
         "NCMConcatProfileSet",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
@@ -2543,8 +2535,8 @@ unsafe impl RefEncode for CMColor {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CMMInfo {
     pub dataSize: usize,
-    pub CMMType: OSType,
-    pub CMMMfr: OSType,
+    pub CMMType: u32,
+    pub CMMMfr: u32,
     pub CMMVersion: u32,
     pub ASCIIName: [c_uchar; 32],
     pub ASCIIDesc: [c_uchar; 256],
@@ -2560,8 +2552,8 @@ unsafe impl Encode for CMMInfo {
         "CMMInfo",
         &[
             <usize>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <[c_uchar; 32]>::ENCODING,
             <[c_uchar; 256]>::ENCODING,
@@ -3132,7 +3124,7 @@ pub struct CMFloatBitmap {
     pub width: usize,
     pub rowStride: isize,
     pub colStride: isize,
-    pub space: OSType,
+    pub space: u32,
     pub flags: CMFloatBitmapFlags,
 }
 
@@ -3147,7 +3139,7 @@ unsafe impl Encode for CMFloatBitmap {
             <usize>::ENCODING,
             <isize>::ENCODING,
             <isize>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <CMFloatBitmapFlags>::ENCODING,
         ],
     );
@@ -3236,7 +3228,7 @@ pub const cmPrinterDeviceClass: c_uint = 0x70727472;
 pub const cmProofDeviceClass: c_uint = 0x70727566;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/applicationservices/cmdeviceclass?language=objc)
-pub type CMDeviceClass = OSType;
+pub type CMDeviceClass = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/applicationservices/cmdevicescope?language=objc)
 #[repr(C)]

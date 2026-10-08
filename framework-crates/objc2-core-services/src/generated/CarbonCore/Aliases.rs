@@ -114,8 +114,8 @@ pub type AliasHandle = *mut AliasPtr;
 pub struct FSAliasInfo {
     pub volumeCreateDate: UTCDateTime,
     pub targetCreateDate: UTCDateTime,
-    pub fileType: OSType,
-    pub fileCreator: OSType,
+    pub fileType: u32,
+    pub fileCreator: u32,
     pub parentDirID: u32,
     pub nodeID: u32,
     pub filesystemID: u16,
@@ -134,8 +134,8 @@ unsafe impl Encode for FSAliasInfo {
         &[
             <UTCDateTime>::ENCODING,
             <UTCDateTime>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <u16>::ENCODING,
@@ -627,9 +627,9 @@ pub unsafe fn GetAliasSize(alias: AliasHandle) -> Size {
 /// `alias` must be a valid pointer.
 #[deprecated]
 #[inline]
-pub unsafe fn GetAliasUserType(alias: AliasHandle) -> OSType {
+pub unsafe fn GetAliasUserType(alias: AliasHandle) -> u32 {
     extern "C-unwind" {
-        fn GetAliasUserType(alias: AliasHandle) -> OSType;
+        fn GetAliasUserType(alias: AliasHandle) -> u32;
     }
     unsafe { GetAliasUserType(alias) }
 }
@@ -639,9 +639,9 @@ pub unsafe fn GetAliasUserType(alias: AliasHandle) -> OSType {
 /// `alias` must be a valid pointer.
 #[deprecated]
 #[inline]
-pub unsafe fn SetAliasUserType(alias: AliasHandle, user_type: OSType) {
+pub unsafe fn SetAliasUserType(alias: AliasHandle, user_type: u32) {
     extern "C-unwind" {
-        fn SetAliasUserType(alias: AliasHandle, user_type: OSType);
+        fn SetAliasUserType(alias: AliasHandle, user_type: u32);
     }
     unsafe { SetAliasUserType(alias, user_type) }
 }
@@ -663,9 +663,9 @@ pub unsafe fn GetAliasSizeFromPtr(alias: Option<&AliasRecord>) -> Size {
 /// `alias` might not allow `None`.
 #[deprecated]
 #[inline]
-pub unsafe fn GetAliasUserTypeFromPtr(alias: Option<&AliasRecord>) -> OSType {
+pub unsafe fn GetAliasUserTypeFromPtr(alias: Option<&AliasRecord>) -> u32 {
     extern "C-unwind" {
-        fn GetAliasUserTypeFromPtr(alias: Option<&AliasRecord>) -> OSType;
+        fn GetAliasUserTypeFromPtr(alias: Option<&AliasRecord>) -> u32;
     }
     unsafe { GetAliasUserTypeFromPtr(alias) }
 }
@@ -675,9 +675,9 @@ pub unsafe fn GetAliasUserTypeFromPtr(alias: Option<&AliasRecord>) -> OSType {
 /// `alias` must be a valid pointer.
 #[deprecated]
 #[inline]
-pub unsafe fn SetAliasUserTypeWithPtr(alias: AliasPtr, user_type: OSType) {
+pub unsafe fn SetAliasUserTypeWithPtr(alias: AliasPtr, user_type: u32) {
     extern "C-unwind" {
-        fn SetAliasUserTypeWithPtr(alias: AliasPtr, user_type: OSType);
+        fn SetAliasUserTypeWithPtr(alias: AliasPtr, user_type: u32);
     }
     unsafe { SetAliasUserTypeWithPtr(alias, user_type) }
 }

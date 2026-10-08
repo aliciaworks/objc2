@@ -108,7 +108,7 @@ unsafe impl RefEncode for PasteboardFlavorFlags {
 // NS_ENUM
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct PasteboardStandardLocation(pub OSType);
+pub struct PasteboardStandardLocation(pub u32);
 impl PasteboardStandardLocation {
     #[doc(alias = "kPasteboardStandardLocationTrash")]
     pub const Trash: Self = Self(0x74727368);
@@ -118,7 +118,7 @@ impl PasteboardStandardLocation {
 
 #[cfg(feature = "objc2")]
 unsafe impl Encode for PasteboardStandardLocation {
-    const ENCODING: Encoding = OSType::ENCODING;
+    const ENCODING: Encoding = u32::ENCODING;
 }
 
 #[cfg(feature = "objc2")]

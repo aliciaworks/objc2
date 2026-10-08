@@ -764,13 +764,13 @@ pub const kMouseParamsDragInitiation: c_uint = 0x64726167;
 #[cfg(all(feature = "CarbonEventsCore", feature = "HIGeometry"))]
 #[inline]
 pub unsafe fn HIMouseTrackingGetParameters(
-    in_selector: OSType,
+    in_selector: u32,
     out_time: Option<&mut EventTime>,
     out_distance: Option<&mut HISize>,
 ) -> OSStatus {
     extern "C-unwind" {
         fn HIMouseTrackingGetParameters(
-            in_selector: OSType,
+            in_selector: u32,
             out_time: Option<&mut EventTime>,
             out_distance: Option<&mut HISize>,
         ) -> OSStatus;
@@ -2030,14 +2030,14 @@ pub unsafe fn ProcessHICommand(in_command: Option<&HICommand>) -> OSStatus {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct EventHotKeyID {
-    pub signature: OSType,
+    pub signature: u32,
     pub id: u32,
 }
 
 #[cfg(feature = "objc2")]
 unsafe impl Encode for EventHotKeyID {
     const ENCODING: Encoding =
-        Encoding::Struct("EventHotKeyID", &[<OSType>::ENCODING, <u32>::ENCODING]);
+        Encoding::Struct("EventHotKeyID", &[<u32>::ENCODING, <u32>::ENCODING]);
 }
 
 #[cfg(feature = "objc2")]

@@ -19,10 +19,10 @@ pub const domTranslateFirst: c_uint = 2;
 pub const domWildcard: c_uint = 3;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/typesblock?language=objc)
-pub type TypesBlock = [OSType; 64];
+pub type TypesBlock = [u32; 64];
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/typesblockptr?language=objc)
-pub type TypesBlockPtr = *mut OSType;
+pub type TypesBlockPtr = *mut u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/ktranslationscrapprogressdialogid?language=objc)
 pub const kTranslationScrapProgressDialogID: c_int = -16555;
@@ -32,7 +32,7 @@ pub const kTranslationScrapProgressDialogID: c_int = -16555;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FileTranslationSpec {
-    pub componentSignature: OSType,
+    pub componentSignature: u32,
     pub translationSystemInfo: *const c_void,
     pub src: FileTypeSpec,
     pub dst: FileTypeSpec,
@@ -43,7 +43,7 @@ unsafe impl Encode for FileTranslationSpec {
     const ENCODING: Encoding = Encoding::Struct(
         "FileTranslationSpec",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <*const c_void>::ENCODING,
             <FileTypeSpec>::ENCODING,
             <FileTypeSpec>::ENCODING,

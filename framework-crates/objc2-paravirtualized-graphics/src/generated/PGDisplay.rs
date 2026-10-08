@@ -43,7 +43,7 @@ unsafe impl RefEncode for PGDisplayCoord_t {
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/paravirtualizedgraphics/pgdisplaymodechangehandler?language=objc)
 #[cfg(feature = "block2")]
-pub type PGDisplayModeChangeHandler = block2::Block<'static, fn(PGDisplayCoord_t, OSType)>;
+pub type PGDisplayModeChangeHandler = block2::Block<'static, fn(PGDisplayCoord_t, u32)>;
 
 /// A block that will be invoked to notify client of availability of new Guest compositor frame to be further processed.
 ///

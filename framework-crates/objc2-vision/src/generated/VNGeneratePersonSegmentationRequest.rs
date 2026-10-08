@@ -106,12 +106,12 @@ impl VNGeneratePersonSegmentationRequest {
         /// Pixel format type of the output buffer. Valid values are kCVPixelFormatType_OneComponent32Float, kCVPixelFormatType_OneComponent16Half, and kCVPixelFormatType_OneComponent8. Default is kCVPixelFormatType_OneComponent8.
         #[unsafe(method(outputPixelFormat))]
         #[unsafe(method_family = none)]
-        pub unsafe fn outputPixelFormat(&self) -> OSType;
+        pub unsafe fn outputPixelFormat(&self) -> u32;
 
         /// Setter for [`outputPixelFormat`][Self::outputPixelFormat].
         #[unsafe(method(setOutputPixelFormat:))]
         #[unsafe(method_family = none)]
-        pub unsafe fn setOutputPixelFormat(&self, output_pixel_format: OSType);
+        pub unsafe fn setOutputPixelFormat(&self, output_pixel_format: u32);
 
         #[cfg(feature = "VNObservation")]
         #[unsafe(method(results))]

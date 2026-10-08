@@ -42,7 +42,7 @@ pub const kControlDataBrowserEditTextKeyFilterTag: c_uint = kControlDataBrowserK
 pub const kControlDataBrowserEditTextValidationProcTag: c_uint = 0x76616c69;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/databrowserviewstyle?language=objc)
-pub type DataBrowserViewStyle = OSType;
+pub type DataBrowserViewStyle = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/kdatabrowsernoview?language=objc)
 pub const kDataBrowserNoView: c_uint = 0x3F3F3F3F;
@@ -223,7 +223,7 @@ pub const kDataBrowserItemParentContainerProperty: c_uint = 11;
 pub type DataBrowserPropertyID = c_ulong;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/databrowserpropertytype?language=objc)
-pub type DataBrowserPropertyType = OSType;
+pub type DataBrowserPropertyType = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/kdatabrowsercustomtype?language=objc)
 pub const kDataBrowserCustomType: c_uint = 0x3F3F3F3F;
@@ -247,7 +247,7 @@ pub const kDataBrowserPopupMenuType: c_uint = 0x6d656e75;
 pub const kDataBrowserIconAndTextType: c_uint = 0x7469636e;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/databrowserpropertypart?language=objc)
-pub type DataBrowserPropertyPart = OSType;
+pub type DataBrowserPropertyPart = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/kdatabrowserpropertyenclosingpart?language=objc)
 pub const kDataBrowserPropertyEnclosingPart: c_uint = 0;

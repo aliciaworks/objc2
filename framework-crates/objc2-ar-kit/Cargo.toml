@@ -34,6 +34,7 @@ objc2-core-video = { workspace = true, optional = true, features = [
     "CVImageBuffer",
     "CVPixelBuffer",
 ] }
+objc2-game-controller = { workspace = true }
 objc2-image-io = { workspace = true, optional = true, features = ["CGImageProperties"] }
 objc2-metal = { workspace = true, optional = true, features = [
     "MTLAllocation",
@@ -112,7 +113,7 @@ objc2-image-io = ["dep:objc2-image-io"]
 objc2-metal = ["dep:objc2-metal"]
 unstable-darwin-objc = []
 
-accessory_tracking = []
+accessory_tracking = ["objc2-game-controller/GCDevice"]
 anchor = []
 authorization = ["bitflags"]
 barcode_detection = ["bitflags"]

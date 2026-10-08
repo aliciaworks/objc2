@@ -16,10 +16,10 @@ use crate::*;
 pub type HIWindowRef = WindowRef;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/propertycreator?language=objc)
-pub type PropertyCreator = OSType;
+pub type PropertyCreator = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/propertytag?language=objc)
-pub type PropertyTag = OSType;
+pub type PropertyTag = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/windowclass?language=objc)
 pub type WindowClass = u32;

@@ -45,7 +45,7 @@ impl MLFeatureValue {
             url: &NSURL,
             pixels_wide: NSInteger,
             pixels_high: NSInteger,
-            pixel_format_type: OSType,
+            pixel_format_type: u32,
             options: Option<&NSDictionary<MLFeatureValueImageOption, AnyObject>>,
         ) -> Result<Retained<Self>, Retained<NSError>>;
 
@@ -75,7 +75,7 @@ impl MLFeatureValue {
             cg_image: &CGImage,
             pixels_wide: NSInteger,
             pixels_high: NSInteger,
-            pixel_format_type: OSType,
+            pixel_format_type: u32,
             options: Option<&NSDictionary<MLFeatureValueImageOption, AnyObject>>,
         ) -> Result<Retained<Self>, Retained<NSError>>;
 
@@ -106,7 +106,7 @@ impl MLFeatureValue {
             orientation: CGImagePropertyOrientation,
             pixels_wide: NSInteger,
             pixels_high: NSInteger,
-            pixel_format_type: OSType,
+            pixel_format_type: u32,
             options: Option<&NSDictionary<MLFeatureValueImageOption, AnyObject>>,
         ) -> Result<Retained<Self>, Retained<NSError>>;
 
@@ -138,7 +138,7 @@ impl MLFeatureValue {
             orientation: CGImagePropertyOrientation,
             pixels_wide: NSInteger,
             pixels_high: NSInteger,
-            pixel_format_type: OSType,
+            pixel_format_type: u32,
             options: Option<&NSDictionary<MLFeatureValueImageOption, AnyObject>>,
         ) -> Result<Retained<Self>, Retained<NSError>>;
 

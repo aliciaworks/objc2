@@ -168,7 +168,7 @@ impl AVSemanticSegmentationMatte {
         /// Currently the only supported CV pixel format type for the matting image is kCVPixelFormatType_OneComponent8.
         #[unsafe(method(pixelFormatType))]
         #[unsafe(method_family = none)]
-        pub unsafe fn pixelFormatType(&self) -> OSType;
+        pub unsafe fn pixelFormatType(&self) -> u32;
 
         #[cfg(feature = "objc2-core-video")]
         /// Provides access to the semantic segmentation matte's internal image.

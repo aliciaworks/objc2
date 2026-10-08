@@ -412,14 +412,13 @@ pub type ICCharTableHandle = *mut ICCharTablePtr;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ICAppSpec {
-    pub fCreator: OSType,
+    pub fCreator: u32,
     pub name: Str63,
 }
 
 #[cfg(feature = "objc2")]
 unsafe impl Encode for ICAppSpec {
-    const ENCODING: Encoding =
-        Encoding::Struct("ICAppSpec", &[<OSType>::ENCODING, <Str63>::ENCODING]);
+    const ENCODING: Encoding = Encoding::Struct("ICAppSpec", &[<u32>::ENCODING, <Str63>::ENCODING]);
 }
 
 #[cfg(feature = "objc2")]
@@ -478,9 +477,9 @@ pub struct ICMapEntry {
     pub totalLength: i16,
     pub fixedLength: ICFixedLength,
     pub version: i16,
-    pub fileType: OSType,
-    pub fileCreator: OSType,
-    pub postCreator: OSType,
+    pub fileType: u32,
+    pub fileCreator: u32,
+    pub postCreator: u32,
     pub flags: ICMapEntryFlags,
     pub extension: Str255,
     pub creatorAppName: Str255,
@@ -497,9 +496,9 @@ unsafe impl Encode for ICMapEntry {
             <i16>::ENCODING,
             <ICFixedLength>::ENCODING,
             <i16>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <ICMapEntryFlags>::ENCODING,
             <Str255>::ENCODING,
             <Str255>::ENCODING,
@@ -673,9 +672,9 @@ pub type ICServicesHandle = *mut ICServicesPtr;
 /// - `inst` might not allow `None`.
 #[deprecated]
 #[inline]
-pub unsafe fn ICStart(inst: Option<&mut ICInstance>, signature: OSType) -> OSStatus {
+pub unsafe fn ICStart(inst: Option<&mut ICInstance>, signature: u32) -> OSStatus {
     extern "C-unwind" {
-        fn ICStart(inst: Option<&mut ICInstance>, signature: OSType) -> OSStatus;
+        fn ICStart(inst: Option<&mut ICInstance>, signature: u32) -> OSStatus;
     }
     unsafe { ICStart(inst, signature) }
 }
@@ -1058,14 +1057,14 @@ pub unsafe fn ICParseURL(
 #[inline]
 pub unsafe fn ICCreateGURLEvent(
     inst: ICInstance,
-    helper_creator: OSType,
+    helper_creator: u32,
     url_h: Handle,
     the_event: Option<&mut AppleEvent>,
 ) -> OSStatus {
     extern "C-unwind" {
         fn ICCreateGURLEvent(
             inst: ICInstance,
-            helper_creator: OSType,
+            helper_creator: u32,
             url_h: Handle,
             the_event: Option<&mut AppleEvent>,
         ) -> OSStatus;
@@ -1121,16 +1120,16 @@ pub unsafe fn ICMapFilename(
 #[inline]
 pub unsafe fn ICMapTypeCreator(
     inst: ICInstance,
-    f_type: OSType,
-    f_creator: OSType,
+    f_type: u32,
+    f_creator: u32,
     filename: ConstStr255Param,
     entry: Option<&mut ICMapEntry>,
 ) -> OSStatus {
     extern "C-unwind" {
         fn ICMapTypeCreator(
             inst: ICInstance,
-            f_type: OSType,
-            f_creator: OSType,
+            f_type: u32,
+            f_creator: u32,
             filename: ConstStr255Param,
             entry: Option<&mut ICMapEntry>,
         ) -> OSStatus;
@@ -1176,8 +1175,8 @@ pub unsafe fn ICMapEntriesFilename(
 pub unsafe fn ICMapEntriesTypeCreator(
     inst: ICInstance,
     entries: Handle,
-    f_type: OSType,
-    f_creator: OSType,
+    f_type: u32,
+    f_creator: u32,
     filename: ConstStr255Param,
     entry: Option<&mut ICMapEntry>,
 ) -> OSStatus {
@@ -1185,8 +1184,8 @@ pub unsafe fn ICMapEntriesTypeCreator(
         fn ICMapEntriesTypeCreator(
             inst: ICInstance,
             entries: Handle,
-            f_type: OSType,
-            f_creator: OSType,
+            f_type: u32,
+            f_creator: u32,
             filename: ConstStr255Param,
             entry: Option<&mut ICMapEntry>,
         ) -> OSStatus;

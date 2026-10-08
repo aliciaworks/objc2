@@ -221,9 +221,9 @@ pub unsafe fn UTTypeCopyDeclaringBundleURL(in_uti: &CFString) -> Option<CFRetain
 
 #[deprecated = "HFS type codes are obsolete."]
 #[inline]
-pub unsafe fn UTCreateStringForOSType(in_os_type: OSType) -> CFRetained<CFString> {
+pub unsafe fn UTCreateStringForOSType(in_os_type: u32) -> CFRetained<CFString> {
     extern "C-unwind" {
-        fn UTCreateStringForOSType(in_os_type: OSType) -> Option<NonNull<CFString>>;
+        fn UTCreateStringForOSType(in_os_type: u32) -> Option<NonNull<CFString>>;
     }
     let ret = unsafe { UTCreateStringForOSType(in_os_type) };
     let ret = ret.expect("function was marked as returning non-null, but actually returned NULL");
@@ -232,9 +232,9 @@ pub unsafe fn UTCreateStringForOSType(in_os_type: OSType) -> CFRetained<CFString
 
 #[deprecated = "HFS type codes are obsolete."]
 #[inline]
-pub unsafe fn UTGetOSTypeFromString(in_string: &CFString) -> OSType {
+pub unsafe fn UTGetOSTypeFromString(in_string: &CFString) -> u32 {
     extern "C-unwind" {
-        fn UTGetOSTypeFromString(in_string: &CFString) -> OSType;
+        fn UTGetOSTypeFromString(in_string: &CFString) -> u32;
     }
     unsafe { UTGetOSTypeFromString(in_string) }
 }

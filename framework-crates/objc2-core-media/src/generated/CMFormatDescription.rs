@@ -3144,12 +3144,12 @@ impl CMMetadataFormatDescription {
     #[inline]
     pub unsafe fn key_with_local_id(
         &self,
-        local_key_id: OSType,
+        local_key_id: u32,
     ) -> Option<CFRetained<CFDictionary<CFString, CFType>>> {
         extern "C-unwind" {
             fn CMMetadataFormatDescriptionGetKeyWithLocalID(
                 desc: &CMMetadataFormatDescription,
-                local_key_id: OSType,
+                local_key_id: u32,
             ) -> Option<NonNull<CFDictionary<CFString, CFType>>>;
         }
         let ret = unsafe { CMMetadataFormatDescriptionGetKeyWithLocalID(self, local_key_id) };

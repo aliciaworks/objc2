@@ -9,7 +9,7 @@ use objc2::__framework_prelude::*;
 use crate::*;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/physicalkeyboardlayouttype?language=objc)
-pub type PhysicalKeyboardLayoutType = OSType;
+pub type PhysicalKeyboardLayoutType = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/kkeyboardjis?language=objc)
 pub const kKeyboardJIS: c_uint = 0x4a495320;

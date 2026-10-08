@@ -467,12 +467,12 @@ impl SCStreamConfiguration {
         /// See https://developer.apple.com/documentation/coregraphics/1455170-cgdisplaystreamcreate
         #[unsafe(method(pixelFormat))]
         #[unsafe(method_family = none)]
-        pub fn pixelFormat(&self) -> OSType;
+        pub fn pixelFormat(&self) -> u32;
 
         /// Setter for [`pixelFormat`][Self::pixelFormat].
         #[unsafe(method(setPixelFormat:))]
         #[unsafe(method_family = none)]
-        pub fn setPixelFormat(&self, pixel_format: OSType);
+        pub fn setPixelFormat(&self, pixel_format: u32);
 
         /// SCStreamProperty for output to be always scaled to fit into the provided width and height. For use for independent window capture. When true, the output scales up and down. When false, the output only scales down.
         #[unsafe(method(scalesToFit))]

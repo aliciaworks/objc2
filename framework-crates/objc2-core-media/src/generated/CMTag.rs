@@ -553,9 +553,9 @@ impl CMTag {
     /// Returns: OSType.
     #[doc(alias = "CMTagGetOSTypeValue")]
     #[inline]
-    pub unsafe fn os_type_value(self) -> OSType {
+    pub unsafe fn os_type_value(self) -> u32 {
         extern "C-unwind" {
-            fn CMTagGetOSTypeValue(tag: CMTag) -> OSType;
+            fn CMTagGetOSTypeValue(tag: CMTag) -> u32;
         }
         unsafe { CMTagGetOSTypeValue(self) }
     }
@@ -638,9 +638,9 @@ impl CMTag {
     /// Returns: A CMTag.
     #[doc(alias = "CMTagMakeWithOSTypeValue")]
     #[inline]
-    pub unsafe fn with_os_type_value(category: CMTagCategory, value: OSType) -> CMTag {
+    pub unsafe fn with_os_type_value(category: CMTagCategory, value: u32) -> CMTag {
         extern "C-unwind" {
-            fn CMTagMakeWithOSTypeValue(category: CMTagCategory, value: OSType) -> CMTag;
+            fn CMTagMakeWithOSTypeValue(category: CMTagCategory, value: u32) -> CMTag;
         }
         unsafe { CMTagMakeWithOSTypeValue(category, value) }
     }

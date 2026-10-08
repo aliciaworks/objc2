@@ -266,7 +266,7 @@ impl AVCapturePhotoOutput {
         /// May be used to distinguish Bayer RAW from Apple ProRAW pixel formats in -availableRawPhotoPixelFormatTypes once appleProRAWEnabled has been set to YES.
         #[unsafe(method(isBayerRAWPixelFormat:))]
         #[unsafe(method_family = none)]
-        pub unsafe fn isBayerRAWPixelFormat(pixel_format: OSType) -> bool;
+        pub unsafe fn isBayerRAWPixelFormat(pixel_format: u32) -> bool;
 
         /// Returns YES if the given pixel format is an Apple ProRAW format.
         ///
@@ -276,7 +276,7 @@ impl AVCapturePhotoOutput {
         /// See appleProRAWEnabled for more information on Apple ProRAW.
         #[unsafe(method(isAppleProRAWPixelFormat:))]
         #[unsafe(method_family = none)]
-        pub unsafe fn isAppleProRAWPixelFormat(pixel_format: OSType) -> bool;
+        pub unsafe fn isAppleProRAWPixelFormat(pixel_format: u32) -> bool;
 
         /// An array of RAW CVPixelBufferPixelFormatTypeKey values that are currently supported by the receiver.
         ///
@@ -354,7 +354,7 @@ impl AVCapturePhotoOutput {
         #[unsafe(method_family = none)]
         pub unsafe fn supportedRawPhotoCodecTypesForRawPhotoPixelFormatType_fileType(
             &self,
-            pixel_format_type: OSType,
+            pixel_format_type: u32,
             file_type: &AVFileType,
         ) -> Retained<NSArray<AVVideoCodecType>>;
 
@@ -1426,7 +1426,7 @@ impl AVCapturePhotoSettings {
         #[unsafe(method(photoSettingsWithRawPixelFormatType:))]
         #[unsafe(method_family = none)]
         pub unsafe fn photoSettingsWithRawPixelFormatType(
-            raw_pixel_format_type: OSType,
+            raw_pixel_format_type: u32,
         ) -> Retained<Self>;
 
         /// Creates an instance of AVCapturePhotoSettings specifying RAW + a processed format (such as JPEG).
@@ -1447,7 +1447,7 @@ impl AVCapturePhotoSettings {
         #[unsafe(method(photoSettingsWithRawPixelFormatType:processedFormat:))]
         #[unsafe(method_family = none)]
         pub unsafe fn photoSettingsWithRawPixelFormatType_processedFormat(
-            raw_pixel_format_type: OSType,
+            raw_pixel_format_type: u32,
             processed_format: Option<&NSDictionary<NSString, AnyObject>>,
         ) -> Retained<Self>;
 
@@ -1474,7 +1474,7 @@ impl AVCapturePhotoSettings {
         #[unsafe(method(photoSettingsWithRawPixelFormatType:rawFileType:processedFormat:processedFileType:))]
         #[unsafe(method_family = none)]
         pub unsafe fn photoSettingsWithRawPixelFormatType_rawFileType_processedFormat_processedFileType(
-            raw_pixel_format_type: OSType,
+            raw_pixel_format_type: u32,
             raw_file_type: Option<&AVFileType>,
             processed_format: Option<&NSDictionary<NSString, AnyObject>>,
             processed_file_type: Option<&AVFileType>,
@@ -1547,7 +1547,7 @@ impl AVCapturePhotoSettings {
         /// The rawPixelFormatType you specified in one of the creation methods. Returns 0 if you did not specify RAW capture. See AVCapturePhotoOutput's -capturePhotoWithSettings:delegate: inline documentation for a discussion of restrictions on AVCapturePhotoSettings when requesting RAW capture.
         #[unsafe(method(rawPhotoPixelFormatType))]
         #[unsafe(method_family = none)]
-        pub unsafe fn rawPhotoPixelFormatType(&self) -> OSType;
+        pub unsafe fn rawPhotoPixelFormatType(&self) -> u32;
 
         #[cfg(feature = "AVMediaFormat")]
         /// The file container for which the RAW photo is formatted to be stored.
@@ -2167,7 +2167,7 @@ impl AVCapturePhotoBracketSettings {
         #[unsafe(method(photoBracketSettingsWithRawPixelFormatType:processedFormat:bracketedSettings:))]
         #[unsafe(method_family = none)]
         pub unsafe fn photoBracketSettingsWithRawPixelFormatType_processedFormat_bracketedSettings(
-            raw_pixel_format_type: OSType,
+            raw_pixel_format_type: u32,
             processed_format: Option<&NSDictionary<NSString, AnyObject>>,
             bracketed_settings: &NSArray<AVCaptureBracketedStillImageSettings>,
         ) -> Retained<Self>;
@@ -2201,7 +2201,7 @@ impl AVCapturePhotoBracketSettings {
         #[unsafe(method(photoBracketSettingsWithRawPixelFormatType:rawFileType:processedFormat:processedFileType:bracketedSettings:))]
         #[unsafe(method_family = none)]
         pub unsafe fn photoBracketSettingsWithRawPixelFormatType_rawFileType_processedFormat_processedFileType_bracketedSettings(
-            raw_pixel_format_type: OSType,
+            raw_pixel_format_type: u32,
             raw_file_type: Option<&AVFileType>,
             processed_format: Option<&NSDictionary<NSString, AnyObject>>,
             processed_file_type: Option<&AVFileType>,
@@ -2279,7 +2279,7 @@ impl AVCapturePhotoBracketSettings {
         #[unsafe(method(photoSettingsWithRawPixelFormatType:))]
         #[unsafe(method_family = none)]
         pub unsafe fn photoSettingsWithRawPixelFormatType(
-            raw_pixel_format_type: OSType,
+            raw_pixel_format_type: u32,
         ) -> Retained<Self>;
 
         /// Creates an instance of AVCapturePhotoSettings specifying RAW + a processed format (such as JPEG).
@@ -2300,7 +2300,7 @@ impl AVCapturePhotoBracketSettings {
         #[unsafe(method(photoSettingsWithRawPixelFormatType:processedFormat:))]
         #[unsafe(method_family = none)]
         pub unsafe fn photoSettingsWithRawPixelFormatType_processedFormat(
-            raw_pixel_format_type: OSType,
+            raw_pixel_format_type: u32,
             processed_format: Option<&NSDictionary<NSString, AnyObject>>,
         ) -> Retained<Self>;
 
@@ -2327,7 +2327,7 @@ impl AVCapturePhotoBracketSettings {
         #[unsafe(method(photoSettingsWithRawPixelFormatType:rawFileType:processedFormat:processedFileType:))]
         #[unsafe(method_family = none)]
         pub unsafe fn photoSettingsWithRawPixelFormatType_rawFileType_processedFormat_processedFileType(
-            raw_pixel_format_type: OSType,
+            raw_pixel_format_type: u32,
             raw_file_type: Option<&AVFileType>,
             processed_format: Option<&NSDictionary<NSString, AnyObject>>,
             processed_file_type: Option<&AVFileType>,

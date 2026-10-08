@@ -420,7 +420,7 @@ pub type AudioRecordingChunkPtr = *mut AudioRecordingChunk;
 pub struct ApplicationSpecificChunk {
     pub ckID: u32,
     pub ckSize: i32,
-    pub applicationSignature: OSType,
+    pub applicationSignature: u32,
     pub data: [u8; 1],
     _this_is_unsized: (),
 }
@@ -432,7 +432,7 @@ unsafe impl Encode for ApplicationSpecificChunk {
         &[
             <u32>::ENCODING,
             <i32>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <[u8; 1]>::ENCODING,
         ],
     );

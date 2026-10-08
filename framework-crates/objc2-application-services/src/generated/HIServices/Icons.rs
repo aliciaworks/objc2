@@ -381,13 +381,9 @@ pub unsafe fn IconRefToIconFamily(
 /// - `h` must be a valid pointer.
 #[cfg(feature = "objc2-core-services")]
 #[inline]
-pub unsafe fn SetIconFamilyData(
-    icon_family: IconFamilyHandle,
-    icon_type: OSType,
-    h: Handle,
-) -> OSErr {
+pub unsafe fn SetIconFamilyData(icon_family: IconFamilyHandle, icon_type: u32, h: Handle) -> OSErr {
     extern "C-unwind" {
-        fn SetIconFamilyData(icon_family: IconFamilyHandle, icon_type: OSType, h: Handle) -> OSErr;
+        fn SetIconFamilyData(icon_family: IconFamilyHandle, icon_type: u32, h: Handle) -> OSErr;
     }
     unsafe { SetIconFamilyData(icon_family, icon_type, h) }
 }
@@ -398,13 +394,9 @@ pub unsafe fn SetIconFamilyData(
 /// - `h` must be a valid pointer.
 #[cfg(feature = "objc2-core-services")]
 #[inline]
-pub unsafe fn GetIconFamilyData(
-    icon_family: IconFamilyHandle,
-    icon_type: OSType,
-    h: Handle,
-) -> OSErr {
+pub unsafe fn GetIconFamilyData(icon_family: IconFamilyHandle, icon_type: u32, h: Handle) -> OSErr {
     extern "C-unwind" {
-        fn GetIconFamilyData(icon_family: IconFamilyHandle, icon_type: OSType, h: Handle) -> OSErr;
+        fn GetIconFamilyData(icon_family: IconFamilyHandle, icon_type: u32, h: Handle) -> OSErr;
     }
     unsafe { GetIconFamilyData(icon_family, icon_type, h) }
 }
@@ -530,13 +522,13 @@ pub unsafe fn IsIconRefMaskEmpty(icon_ref: Option<&Icon>) -> bool {
 #[inline]
 pub unsafe fn GetIconRefVariant(
     in_icon_ref: Option<&Icon>,
-    in_variant: OSType,
+    in_variant: u32,
     out_transform: Option<&mut IconTransformType>,
 ) -> *mut Icon {
     extern "C-unwind" {
         fn GetIconRefVariant(
             in_icon_ref: Option<&Icon>,
-            in_variant: OSType,
+            in_variant: u32,
             out_transform: Option<&mut IconTransformType>,
         ) -> *mut Icon;
     }

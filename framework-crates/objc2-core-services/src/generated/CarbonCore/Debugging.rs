@@ -22,7 +22,7 @@ pub const kBlessedBusErrorBait: c_uint = 0x68F168F1;
 #[deprecated]
 #[inline]
 pub unsafe fn DebugAssert(
-    component_signature: OSType,
+    component_signature: u32,
     options: u32,
     assertion_string: Option<&CStr>,
     exception_label_string: Option<&CStr>,
@@ -33,7 +33,7 @@ pub unsafe fn DebugAssert(
 ) {
     extern "C-unwind" {
         fn DebugAssert(
-            component_signature: OSType,
+            component_signature: u32,
             options: u32,
             assertion_string: *const c_char,
             exception_label_string: *const c_char,
@@ -119,13 +119,13 @@ pub type DebugComponentCallbackUPP = DebugComponentCallbackProcPtr;
 #[deprecated]
 #[inline]
 pub unsafe fn NewDebugComponent(
-    component_signature: OSType,
+    component_signature: u32,
     component_name: ConstStr255Param,
     component_callback: Option<DebugComponentCallbackUPP>,
 ) -> OSStatus {
     extern "C-unwind" {
         fn NewDebugComponent(
-            component_signature: OSType,
+            component_signature: u32,
             component_name: ConstStr255Param,
             component_callback: Option<DebugComponentCallbackUPP>,
         ) -> OSStatus;
@@ -139,13 +139,13 @@ pub unsafe fn NewDebugComponent(
 #[deprecated]
 #[inline]
 pub unsafe fn NewDebugOption(
-    component_signature: OSType,
+    component_signature: u32,
     option_selector_num: i32,
     option_name: ConstStr255Param,
 ) -> OSStatus {
     extern "C-unwind" {
         fn NewDebugOption(
-            component_signature: OSType,
+            component_signature: u32,
             option_selector_num: i32,
             option_name: ConstStr255Param,
         ) -> OSStatus;
@@ -155,9 +155,9 @@ pub unsafe fn NewDebugOption(
 
 #[deprecated]
 #[inline]
-pub unsafe fn DisposeDebugComponent(component_signature: OSType) -> OSStatus {
+pub unsafe fn DisposeDebugComponent(component_signature: u32) -> OSStatus {
     extern "C-unwind" {
-        fn DisposeDebugComponent(component_signature: OSType) -> OSStatus;
+        fn DisposeDebugComponent(component_signature: u32) -> OSStatus;
     }
     unsafe { DisposeDebugComponent(component_signature) }
 }
@@ -170,13 +170,13 @@ pub unsafe fn DisposeDebugComponent(component_signature: OSType) -> OSStatus {
 #[inline]
 pub unsafe fn GetDebugComponentInfo(
     item_index: u32,
-    component_signature: Option<&mut OSType>,
+    component_signature: Option<&mut u32>,
     component_name: Option<&mut Str255>,
 ) -> OSStatus {
     extern "C-unwind" {
         fn GetDebugComponentInfo(
             item_index: u32,
-            component_signature: Option<&mut OSType>,
+            component_signature: Option<&mut u32>,
             component_name: Option<&mut Str255>,
         ) -> OSStatus;
     }
@@ -192,7 +192,7 @@ pub unsafe fn GetDebugComponentInfo(
 #[inline]
 pub unsafe fn GetDebugOptionInfo(
     item_index: u32,
-    component_signature: OSType,
+    component_signature: u32,
     option_selector_num: Option<&mut i32>,
     option_name: Option<&mut Str255>,
     option_setting: Option<&mut Boolean>,
@@ -200,7 +200,7 @@ pub unsafe fn GetDebugOptionInfo(
     extern "C-unwind" {
         fn GetDebugOptionInfo(
             item_index: u32,
-            component_signature: OSType,
+            component_signature: u32,
             option_selector_num: Option<&mut i32>,
             option_name: Option<&mut Str255>,
             option_setting: Option<&mut Boolean>,
@@ -220,13 +220,13 @@ pub unsafe fn GetDebugOptionInfo(
 #[deprecated]
 #[inline]
 pub unsafe fn SetDebugOptionValue(
-    component_signature: OSType,
+    component_signature: u32,
     option_selector_num: i32,
     new_option_setting: bool,
 ) -> OSStatus {
     extern "C-unwind" {
         fn SetDebugOptionValue(
-            component_signature: OSType,
+            component_signature: u32,
             option_selector_num: i32,
             new_option_setting: Boolean,
         ) -> OSStatus;
@@ -237,7 +237,7 @@ pub unsafe fn SetDebugOptionValue(
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/debugassertoutputhandlerprocptr?language=objc)
 pub type DebugAssertOutputHandlerProcPtr = unsafe extern "C-unwind" fn(
-    OSType,
+    u32,
     u32,
     *const c_char,
     *const c_char,
@@ -405,7 +405,7 @@ pub unsafe fn InvokeDebugComponentCallbackUPP(
 #[deprecated]
 #[inline]
 pub unsafe fn InvokeDebugAssertOutputHandlerUPP(
-    component_signature: OSType,
+    component_signature: u32,
     options: u32,
     assertion_string: Option<&CStr>,
     exception_label_string: Option<&CStr>,
@@ -418,7 +418,7 @@ pub unsafe fn InvokeDebugAssertOutputHandlerUPP(
 ) {
     extern "C-unwind" {
         fn InvokeDebugAssertOutputHandlerUPP(
-            component_signature: OSType,
+            component_signature: u32,
             options: u32,
             assertion_string: *const c_char,
             exception_label_string: *const c_char,

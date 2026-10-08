@@ -10,6 +10,7 @@ use dispatch2::*;
 use objc2::__framework_prelude::*;
 #[cfg(feature = "objc2-core-foundation")]
 use objc2_core_foundation::*;
+use objc2_game_controller::*;
 
 use crate::*;
 

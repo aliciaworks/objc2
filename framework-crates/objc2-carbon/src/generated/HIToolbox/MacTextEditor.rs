@@ -120,7 +120,7 @@ pub const kTXNMonostyledTextMask: c_uint = 1 << kTXNMonostyledTextBit;
 pub const kTXNDoFontSubstitutionMask: c_uint = 1 << kTXNDoFontSubstitutionBit;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/txnfiletype?language=objc)
-pub type TXNFileType = OSType;
+pub type TXNFileType = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/ktxntextfile?language=objc)
 pub const kTXNTextFile: c_uint = 0x54455854;
@@ -142,7 +142,7 @@ pub const kTXNMacOSEncoding: c_uint = 1;
 pub const kTXNUnicodeEncoding: c_uint = 2;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/txndatatype?language=objc)
-pub type TXNDataType = OSType;
+pub type TXNDataType = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/ktxntextdata?language=objc)
 pub const kTXNTextData: c_uint = 0x54455854;

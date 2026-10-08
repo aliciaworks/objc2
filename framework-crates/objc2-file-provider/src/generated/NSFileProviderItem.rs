@@ -324,15 +324,15 @@ unsafe impl RefEncode for NSFileProviderFileSystemFlags {
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct NSFileProviderTypeAndCreator {
     /// The first word of the FinderInfo structure. It matches the file type code
-    pub r#type: OSType,
+    pub r#type: u32,
     /// The second word of the FinderInfo structure. It matches the creator code
-    pub creator: OSType,
+    pub creator: u32,
 }
 
 unsafe impl Encode for NSFileProviderTypeAndCreator {
     const ENCODING: Encoding = Encoding::Struct(
         "NSFileProviderTypeAndCreator",
-        &[<OSType>::ENCODING, <OSType>::ENCODING],
+        &[<u32>::ENCODING, <u32>::ENCODING],
     );
 }
 

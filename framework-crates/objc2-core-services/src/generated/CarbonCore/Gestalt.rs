@@ -5,7 +5,7 @@ use core::ffi::*;
 use crate::*;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/selectorfunctionprocptr?language=objc)
-pub type SelectorFunctionProcPtr = unsafe extern "C-unwind" fn(OSType, *mut i32) -> OSErr;
+pub type SelectorFunctionProcPtr = unsafe extern "C-unwind" fn(u32, *mut i32) -> OSErr;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/selectorfunctionupp?language=objc)
 pub type SelectorFunctionUPP = SelectorFunctionProcPtr;
@@ -15,45 +15,45 @@ pub type SelectorFunctionUPP = SelectorFunctionProcPtr;
 /// `response` might not allow `None`.
 #[deprecated]
 #[inline]
-pub unsafe fn Gestalt(selector: OSType, response: Option<&mut i32>) -> OSErr {
+pub unsafe fn Gestalt(selector: u32, response: Option<&mut i32>) -> OSErr {
     extern "C-unwind" {
-        fn Gestalt(selector: OSType, response: Option<&mut i32>) -> OSErr;
+        fn Gestalt(selector: u32, response: Option<&mut i32>) -> OSErr;
     }
     unsafe { Gestalt(selector, response) }
 }
 
 #[deprecated]
 #[inline]
-pub unsafe fn NewGestaltValue(selector: OSType, new_value: i32) -> OSErr {
+pub unsafe fn NewGestaltValue(selector: u32, new_value: i32) -> OSErr {
     extern "C-unwind" {
-        fn NewGestaltValue(selector: OSType, new_value: i32) -> OSErr;
+        fn NewGestaltValue(selector: u32, new_value: i32) -> OSErr;
     }
     unsafe { NewGestaltValue(selector, new_value) }
 }
 
 #[deprecated]
 #[inline]
-pub unsafe fn ReplaceGestaltValue(selector: OSType, replacement_value: i32) -> OSErr {
+pub unsafe fn ReplaceGestaltValue(selector: u32, replacement_value: i32) -> OSErr {
     extern "C-unwind" {
-        fn ReplaceGestaltValue(selector: OSType, replacement_value: i32) -> OSErr;
+        fn ReplaceGestaltValue(selector: u32, replacement_value: i32) -> OSErr;
     }
     unsafe { ReplaceGestaltValue(selector, replacement_value) }
 }
 
 #[deprecated]
 #[inline]
-pub unsafe fn SetGestaltValue(selector: OSType, new_value: i32) -> OSErr {
+pub unsafe fn SetGestaltValue(selector: u32, new_value: i32) -> OSErr {
     extern "C-unwind" {
-        fn SetGestaltValue(selector: OSType, new_value: i32) -> OSErr;
+        fn SetGestaltValue(selector: u32, new_value: i32) -> OSErr;
     }
     unsafe { SetGestaltValue(selector, new_value) }
 }
 
 #[deprecated]
 #[inline]
-pub unsafe fn DeleteGestaltValue(selector: OSType) -> OSErr {
+pub unsafe fn DeleteGestaltValue(selector: u32) -> OSErr {
     extern "C-unwind" {
-        fn DeleteGestaltValue(selector: OSType) -> OSErr;
+        fn DeleteGestaltValue(selector: u32) -> OSErr;
     }
     unsafe { DeleteGestaltValue(selector) }
 }
@@ -95,13 +95,13 @@ pub unsafe fn DisposeSelectorFunctionUPP(user_upp: *mut SelectorFunctionUPP) {
 #[deprecated]
 #[inline]
 pub unsafe fn InvokeSelectorFunctionUPP(
-    selector: OSType,
+    selector: u32,
     response: Option<&mut i32>,
     user_upp: Option<SelectorFunctionUPP>,
 ) -> OSErr {
     extern "C-unwind" {
         fn InvokeSelectorFunctionUPP(
-            selector: OSType,
+            selector: u32,
             response: Option<&mut i32>,
             user_upp: Option<SelectorFunctionUPP>,
         ) -> OSErr;

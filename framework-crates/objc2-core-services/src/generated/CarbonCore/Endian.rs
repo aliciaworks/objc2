@@ -130,12 +130,12 @@ unsafe impl RefEncode for BigEndianUnsignedFixed {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct BigEndianOSType {
-    pub bigEndianValue: OSType,
+    pub bigEndianValue: u32,
 }
 
 #[cfg(feature = "objc2")]
 unsafe impl Encode for BigEndianOSType {
-    const ENCODING: Encoding = Encoding::Struct("BigEndianOSType", &[<OSType>::ENCODING]);
+    const ENCODING: Encoding = Encoding::Struct("BigEndianOSType", &[<u32>::ENCODING]);
 }
 
 #[cfg(feature = "objc2")]
@@ -150,8 +150,8 @@ pub const kCoreEndianAppleEventManagerDomain: c_uint = 0x61657674;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/coreendianflipproc?language=objc)
 pub type CoreEndianFlipProc = unsafe extern "C-unwind" fn(
-    OSType,
-    OSType,
+    u32,
+    u32,
     i16,
     *mut c_void,
     ByteCount,
@@ -167,15 +167,15 @@ pub type CoreEndianFlipProc = unsafe extern "C-unwind" fn(
 #[deprecated]
 #[inline]
 pub unsafe fn CoreEndianInstallFlipper(
-    data_domain: OSType,
-    data_type: OSType,
+    data_domain: u32,
+    data_type: u32,
     proc: Option<CoreEndianFlipProc>,
     refcon: *mut c_void,
 ) -> OSStatus {
     extern "C-unwind" {
         fn CoreEndianInstallFlipper(
-            data_domain: OSType,
-            data_type: OSType,
+            data_domain: u32,
+            data_type: u32,
             proc: Option<CoreEndianFlipProc>,
             refcon: *mut c_void,
         ) -> OSStatus;
@@ -192,15 +192,15 @@ pub unsafe fn CoreEndianInstallFlipper(
 #[deprecated]
 #[inline]
 pub unsafe fn CoreEndianGetFlipper(
-    data_domain: OSType,
-    data_type: OSType,
+    data_domain: u32,
+    data_type: u32,
     proc: Option<&mut Option<CoreEndianFlipProc>>,
     refcon: Option<&mut *mut c_void>,
 ) -> OSStatus {
     extern "C-unwind" {
         fn CoreEndianGetFlipper(
-            data_domain: OSType,
-            data_type: OSType,
+            data_domain: u32,
+            data_type: u32,
             proc: Option<&mut Option<CoreEndianFlipProc>>,
             refcon: Option<&mut *mut c_void>,
         ) -> OSStatus;
@@ -214,8 +214,8 @@ pub unsafe fn CoreEndianGetFlipper(
 #[deprecated]
 #[inline]
 pub unsafe fn CoreEndianFlipData(
-    data_domain: OSType,
-    data_type: OSType,
+    data_domain: u32,
+    data_type: u32,
     id: i16,
     data: *mut c_void,
     data_len: ByteCount,
@@ -223,8 +223,8 @@ pub unsafe fn CoreEndianFlipData(
 ) -> OSStatus {
     extern "C-unwind" {
         fn CoreEndianFlipData(
-            data_domain: OSType,
-            data_type: OSType,
+            data_domain: u32,
+            data_type: u32,
             id: i16,
             data: *mut c_void,
             data_len: ByteCount,

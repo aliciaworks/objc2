@@ -159,6 +159,6 @@ unsafe impl RefEncode for LSRolesMask {
 }
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/klsunknowntype?language=objc)
-pub const kLSUnknownType: OSType = 0;
+pub const kLSUnknownType: u32 = 0;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/klsunknowncreator?language=objc)
-pub const kLSUnknownCreator: OSType = 0;
+pub const kLSUnknownCreator: u32 = 0;

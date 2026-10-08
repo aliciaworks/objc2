@@ -167,7 +167,7 @@ cf_objc2_type!(
 /// Represents a keychain attribute type.
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/security/seckeychainattrtype?language=objc)
-pub type SecKeychainAttrType = OSType;
+pub type SecKeychainAttrType = u32;
 
 /// Contains keychain attributes.
 ///

@@ -80,7 +80,7 @@ pub const kMPAddressSpaceInfoVersion: c_uint = 1 | (kOpaqueAddressSpaceID << 16)
 pub struct MPQueueInfo {
     pub version: PBVersion,
     pub processID: MPProcessID,
-    pub queueName: OSType,
+    pub queueName: u32,
     pub nWaiting: ItemCount,
     pub waitingTaskID: MPTaskID,
     pub nMessages: ItemCount,
@@ -97,7 +97,7 @@ unsafe impl Encode for MPQueueInfo {
         &[
             <PBVersion>::ENCODING,
             <MPProcessID>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <ItemCount>::ENCODING,
             <MPTaskID>::ENCODING,
             <ItemCount>::ENCODING,
@@ -121,7 +121,7 @@ unsafe impl RefEncode for MPQueueInfo {
 pub struct MPSemaphoreInfo {
     pub version: PBVersion,
     pub processID: MPProcessID,
-    pub semaphoreName: OSType,
+    pub semaphoreName: u32,
     pub nWaiting: ItemCount,
     pub waitingTaskID: MPTaskID,
     pub maximum: ItemCount,
@@ -135,7 +135,7 @@ unsafe impl Encode for MPSemaphoreInfo {
         &[
             <PBVersion>::ENCODING,
             <MPProcessID>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <ItemCount>::ENCODING,
             <MPTaskID>::ENCODING,
             <ItemCount>::ENCODING,
@@ -156,7 +156,7 @@ unsafe impl RefEncode for MPSemaphoreInfo {
 pub struct MPEventInfo {
     pub version: PBVersion,
     pub processID: MPProcessID,
-    pub eventName: OSType,
+    pub eventName: u32,
     pub nWaiting: ItemCount,
     pub waitingTaskID: MPTaskID,
     pub events: MPEventFlags,
@@ -169,7 +169,7 @@ unsafe impl Encode for MPEventInfo {
         &[
             <PBVersion>::ENCODING,
             <MPProcessID>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <ItemCount>::ENCODING,
             <MPTaskID>::ENCODING,
             <MPEventFlags>::ENCODING,
@@ -189,7 +189,7 @@ unsafe impl RefEncode for MPEventInfo {
 pub struct MPCriticalRegionInfo {
     pub version: PBVersion,
     pub processID: MPProcessID,
-    pub regionName: OSType,
+    pub regionName: u32,
     pub nWaiting: ItemCount,
     pub waitingTaskID: MPTaskID,
     pub owningTask: MPTaskID,
@@ -203,7 +203,7 @@ unsafe impl Encode for MPCriticalRegionInfo {
         &[
             <PBVersion>::ENCODING,
             <MPProcessID>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <ItemCount>::ENCODING,
             <MPTaskID>::ENCODING,
             <MPTaskID>::ENCODING,
@@ -224,7 +224,7 @@ unsafe impl RefEncode for MPCriticalRegionInfo {
 pub struct MPNotificationInfo {
     pub version: PBVersion,
     pub processID: MPProcessID,
-    pub notificationName: OSType,
+    pub notificationName: u32,
     pub queueID: MPQueueID,
     pub p1: *mut c_void,
     pub p2: *mut c_void,
@@ -241,7 +241,7 @@ unsafe impl Encode for MPNotificationInfo {
         &[
             <PBVersion>::ENCODING,
             <MPProcessID>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <MPQueueID>::ENCODING,
             <*mut c_void>::ENCODING,
             <*mut c_void>::ENCODING,

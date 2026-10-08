@@ -11,205 +11,205 @@ use objc2_core_foundation::*;
 use crate::*;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_1monochrome?language=objc)
-pub const kCVPixelFormatType_1Monochrome: OSType = 0x00000001;
+pub const kCVPixelFormatType_1Monochrome: u32 = 0x00000001;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_2indexed?language=objc)
-pub const kCVPixelFormatType_2Indexed: OSType = 0x00000002;
+pub const kCVPixelFormatType_2Indexed: u32 = 0x00000002;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_4indexed?language=objc)
-pub const kCVPixelFormatType_4Indexed: OSType = 0x00000004;
+pub const kCVPixelFormatType_4Indexed: u32 = 0x00000004;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_8indexed?language=objc)
-pub const kCVPixelFormatType_8Indexed: OSType = 0x00000008;
+pub const kCVPixelFormatType_8Indexed: u32 = 0x00000008;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_1indexedgray_whiteiszero?language=objc)
-pub const kCVPixelFormatType_1IndexedGray_WhiteIsZero: OSType = 0x00000021;
+pub const kCVPixelFormatType_1IndexedGray_WhiteIsZero: u32 = 0x00000021;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_2indexedgray_whiteiszero?language=objc)
-pub const kCVPixelFormatType_2IndexedGray_WhiteIsZero: OSType = 0x00000022;
+pub const kCVPixelFormatType_2IndexedGray_WhiteIsZero: u32 = 0x00000022;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_4indexedgray_whiteiszero?language=objc)
-pub const kCVPixelFormatType_4IndexedGray_WhiteIsZero: OSType = 0x00000024;
+pub const kCVPixelFormatType_4IndexedGray_WhiteIsZero: u32 = 0x00000024;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_8indexedgray_whiteiszero?language=objc)
-pub const kCVPixelFormatType_8IndexedGray_WhiteIsZero: OSType = 0x00000028;
+pub const kCVPixelFormatType_8IndexedGray_WhiteIsZero: u32 = 0x00000028;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_16be555?language=objc)
-pub const kCVPixelFormatType_16BE555: OSType = 0x00000010;
+pub const kCVPixelFormatType_16BE555: u32 = 0x00000010;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_16le555?language=objc)
-pub const kCVPixelFormatType_16LE555: OSType = 0x4c353535;
+pub const kCVPixelFormatType_16LE555: u32 = 0x4c353535;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_16le5551?language=objc)
-pub const kCVPixelFormatType_16LE5551: OSType = 0x35353531;
+pub const kCVPixelFormatType_16LE5551: u32 = 0x35353531;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_16be565?language=objc)
-pub const kCVPixelFormatType_16BE565: OSType = 0x42353635;
+pub const kCVPixelFormatType_16BE565: u32 = 0x42353635;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_16le565?language=objc)
-pub const kCVPixelFormatType_16LE565: OSType = 0x4c353635;
+pub const kCVPixelFormatType_16LE565: u32 = 0x4c353635;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_24rgb?language=objc)
-pub const kCVPixelFormatType_24RGB: OSType = 0x00000018;
+pub const kCVPixelFormatType_24RGB: u32 = 0x00000018;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_24bgr?language=objc)
-pub const kCVPixelFormatType_24BGR: OSType = 0x32344247;
+pub const kCVPixelFormatType_24BGR: u32 = 0x32344247;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_32argb?language=objc)
-pub const kCVPixelFormatType_32ARGB: OSType = 0x00000020;
+pub const kCVPixelFormatType_32ARGB: u32 = 0x00000020;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_32bgra?language=objc)
-pub const kCVPixelFormatType_32BGRA: OSType = 0x42475241;
+pub const kCVPixelFormatType_32BGRA: u32 = 0x42475241;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_32abgr?language=objc)
-pub const kCVPixelFormatType_32ABGR: OSType = 0x41424752;
+pub const kCVPixelFormatType_32ABGR: u32 = 0x41424752;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_32rgba?language=objc)
-pub const kCVPixelFormatType_32RGBA: OSType = 0x52474241;
+pub const kCVPixelFormatType_32RGBA: u32 = 0x52474241;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_64argb?language=objc)
-pub const kCVPixelFormatType_64ARGB: OSType = 0x62363461;
+pub const kCVPixelFormatType_64ARGB: u32 = 0x62363461;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_64rgbale?language=objc)
-pub const kCVPixelFormatType_64RGBALE: OSType = 0x6c363472;
+pub const kCVPixelFormatType_64RGBALE: u32 = 0x6c363472;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_48rgb?language=objc)
-pub const kCVPixelFormatType_48RGB: OSType = 0x62343872;
+pub const kCVPixelFormatType_48RGB: u32 = 0x62343872;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_32alphagray?language=objc)
-pub const kCVPixelFormatType_32AlphaGray: OSType = 0x62333261;
+pub const kCVPixelFormatType_32AlphaGray: u32 = 0x62333261;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_16gray?language=objc)
-pub const kCVPixelFormatType_16Gray: OSType = 0x62313667;
+pub const kCVPixelFormatType_16Gray: u32 = 0x62313667;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_30rgb?language=objc)
-pub const kCVPixelFormatType_30RGB: OSType = 0x5231306b;
+pub const kCVPixelFormatType_30RGB: u32 = 0x5231306b;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_30rgb_r210?language=objc)
-pub const kCVPixelFormatType_30RGB_r210: OSType = 0x72323130;
+pub const kCVPixelFormatType_30RGB_r210: u32 = 0x72323130;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_422ypcbcr8?language=objc)
-pub const kCVPixelFormatType_422YpCbCr8: OSType = 0x32767579;
+pub const kCVPixelFormatType_422YpCbCr8: u32 = 0x32767579;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_4444ypcbcra8?language=objc)
-pub const kCVPixelFormatType_4444YpCbCrA8: OSType = 0x76343038;
+pub const kCVPixelFormatType_4444YpCbCrA8: u32 = 0x76343038;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_4444ypcbcra8r?language=objc)
-pub const kCVPixelFormatType_4444YpCbCrA8R: OSType = 0x72343038;
+pub const kCVPixelFormatType_4444YpCbCrA8R: u32 = 0x72343038;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_4444aypcbcr8?language=objc)
-pub const kCVPixelFormatType_4444AYpCbCr8: OSType = 0x79343038;
+pub const kCVPixelFormatType_4444AYpCbCr8: u32 = 0x79343038;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_4444aypcbcr16?language=objc)
-pub const kCVPixelFormatType_4444AYpCbCr16: OSType = 0x79343136;
+pub const kCVPixelFormatType_4444AYpCbCr16: u32 = 0x79343136;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_4444aypcbcrfloat?language=objc)
-pub const kCVPixelFormatType_4444AYpCbCrFloat: OSType = 0x7234666c;
+pub const kCVPixelFormatType_4444AYpCbCrFloat: u32 = 0x7234666c;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_444ypcbcr8?language=objc)
-pub const kCVPixelFormatType_444YpCbCr8: OSType = 0x76333038;
+pub const kCVPixelFormatType_444YpCbCr8: u32 = 0x76333038;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_422ypcbcr16?language=objc)
-pub const kCVPixelFormatType_422YpCbCr16: OSType = 0x76323136;
+pub const kCVPixelFormatType_422YpCbCr16: u32 = 0x76323136;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_422ypcbcr10?language=objc)
-pub const kCVPixelFormatType_422YpCbCr10: OSType = 0x76323130;
+pub const kCVPixelFormatType_422YpCbCr10: u32 = 0x76323130;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_444ypcbcr10?language=objc)
-pub const kCVPixelFormatType_444YpCbCr10: OSType = 0x76343130;
+pub const kCVPixelFormatType_444YpCbCr10: u32 = 0x76343130;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_420ypcbcr8planar?language=objc)
-pub const kCVPixelFormatType_420YpCbCr8Planar: OSType = 0x79343230;
+pub const kCVPixelFormatType_420YpCbCr8Planar: u32 = 0x79343230;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_420ypcbcr8planarfullrange?language=objc)
-pub const kCVPixelFormatType_420YpCbCr8PlanarFullRange: OSType = 0x66343230;
+pub const kCVPixelFormatType_420YpCbCr8PlanarFullRange: u32 = 0x66343230;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_422ypcbcr_4a_8biplanar?language=objc)
-pub const kCVPixelFormatType_422YpCbCr_4A_8BiPlanar: OSType = 0x61327679;
+pub const kCVPixelFormatType_422YpCbCr_4A_8BiPlanar: u32 = 0x61327679;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_420ypcbcr8biplanarvideorange?language=objc)
-pub const kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange: OSType = 0x34323076;
+pub const kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange: u32 = 0x34323076;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_420ypcbcr8biplanarfullrange?language=objc)
-pub const kCVPixelFormatType_420YpCbCr8BiPlanarFullRange: OSType = 0x34323066;
+pub const kCVPixelFormatType_420YpCbCr8BiPlanarFullRange: u32 = 0x34323066;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_422ypcbcr8biplanarvideorange?language=objc)
-pub const kCVPixelFormatType_422YpCbCr8BiPlanarVideoRange: OSType = 0x34323276;
+pub const kCVPixelFormatType_422YpCbCr8BiPlanarVideoRange: u32 = 0x34323276;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_422ypcbcr8biplanarfullrange?language=objc)
-pub const kCVPixelFormatType_422YpCbCr8BiPlanarFullRange: OSType = 0x34323266;
+pub const kCVPixelFormatType_422YpCbCr8BiPlanarFullRange: u32 = 0x34323266;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_444ypcbcr8biplanarvideorange?language=objc)
-pub const kCVPixelFormatType_444YpCbCr8BiPlanarVideoRange: OSType = 0x34343476;
+pub const kCVPixelFormatType_444YpCbCr8BiPlanarVideoRange: u32 = 0x34343476;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_444ypcbcr8biplanarfullrange?language=objc)
-pub const kCVPixelFormatType_444YpCbCr8BiPlanarFullRange: OSType = 0x34343466;
+pub const kCVPixelFormatType_444YpCbCr8BiPlanarFullRange: u32 = 0x34343466;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_422ypcbcr8_yuvs?language=objc)
-pub const kCVPixelFormatType_422YpCbCr8_yuvs: OSType = 0x79757673;
+pub const kCVPixelFormatType_422YpCbCr8_yuvs: u32 = 0x79757673;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_422ypcbcr8fullrange?language=objc)
-pub const kCVPixelFormatType_422YpCbCr8FullRange: OSType = 0x79757666;
+pub const kCVPixelFormatType_422YpCbCr8FullRange: u32 = 0x79757666;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_onecomponent8?language=objc)
-pub const kCVPixelFormatType_OneComponent8: OSType = 0x4c303038;
+pub const kCVPixelFormatType_OneComponent8: u32 = 0x4c303038;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_twocomponent8?language=objc)
-pub const kCVPixelFormatType_TwoComponent8: OSType = 0x32433038;
+pub const kCVPixelFormatType_TwoComponent8: u32 = 0x32433038;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_30rgblepackedwidegamut?language=objc)
-pub const kCVPixelFormatType_30RGBLEPackedWideGamut: OSType = 0x77333072;
+pub const kCVPixelFormatType_30RGBLEPackedWideGamut: u32 = 0x77333072;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_argb2101010lepacked?language=objc)
-pub const kCVPixelFormatType_ARGB2101010LEPacked: OSType = 0x6c313072;
+pub const kCVPixelFormatType_ARGB2101010LEPacked: u32 = 0x6c313072;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_40argblewidegamut?language=objc)
-pub const kCVPixelFormatType_40ARGBLEWideGamut: OSType = 0x77343061;
+pub const kCVPixelFormatType_40ARGBLEWideGamut: u32 = 0x77343061;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_40argblewidegamutpremultiplied?language=objc)
-pub const kCVPixelFormatType_40ARGBLEWideGamutPremultiplied: OSType = 0x7734306d;
+pub const kCVPixelFormatType_40ARGBLEWideGamutPremultiplied: u32 = 0x7734306d;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_onecomponent10?language=objc)
-pub const kCVPixelFormatType_OneComponent10: OSType = 0x4c303130;
+pub const kCVPixelFormatType_OneComponent10: u32 = 0x4c303130;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_onecomponent12?language=objc)
-pub const kCVPixelFormatType_OneComponent12: OSType = 0x4c303132;
+pub const kCVPixelFormatType_OneComponent12: u32 = 0x4c303132;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_onecomponent16?language=objc)
-pub const kCVPixelFormatType_OneComponent16: OSType = 0x4c303136;
+pub const kCVPixelFormatType_OneComponent16: u32 = 0x4c303136;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_twocomponent16?language=objc)
-pub const kCVPixelFormatType_TwoComponent16: OSType = 0x32433136;
+pub const kCVPixelFormatType_TwoComponent16: u32 = 0x32433136;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_onecomponent16half?language=objc)
-pub const kCVPixelFormatType_OneComponent16Half: OSType = 0x4c303068;
+pub const kCVPixelFormatType_OneComponent16Half: u32 = 0x4c303068;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_onecomponent32float?language=objc)
-pub const kCVPixelFormatType_OneComponent32Float: OSType = 0x4c303066;
+pub const kCVPixelFormatType_OneComponent32Float: u32 = 0x4c303066;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_twocomponent16half?language=objc)
-pub const kCVPixelFormatType_TwoComponent16Half: OSType = 0x32433068;
+pub const kCVPixelFormatType_TwoComponent16Half: u32 = 0x32433068;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_twocomponent32float?language=objc)
-pub const kCVPixelFormatType_TwoComponent32Float: OSType = 0x32433066;
+pub const kCVPixelFormatType_TwoComponent32Float: u32 = 0x32433066;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_64rgbahalf?language=objc)
-pub const kCVPixelFormatType_64RGBAHalf: OSType = 0x52476841;
+pub const kCVPixelFormatType_64RGBAHalf: u32 = 0x52476841;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_128rgbafloat?language=objc)
-pub const kCVPixelFormatType_128RGBAFloat: OSType = 0x52476641;
+pub const kCVPixelFormatType_128RGBAFloat: u32 = 0x52476641;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_14bayer_grbg?language=objc)
-pub const kCVPixelFormatType_14Bayer_GRBG: OSType = 0x67726234;
+pub const kCVPixelFormatType_14Bayer_GRBG: u32 = 0x67726234;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_14bayer_rggb?language=objc)
-pub const kCVPixelFormatType_14Bayer_RGGB: OSType = 0x72676734;
+pub const kCVPixelFormatType_14Bayer_RGGB: u32 = 0x72676734;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_14bayer_bggr?language=objc)
-pub const kCVPixelFormatType_14Bayer_BGGR: OSType = 0x62676734;
+pub const kCVPixelFormatType_14Bayer_BGGR: u32 = 0x62676734;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_14bayer_gbrg?language=objc)
-pub const kCVPixelFormatType_14Bayer_GBRG: OSType = 0x67627234;
+pub const kCVPixelFormatType_14Bayer_GBRG: u32 = 0x67627234;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_disparityfloat16?language=objc)
-pub const kCVPixelFormatType_DisparityFloat16: OSType = 0x68646973;
+pub const kCVPixelFormatType_DisparityFloat16: u32 = 0x68646973;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_disparityfloat32?language=objc)
-pub const kCVPixelFormatType_DisparityFloat32: OSType = 0x66646973;
+pub const kCVPixelFormatType_DisparityFloat32: u32 = 0x66646973;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_depthfloat16?language=objc)
-pub const kCVPixelFormatType_DepthFloat16: OSType = 0x68646570;
+pub const kCVPixelFormatType_DepthFloat16: u32 = 0x68646570;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_depthfloat32?language=objc)
-pub const kCVPixelFormatType_DepthFloat32: OSType = 0x66646570;
+pub const kCVPixelFormatType_DepthFloat32: u32 = 0x66646570;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_420ypcbcr10biplanarvideorange?language=objc)
-pub const kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange: OSType = 0x78343230;
+pub const kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange: u32 = 0x78343230;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_422ypcbcr10biplanarvideorange?language=objc)
-pub const kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange: OSType = 0x78343232;
+pub const kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange: u32 = 0x78343232;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_444ypcbcr10biplanarvideorange?language=objc)
-pub const kCVPixelFormatType_444YpCbCr10BiPlanarVideoRange: OSType = 0x78343434;
+pub const kCVPixelFormatType_444YpCbCr10BiPlanarVideoRange: u32 = 0x78343434;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_420ypcbcr10biplanarfullrange?language=objc)
-pub const kCVPixelFormatType_420YpCbCr10BiPlanarFullRange: OSType = 0x78663230;
+pub const kCVPixelFormatType_420YpCbCr10BiPlanarFullRange: u32 = 0x78663230;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_422ypcbcr10biplanarfullrange?language=objc)
-pub const kCVPixelFormatType_422YpCbCr10BiPlanarFullRange: OSType = 0x78663232;
+pub const kCVPixelFormatType_422YpCbCr10BiPlanarFullRange: u32 = 0x78663232;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_444ypcbcr10biplanarfullrange?language=objc)
-pub const kCVPixelFormatType_444YpCbCr10BiPlanarFullRange: OSType = 0x78663434;
+pub const kCVPixelFormatType_444YpCbCr10BiPlanarFullRange: u32 = 0x78663434;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_420ypcbcr8videorange_8a_triplanar?language=objc)
-pub const kCVPixelFormatType_420YpCbCr8VideoRange_8A_TriPlanar: OSType = 0x76306138;
+pub const kCVPixelFormatType_420YpCbCr8VideoRange_8A_TriPlanar: u32 = 0x76306138;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_16versatilebayer?language=objc)
-pub const kCVPixelFormatType_16VersatileBayer: OSType = 0x62703136;
+pub const kCVPixelFormatType_16VersatileBayer: u32 = 0x62703136;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_96versatilebayerpacked12?language=objc)
-pub const kCVPixelFormatType_96VersatileBayerPacked12: OSType = 0x62747032;
+pub const kCVPixelFormatType_96VersatileBayerPacked12: u32 = 0x62747032;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_64rgba_downscaledproresraw?language=objc)
-pub const kCVPixelFormatType_64RGBA_DownscaledProResRAW: OSType = 0x62703634;
+pub const kCVPixelFormatType_64RGBA_DownscaledProResRAW: u32 = 0x62703634;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_422ypcbcr16biplanarvideorange?language=objc)
-pub const kCVPixelFormatType_422YpCbCr16BiPlanarVideoRange: OSType = 0x73763232;
+pub const kCVPixelFormatType_422YpCbCr16BiPlanarVideoRange: u32 = 0x73763232;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_444ypcbcr16biplanarvideorange?language=objc)
-pub const kCVPixelFormatType_444YpCbCr16BiPlanarVideoRange: OSType = 0x73763434;
+pub const kCVPixelFormatType_444YpCbCr16BiPlanarVideoRange: u32 = 0x73763434;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_444ypcbcr16videorange_16a_triplanar?language=objc)
-pub const kCVPixelFormatType_444YpCbCr16VideoRange_16A_TriPlanar: OSType = 0x73346173;
+pub const kCVPixelFormatType_444YpCbCr16VideoRange_16A_TriPlanar: u32 = 0x73346173;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_30rgble_8a_biplanar?language=objc)
-pub const kCVPixelFormatType_30RGBLE_8A_BiPlanar: OSType = 0x62336138;
+pub const kCVPixelFormatType_30RGBLE_8A_BiPlanar: u32 = 0x62336138;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossless_32bgra?language=objc)
-pub const kCVPixelFormatType_Lossless_32BGRA: OSType = 0x26424741;
+pub const kCVPixelFormatType_Lossless_32BGRA: u32 = 0x26424741;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossless_64rgbahalf?language=objc)
-pub const kCVPixelFormatType_Lossless_64RGBAHalf: OSType = 0x26526841;
+pub const kCVPixelFormatType_Lossless_64RGBAHalf: u32 = 0x26526841;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossless_420ypcbcr8biplanarvideorange?language=objc)
-pub const kCVPixelFormatType_Lossless_420YpCbCr8BiPlanarVideoRange: OSType = 0x26387630;
+pub const kCVPixelFormatType_Lossless_420YpCbCr8BiPlanarVideoRange: u32 = 0x26387630;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossless_420ypcbcr8biplanarfullrange?language=objc)
-pub const kCVPixelFormatType_Lossless_420YpCbCr8BiPlanarFullRange: OSType = 0x26386630;
+pub const kCVPixelFormatType_Lossless_420YpCbCr8BiPlanarFullRange: u32 = 0x26386630;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossless_420ypcbcr10packedbiplanarvideorange?language=objc)
-pub const kCVPixelFormatType_Lossless_420YpCbCr10PackedBiPlanarVideoRange: OSType = 0x26787630;
+pub const kCVPixelFormatType_Lossless_420YpCbCr10PackedBiPlanarVideoRange: u32 = 0x26787630;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossless_422ypcbcr10packedbiplanarvideorange?language=objc)
-pub const kCVPixelFormatType_Lossless_422YpCbCr10PackedBiPlanarVideoRange: OSType = 0x26787632;
+pub const kCVPixelFormatType_Lossless_422YpCbCr10PackedBiPlanarVideoRange: u32 = 0x26787632;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossless_420ypcbcr10packedbiplanarfullrange?language=objc)
-pub const kCVPixelFormatType_Lossless_420YpCbCr10PackedBiPlanarFullRange: OSType = 0x26786630;
+pub const kCVPixelFormatType_Lossless_420YpCbCr10PackedBiPlanarFullRange: u32 = 0x26786630;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossless_30rgble_8a_biplanar?language=objc)
-pub const kCVPixelFormatType_Lossless_30RGBLE_8A_BiPlanar: OSType = 0x26623338;
+pub const kCVPixelFormatType_Lossless_30RGBLE_8A_BiPlanar: u32 = 0x26623338;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossless_30rgblepackedwidegamut?language=objc)
-pub const kCVPixelFormatType_Lossless_30RGBLEPackedWideGamut: OSType = 0x26773372;
+pub const kCVPixelFormatType_Lossless_30RGBLEPackedWideGamut: u32 = 0x26773372;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossy_32bgra?language=objc)
-pub const kCVPixelFormatType_Lossy_32BGRA: OSType = 0x2d424741;
+pub const kCVPixelFormatType_Lossy_32BGRA: u32 = 0x2d424741;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossy_420ypcbcr8biplanarvideorange?language=objc)
-pub const kCVPixelFormatType_Lossy_420YpCbCr8BiPlanarVideoRange: OSType = 0x2d387630;
+pub const kCVPixelFormatType_Lossy_420YpCbCr8BiPlanarVideoRange: u32 = 0x2d387630;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossy_420ypcbcr8biplanarfullrange?language=objc)
-pub const kCVPixelFormatType_Lossy_420YpCbCr8BiPlanarFullRange: OSType = 0x2d386630;
+pub const kCVPixelFormatType_Lossy_420YpCbCr8BiPlanarFullRange: u32 = 0x2d386630;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossy_420ypcbcr10packedbiplanarvideorange?language=objc)
-pub const kCVPixelFormatType_Lossy_420YpCbCr10PackedBiPlanarVideoRange: OSType = 0x2d787630;
+pub const kCVPixelFormatType_Lossy_420YpCbCr10PackedBiPlanarVideoRange: u32 = 0x2d787630;
 /// [Apple's documentation](https://developer.apple.com/documentation/corevideo/kcvpixelformattype_lossy_422ypcbcr10packedbiplanarvideorange?language=objc)
-pub const kCVPixelFormatType_Lossy_422YpCbCr10PackedBiPlanarVideoRange: OSType = 0x2d787632;
+pub const kCVPixelFormatType_Lossy_422YpCbCr10PackedBiPlanarVideoRange: u32 = 0x2d787632;
 
 /// Pixel Buffer Locking Flags
 ///
@@ -643,7 +643,7 @@ impl CVPixelBuffer {
         allocator: Option<&CFAllocator>,
         width: usize,
         height: usize,
-        pixel_format_type: OSType,
+        pixel_format_type: u32,
         pixel_buffer_attributes: Option<&CFDictionary<CFString, CFType>>,
         pixel_buffer_out: &mut Option<CFRetained<CVPixelBuffer>>,
     ) -> CVReturn {
@@ -652,7 +652,7 @@ impl CVPixelBuffer {
                 allocator: Option<&CFAllocator>,
                 width: usize,
                 height: usize,
-                pixel_format_type: OSType,
+                pixel_format_type: u32,
                 pixel_buffer_attributes: Option<&CFDictionary<CFString, CFType>>,
                 pixel_buffer_out: &mut Option<CFRetained<CVPixelBuffer>>,
             ) -> CVReturn;
@@ -717,7 +717,7 @@ impl CVPixelBuffer {
         allocator: Option<&CFAllocator>,
         width: usize,
         height: usize,
-        pixel_format_type: OSType,
+        pixel_format_type: u32,
         base_address: NonNull<c_void>,
         bytes_per_row: usize,
         release_callback: Option<CVPixelBufferReleaseBytesCallback>,
@@ -730,7 +730,7 @@ impl CVPixelBuffer {
                 allocator: Option<&CFAllocator>,
                 width: usize,
                 height: usize,
-                pixel_format_type: OSType,
+                pixel_format_type: u32,
                 base_address: NonNull<c_void>,
                 bytes_per_row: usize,
                 release_callback: Option<CVPixelBufferReleaseBytesCallback>,
@@ -817,7 +817,7 @@ impl CVPixelBuffer {
         allocator: Option<&CFAllocator>,
         width: usize,
         height: usize,
-        pixel_format_type: OSType,
+        pixel_format_type: u32,
         data_ptr: *mut c_void,
         data_size: usize,
         number_of_planes: usize,
@@ -835,7 +835,7 @@ impl CVPixelBuffer {
                 allocator: Option<&CFAllocator>,
                 width: usize,
                 height: usize,
-                pixel_format_type: OSType,
+                pixel_format_type: u32,
                 data_ptr: *mut c_void,
                 data_size: usize,
                 number_of_planes: usize,
@@ -964,9 +964,9 @@ impl CVPixelBuffer {
     #[doc(alias = "CVPixelBufferGetPixelFormatType")]
     #[cfg(all(feature = "CVBuffer", feature = "CVImageBuffer"))]
     #[inline]
-    pub fn pixel_format_type(&self) -> OSType {
+    pub fn pixel_format_type(&self) -> u32 {
         extern "C-unwind" {
-            fn CVPixelBufferGetPixelFormatType(pixel_buffer: &CVPixelBuffer) -> OSType;
+            fn CVPixelBufferGetPixelFormatType(pixel_buffer: &CVPixelBuffer) -> u32;
         }
         unsafe { CVPixelBufferGetPixelFormatType(self) }
     }

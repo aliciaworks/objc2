@@ -9,19 +9,19 @@ use crate::*;
 /// 0x61657574
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeuserterminology?language=objc)
-pub const kAEUserTerminology: OSType = 0x61657574;
+pub const kAEUserTerminology: u32 = 0x61657574;
 /// 0x61657465
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeterminologyextension?language=objc)
-pub const kAETerminologyExtension: OSType = 0x61657465;
+pub const kAETerminologyExtension: u32 = 0x61657465;
 /// 0x7363737a
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaescriptingsizeresource?language=objc)
-pub const kAEScriptingSizeResource: OSType = 0x7363737a;
+pub const kAEScriptingSizeResource: u32 = 0x7363737a;
 /// Resource type of a scripting addition's (osax) size resource; see the `kOSIZ...` flag bits below.
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeosaxsizeresource?language=objc)
-pub const kAEOSAXSizeResource: OSType = 0x6f73697a;
+pub const kAEOSAXSizeResource: u32 = 0x6f73697a;
 
 /// if event has a keyASReturning param
 ///

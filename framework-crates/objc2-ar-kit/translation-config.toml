@@ -39,3 +39,5 @@ class.ARPlaneGeometry.methods.triangleIndices.return.bounds.counted-by = "self.t
 class.ARPlaneGeometry.methods.boundaryVertices.return.bounds.counted-by = "self.boundaryVertexCount()"
 class.ARPointCloud.methods.points.return.bounds.counted-by = "self.count()"
 class.ARPointCloud.methods.identifiers.return.bounds.counted-by = "self.count()"
+
+external.GCDevice.module = "GameController.GCDevice"

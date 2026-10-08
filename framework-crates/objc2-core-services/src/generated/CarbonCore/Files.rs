@@ -1371,7 +1371,7 @@ unsafe impl RefEncode for GetVolParmsInfoBuffer {
 }
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/volumetype?language=objc)
-pub type VolumeType = OSType;
+pub type VolumeType = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/applesharemediatype?language=objc)
 pub const AppleShareMediaType: c_uint = 0x6166706d;

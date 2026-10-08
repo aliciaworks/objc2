@@ -54,12 +54,12 @@ pub const kCustomBadgeResourceVersion: c_int = 0;
 pub struct CustomBadgeResource {
     pub version: i16,
     pub customBadgeResourceID: i16,
-    pub customBadgeType: OSType,
-    pub customBadgeCreator: OSType,
-    pub windowBadgeType: OSType,
-    pub windowBadgeCreator: OSType,
-    pub overrideType: OSType,
-    pub overrideCreator: OSType,
+    pub customBadgeType: u32,
+    pub customBadgeCreator: u32,
+    pub windowBadgeType: u32,
+    pub windowBadgeCreator: u32,
+    pub overrideType: u32,
+    pub overrideCreator: u32,
 }
 
 #[cfg(feature = "objc2")]
@@ -69,12 +69,12 @@ unsafe impl Encode for CustomBadgeResource {
         &[
             <i16>::ENCODING,
             <i16>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
         ],
     );
 }
@@ -99,11 +99,11 @@ pub const kRoutingResourceID: c_uint = 0;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct RoutingResourceEntry {
-    pub creator: OSType,
-    pub fileType: OSType,
-    pub targetFolder: OSType,
-    pub destinationFolder: OSType,
-    pub reservedField: OSType,
+    pub creator: u32,
+    pub fileType: u32,
+    pub targetFolder: u32,
+    pub destinationFolder: u32,
+    pub reservedField: u32,
 }
 
 #[cfg(feature = "objc2")]
@@ -111,11 +111,11 @@ unsafe impl Encode for RoutingResourceEntry {
     const ENCODING: Encoding = Encoding::Struct(
         "RoutingResourceEntry",
         &[
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
         ],
     );
 }
@@ -240,8 +240,8 @@ pub const kMagicBusyCreationDate: c_uint = 0x4F3AFDB0;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct FileInfo {
-    pub fileType: OSType,
-    pub fileCreator: OSType,
+    pub fileType: u32,
+    pub fileCreator: u32,
     pub finderFlags: u16,
     pub location: Point,
     pub reservedField: u16,
@@ -252,8 +252,8 @@ unsafe impl Encode for FileInfo {
     const ENCODING: Encoding = Encoding::Struct(
         "FileInfo",
         &[
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u16>::ENCODING,
             <Point>::ENCODING,
             <u16>::ENCODING,
@@ -356,8 +356,8 @@ unsafe impl RefEncode for ExtendedFolderInfo {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct FInfo {
-    pub fdType: OSType,
-    pub fdCreator: OSType,
+    pub fdType: u32,
+    pub fdCreator: u32,
     pub fdFlags: u16,
     pub fdLocation: Point,
     pub fdFldr: i16,
@@ -368,8 +368,8 @@ unsafe impl Encode for FInfo {
     const ENCODING: Encoding = Encoding::Struct(
         "FInfo",
         &[
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u16>::ENCODING,
             <Point>::ENCODING,
             <i16>::ENCODING,

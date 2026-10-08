@@ -52,7 +52,7 @@ pub const kDontCreateFolder: bool = false;
 #[inline]
 pub unsafe fn FindFolder(
     v_ref_num: FSVolumeRefNum,
-    folder_type: OSType,
+    folder_type: u32,
     create_folder: bool,
     found_v_ref_num: Option<&mut FSVolumeRefNum>,
     found_dir_id: Option<&mut i32>,
@@ -60,7 +60,7 @@ pub unsafe fn FindFolder(
     extern "C-unwind" {
         fn FindFolder(
             v_ref_num: FSVolumeRefNum,
-            folder_type: OSType,
+            folder_type: u32,
             create_folder: Boolean,
             found_v_ref_num: Option<&mut FSVolumeRefNum>,
             found_dir_id: Option<&mut i32>,
@@ -81,9 +81,9 @@ pub unsafe fn FindFolder(
 #[cfg(feature = "Files")]
 #[deprecated]
 #[inline]
-pub unsafe fn ReleaseFolder(v_ref_num: FSVolumeRefNum, folder_type: OSType) -> OSErr {
+pub unsafe fn ReleaseFolder(v_ref_num: FSVolumeRefNum, folder_type: u32) -> OSErr {
     extern "C-unwind" {
-        fn ReleaseFolder(v_ref_num: FSVolumeRefNum, folder_type: OSType) -> OSErr;
+        fn ReleaseFolder(v_ref_num: FSVolumeRefNum, folder_type: u32) -> OSErr;
     }
     unsafe { ReleaseFolder(v_ref_num, folder_type) }
 }
@@ -96,14 +96,14 @@ pub unsafe fn ReleaseFolder(v_ref_num: FSVolumeRefNum, folder_type: OSType) -> O
 #[inline]
 pub unsafe fn FSFindFolder(
     v_ref_num: FSVolumeRefNum,
-    folder_type: OSType,
+    folder_type: u32,
     create_folder: bool,
     found_ref: Option<&mut FSRef>,
 ) -> OSErr {
     extern "C-unwind" {
         fn FSFindFolder(
             v_ref_num: FSVolumeRefNum,
-            folder_type: OSType,
+            folder_type: u32,
             create_folder: Boolean,
             found_ref: Option<&mut FSRef>,
         ) -> OSErr;
@@ -710,7 +710,7 @@ pub const kRedirectedRelativeFolder: c_uint = 0x7272656c;
 pub const kSpecialFolder: c_uint = 0x73706366;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/folderclass?language=objc)
-pub type FolderClass = OSType;
+pub type FolderClass = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kblessedfolder?language=objc)
 pub const kBlessedFolder: c_uint = 0x626c7366;
@@ -733,10 +733,10 @@ pub const kWidgetsFolderType: c_uint = 0x77646774;
 pub const kScreenSaversFolderType: c_uint = 0x7363726e;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/foldertype?language=objc)
-pub type FolderType = OSType;
+pub type FolderType = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/folderlocation?language=objc)
-pub type FolderLocation = OSType;
+pub type FolderLocation = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/folderdesc?language=objc)
 #[repr(C, packed(2))]
@@ -747,8 +747,8 @@ pub struct FolderDesc {
     pub flags: FolderDescFlags,
     pub foldClass: FolderClass,
     pub foldLocation: FolderType,
-    pub badgeSignature: OSType,
-    pub badgeType: OSType,
+    pub badgeSignature: u32,
+    pub badgeType: u32,
     pub reserved: u32,
     pub name: StrFileName,
 }
@@ -763,8 +763,8 @@ unsafe impl Encode for FolderDesc {
             <FolderDescFlags>::ENCODING,
             <FolderClass>::ENCODING,
             <FolderType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <StrFileName>::ENCODING,
         ],
@@ -787,7 +787,7 @@ pub type RoutingFlags = u32;
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct FolderRouting {
     pub descSize: Size,
-    pub fileType: OSType,
+    pub fileType: u32,
     pub routeFromFolder: FolderType,
     pub routeToFolder: FolderType,
     pub flags: RoutingFlags,
@@ -799,7 +799,7 @@ unsafe impl Encode for FolderRouting {
         "FolderRouting",
         &[
             <Size>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <FolderType>::ENCODING,
             <FolderType>::ENCODING,
             <RoutingFlags>::ENCODING,
@@ -825,8 +825,8 @@ pub unsafe fn AddFolderDescriptor(
     flags: FolderDescFlags,
     fold_class: FolderClass,
     fold_location: FolderLocation,
-    badge_signature: OSType,
-    badge_type: OSType,
+    badge_signature: u32,
+    badge_type: u32,
     name: ConstStrFileNameParam,
     replace_flag: bool,
 ) -> OSErr {
@@ -836,8 +836,8 @@ pub unsafe fn AddFolderDescriptor(
             flags: FolderDescFlags,
             fold_class: FolderClass,
             fold_location: FolderLocation,
-            badge_signature: OSType,
-            badge_type: OSType,
+            badge_signature: u32,
+            badge_type: u32,
             name: ConstStrFileNameParam,
             replace_flag: Boolean,
         ) -> OSErr;
@@ -896,14 +896,14 @@ pub unsafe fn RemoveFolderDescriptor(fold_type: FolderType) -> OSErr {
 #[inline]
 pub unsafe fn GetFolderNameUnicode(
     v_ref_num: FSVolumeRefNum,
-    fold_type: OSType,
+    fold_type: u32,
     found_v_ref_num: Option<&mut FSVolumeRefNum>,
     name: Option<&mut HFSUniStr255>,
 ) -> OSStatus {
     extern "C-unwind" {
         fn GetFolderNameUnicode(
             v_ref_num: FSVolumeRefNum,
-            fold_type: OSType,
+            fold_type: u32,
             found_v_ref_num: Option<&mut FSVolumeRefNum>,
             name: Option<&mut HFSUniStr255>,
         ) -> OSStatus;
@@ -951,14 +951,14 @@ pub unsafe fn IdentifyFolder(
 #[inline]
 pub unsafe fn FSDetermineIfRefIsEnclosedByFolder(
     domain_or_v_ref_num: FSVolumeRefNum,
-    folder_type: OSType,
+    folder_type: u32,
     in_ref: *const FSRef,
     out_result: Option<&mut Boolean>,
 ) -> OSErr {
     extern "C-unwind" {
         fn FSDetermineIfRefIsEnclosedByFolder(
             domain_or_v_ref_num: FSVolumeRefNum,
-            folder_type: OSType,
+            folder_type: u32,
             in_ref: *const FSRef,
             out_result: Option<&mut Boolean>,
         ) -> OSErr;
@@ -977,7 +977,7 @@ pub unsafe fn FSDetermineIfRefIsEnclosedByFolder(
 #[inline]
 pub unsafe fn DetermineIfPathIsEnclosedByFolder(
     domain_or_v_ref_num: FSVolumeRefNum,
-    folder_type: OSType,
+    folder_type: u32,
     utf8_path: *const u8,
     path_is_real_path: bool,
     out_result: Option<&mut Boolean>,
@@ -985,7 +985,7 @@ pub unsafe fn DetermineIfPathIsEnclosedByFolder(
     extern "C-unwind" {
         fn DetermineIfPathIsEnclosedByFolder(
             domain_or_v_ref_num: FSVolumeRefNum,
-            folder_type: OSType,
+            folder_type: u32,
             utf8_path: *const u8,
             path_is_real_path: Boolean,
             out_result: Option<&mut Boolean>,
@@ -1005,7 +1005,7 @@ pub unsafe fn DetermineIfPathIsEnclosedByFolder(
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/foldermanagernotificationprocptr?language=objc)
 pub type FolderManagerNotificationProcPtr =
-    unsafe extern "C-unwind" fn(OSType, *mut c_void, *mut c_void) -> OSStatus;
+    unsafe extern "C-unwind" fn(u32, *mut c_void, *mut c_void) -> OSStatus;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/foldermanagernotificationupp?language=objc)
 pub type FolderManagerNotificationUPP = FolderManagerNotificationProcPtr;
@@ -1048,14 +1048,14 @@ pub unsafe fn DisposeFolderManagerNotificationUPP(user_upp: *mut FolderManagerNo
 #[deprecated]
 #[inline]
 pub unsafe fn InvokeFolderManagerNotificationUPP(
-    message: OSType,
+    message: u32,
     arg: *mut c_void,
     user_ref_con: *mut c_void,
     user_upp: Option<FolderManagerNotificationUPP>,
 ) -> OSStatus {
     extern "C-unwind" {
         fn InvokeFolderManagerNotificationUPP(
-            message: OSType,
+            message: u32,
             arg: *mut c_void,
             user_ref_con: *mut c_void,
             user_upp: Option<FolderManagerNotificationUPP>,

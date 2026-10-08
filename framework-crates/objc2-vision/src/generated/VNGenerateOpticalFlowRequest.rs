@@ -114,12 +114,12 @@ impl VNGenerateOpticalFlowRequest {
         /// Default is kCVPixelFormatType_TwoComponent32Float.
         #[unsafe(method(outputPixelFormat))]
         #[unsafe(method_family = none)]
-        pub unsafe fn outputPixelFormat(&self) -> OSType;
+        pub unsafe fn outputPixelFormat(&self) -> u32;
 
         /// Setter for [`outputPixelFormat`][Self::outputPixelFormat].
         #[unsafe(method(setOutputPixelFormat:))]
         #[unsafe(method_family = none)]
-        pub unsafe fn setOutputPixelFormat(&self, output_pixel_format: OSType);
+        pub unsafe fn setOutputPixelFormat(&self, output_pixel_format: u32);
 
         /// Setting this to YES will keep the raw pixel buffer coming from the the ML network. The default is NO.
         ///

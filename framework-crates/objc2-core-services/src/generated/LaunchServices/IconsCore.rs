@@ -593,15 +593,15 @@ pub unsafe fn ReleaseIconRef(the_icon_ref: *mut Icon) -> OSErr {
 #[inline]
 pub unsafe fn GetIconRef(
     v_ref_num: i16,
-    creator: OSType,
-    icon_type: OSType,
+    creator: u32,
+    icon_type: u32,
     the_icon_ref: Option<&mut *mut Icon>,
 ) -> OSErr {
     extern "C-unwind" {
         fn GetIconRef(
             v_ref_num: i16,
-            creator: OSType,
-            icon_type: OSType,
+            creator: u32,
+            icon_type: u32,
             the_icon_ref: Option<&mut *mut Icon>,
         ) -> OSErr;
     }
@@ -706,8 +706,8 @@ pub unsafe fn GetIconRefFromFileInfo(
 #[deprecated = "Use -[NSWorkspace iconForFileType:] instead."]
 #[inline]
 pub unsafe fn GetIconRefFromTypeInfo(
-    in_creator: OSType,
-    in_type: OSType,
+    in_creator: u32,
+    in_type: u32,
     in_extension: Option<&CFString>,
     in_mime_type: Option<&CFString>,
     in_usage_flags: IconServicesUsageFlags,
@@ -715,8 +715,8 @@ pub unsafe fn GetIconRefFromTypeInfo(
 ) -> OSErr {
     extern "C-unwind" {
         fn GetIconRefFromTypeInfo(
-            in_creator: OSType,
-            in_type: OSType,
+            in_creator: u32,
+            in_type: u32,
             in_extension: Option<&CFString>,
             in_mime_type: Option<&CFString>,
             in_usage_flags: IconServicesUsageFlags,
@@ -788,15 +788,15 @@ pub unsafe fn GetIconRefFromComponent(
 #[deprecated = "This function is no longer supported. Use NSWorkspace and NSImage to get icons."]
 #[inline]
 pub unsafe fn RegisterIconRefFromIconFamily(
-    creator: OSType,
-    icon_type: OSType,
+    creator: u32,
+    icon_type: u32,
     icon_family: IconFamilyHandle,
     the_icon_ref: Option<&mut *mut Icon>,
 ) -> OSErr {
     extern "C-unwind" {
         fn RegisterIconRefFromIconFamily(
-            creator: OSType,
-            icon_type: OSType,
+            creator: u32,
+            icon_type: u32,
             icon_family: IconFamilyHandle,
             the_icon_ref: Option<&mut *mut Icon>,
         ) -> OSErr;
@@ -813,15 +813,15 @@ pub unsafe fn RegisterIconRefFromIconFamily(
 #[deprecated = "You do not need to register .icns files to use them with -[NSImage initWithContentsOfURL:]."]
 #[inline]
 pub unsafe fn RegisterIconRefFromFSRef(
-    creator: OSType,
-    icon_type: OSType,
+    creator: u32,
+    icon_type: u32,
     icon_file: Option<&FSRef>,
     the_icon_ref: Option<&mut *mut Icon>,
 ) -> OSStatus {
     extern "C-unwind" {
         fn RegisterIconRefFromFSRef(
-            creator: OSType,
-            icon_type: OSType,
+            creator: u32,
+            icon_type: u32,
             icon_file: Option<&FSRef>,
             the_icon_ref: Option<&mut *mut Icon>,
         ) -> OSStatus;
@@ -831,9 +831,9 @@ pub unsafe fn RegisterIconRefFromFSRef(
 
 #[deprecated = "You do not need to unregister icons."]
 #[inline]
-pub unsafe fn UnregisterIconRef(creator: OSType, icon_type: OSType) -> OSErr {
+pub unsafe fn UnregisterIconRef(creator: u32, icon_type: u32) -> OSErr {
     extern "C-unwind" {
-        fn UnregisterIconRef(creator: OSType, icon_type: OSType) -> OSErr;
+        fn UnregisterIconRef(creator: u32, icon_type: u32) -> OSErr;
     }
     unsafe { UnregisterIconRef(creator, icon_type) }
 }
@@ -949,9 +949,9 @@ pub unsafe fn IsValidIconRef(the_icon_ref: Option<&Icon>) -> bool {
 /// - `in_icon_ref` might not allow `None`.
 #[deprecated = "This function is no longer supported. Use NSWorkspace and NSImage to get icons."]
 #[inline]
-pub unsafe fn IsDataAvailableInIconRef(in_icon_kind: OSType, in_icon_ref: Option<&Icon>) -> bool {
+pub unsafe fn IsDataAvailableInIconRef(in_icon_kind: u32, in_icon_ref: Option<&Icon>) -> bool {
     extern "C-unwind" {
-        fn IsDataAvailableInIconRef(in_icon_kind: OSType, in_icon_ref: Option<&Icon>) -> Boolean;
+        fn IsDataAvailableInIconRef(in_icon_kind: u32, in_icon_ref: Option<&Icon>) -> Boolean;
     }
     let ret = unsafe { IsDataAvailableInIconRef(in_icon_kind, in_icon_ref) };
     ret != 0

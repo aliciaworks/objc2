@@ -30,10 +30,10 @@ pub const kTSM23Version: c_uint = 0x0230;
 pub const kTSM24Version: c_uint = 0x0240;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/interfacetypelist?language=objc)
-pub type InterfaceTypeList = [OSType; 1];
+pub type InterfaceTypeList = [u32; 1];
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/tsmdocumentinterfacetype?language=objc)
-pub type TSMDocumentInterfaceType = OSType;
+pub type TSMDocumentInterfaceType = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/ktextservicedocumentinterfacetype?language=objc)
 pub const kTextServiceDocumentInterfaceType: c_uint = kTextService;
@@ -45,7 +45,7 @@ pub const kUnicodeDocumentInterfaceType: c_uint = 0x75646f63;
 pub const kUnicodeDocument: c_uint = kUnicodeDocumentInterfaceType;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/textserviceclass?language=objc)
-pub type TextServiceClass = OSType;
+pub type TextServiceClass = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/kkeyboardinputmethodclass?language=objc)
 pub const kKeyboardInputMethodClass: c_uint = 0x696e706d;
@@ -75,7 +75,7 @@ unsafe impl RefEncode for OpaqueTSMDocumentID {
 pub type TSMDocumentID = *mut OpaqueTSMDocumentID;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/tsmdocumentpropertytag?language=objc)
-pub type TSMDocumentPropertyTag = OSType;
+pub type TSMDocumentPropertyTag = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/ktsmdocumenttextservicepropertytag?language=objc)
 pub const kTSMDocumentTextServicePropertyTag: c_uint = kTextServiceDocumentInterfaceType;
@@ -393,7 +393,7 @@ unsafe impl RefEncode for TSMGlyphInfoArray {
 }
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/textservicepropertytag?language=objc)
-pub type TextServicePropertyTag = OSType;
+pub type TextServicePropertyTag = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/ktextservicejatypingmethodpropertytag?language=objc)
 pub const kTextServiceJaTypingMethodPropertyTag: c_uint = 0x6a747970;

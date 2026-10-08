@@ -18,7 +18,7 @@ pub const kTranslatorCanGenerateFilename: c_uint = 4;
 /// ***************************************************************************************
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/carbon/filetype?language=objc)
-pub type FileType = OSType;
+pub type FileType = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/scraptype?language=objc)
 pub type ScrapType = ResType;
@@ -42,8 +42,8 @@ pub struct FileTypeSpec {
     pub format: FileType,
     pub hint: c_long,
     pub flags: TranslationAttributes,
-    pub catInfoType: OSType,
-    pub catInfoCreator: OSType,
+    pub catInfoType: u32,
+    pub catInfoCreator: u32,
 }
 
 #[cfg(feature = "objc2")]
@@ -54,8 +54,8 @@ unsafe impl Encode for FileTypeSpec {
             <FileType>::ENCODING,
             Encoding::C_LONG,
             <TranslationAttributes>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
         ],
     );
 }

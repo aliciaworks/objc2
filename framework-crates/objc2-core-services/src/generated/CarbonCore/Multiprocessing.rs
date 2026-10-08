@@ -496,9 +496,9 @@ pub unsafe fn MPCurrentTaskID() -> MPTaskID {
 /// `task` must be a valid pointer.
 #[deprecated = "Use libDispatch"]
 #[inline]
-pub unsafe fn MPSetTaskType(task: MPTaskID, task_type: OSType) -> OSStatus {
+pub unsafe fn MPSetTaskType(task: MPTaskID, task_type: u32) -> OSStatus {
     extern "C-unwind" {
-        fn MPSetTaskType(task: MPTaskID, task_type: OSType) -> OSStatus;
+        fn MPSetTaskType(task: MPTaskID, task_type: u32) -> OSStatus;
     }
     unsafe { MPSetTaskType(task, task_type) }
 }
@@ -1220,8 +1220,8 @@ pub const kMPTaskInfoVersion: c_uint = 3;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MPTaskInfoVersion2 {
     pub version: PBVersion,
-    pub name: OSType,
-    pub queueName: OSType,
+    pub name: u32,
+    pub queueName: u32,
     pub runState: u16,
     pub lastCPU: u16,
     pub weight: u32,
@@ -1241,8 +1241,8 @@ unsafe impl Encode for MPTaskInfoVersion2 {
         "MPTaskInfoVersion2",
         &[
             <PBVersion>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u16>::ENCODING,
             <u16>::ENCODING,
             <u32>::ENCODING,
@@ -1268,8 +1268,8 @@ unsafe impl RefEncode for MPTaskInfoVersion2 {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MPTaskInfo {
     pub version: PBVersion,
-    pub name: OSType,
-    pub queueName: OSType,
+    pub name: u32,
+    pub queueName: u32,
     pub runState: u16,
     pub lastCPU: u16,
     pub weight: u32,
@@ -1294,8 +1294,8 @@ unsafe impl Encode for MPTaskInfo {
         "MPTaskInfo",
         &[
             <PBVersion>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u16>::ENCODING,
             <u16>::ENCODING,
             <u32>::ENCODING,

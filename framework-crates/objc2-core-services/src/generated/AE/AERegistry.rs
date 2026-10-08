@@ -9,868 +9,868 @@ use crate::*;
 /// 0x6c697374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/caelist?language=objc)
-pub const cAEList: OSType = 0x6c697374;
+pub const cAEList: u32 = 0x6c697374;
 /// 0x63617070
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/capplication?language=objc)
-pub const cApplication: OSType = 0x63617070;
+pub const cApplication: u32 = 0x63617070;
 /// 0x63617263
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/carc?language=objc)
-pub const cArc: OSType = 0x63617263;
+pub const cArc: u32 = 0x63617263;
 /// 0x626f6f6c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cboolean?language=objc)
-pub const cBoolean: OSType = 0x626f6f6c;
+pub const cBoolean: u32 = 0x626f6f6c;
 /// 0x6363656c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ccell?language=objc)
-pub const cCell: OSType = 0x6363656c;
+pub const cCell: u32 = 0x6363656c;
 /// 0x63686120
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cchar?language=objc)
-pub const cChar: OSType = 0x63686120;
+pub const cChar: u32 = 0x63686120;
 /// 0x636c7274
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ccolortable?language=objc)
-pub const cColorTable: OSType = 0x636c7274;
+pub const cColorTable: u32 = 0x636c7274;
 /// 0x63636f6c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ccolumn?language=objc)
-pub const cColumn: OSType = 0x63636f6c;
+pub const cColumn: u32 = 0x63636f6c;
 /// 0x646f6375
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cdocument?language=objc)
-pub const cDocument: OSType = 0x646f6375;
+pub const cDocument: u32 = 0x646f6375;
 /// 0x63647277
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cdrawingarea?language=objc)
-pub const cDrawingArea: OSType = 0x63647277;
+pub const cDrawingArea: u32 = 0x63647277;
 /// 0x656e756d
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cenumeration?language=objc)
-pub const cEnumeration: OSType = 0x656e756d;
+pub const cEnumeration: u32 = 0x656e756d;
 /// 0x66696c65
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cfile?language=objc)
-pub const cFile: OSType = 0x66696c65;
+pub const cFile: u32 = 0x66696c65;
 /// 0x66697864
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cfixed?language=objc)
-pub const cFixed: OSType = 0x66697864;
+pub const cFixed: u32 = 0x66697864;
 /// 0x66706e74
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cfixedpoint?language=objc)
-pub const cFixedPoint: OSType = 0x66706e74;
+pub const cFixedPoint: u32 = 0x66706e74;
 /// 0x66726374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cfixedrectangle?language=objc)
-pub const cFixedRectangle: OSType = 0x66726374;
+pub const cFixedRectangle: u32 = 0x66726374;
 /// 0x676c696e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cgraphicline?language=objc)
-pub const cGraphicLine: OSType = 0x676c696e;
+pub const cGraphicLine: u32 = 0x676c696e;
 /// 0x63676f62
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cgraphicobject?language=objc)
-pub const cGraphicObject: OSType = 0x63676f62;
+pub const cGraphicObject: u32 = 0x63676f62;
 /// 0x63677368
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cgraphicshape?language=objc)
-pub const cGraphicShape: OSType = 0x63677368;
+pub const cGraphicShape: u32 = 0x63677368;
 /// 0x63677478
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cgraphictext?language=objc)
-pub const cGraphicText: OSType = 0x63677478;
+pub const cGraphicText: u32 = 0x63677478;
 /// 0x63706963
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cgroupedgraphic?language=objc)
-pub const cGroupedGraphic: OSType = 0x63706963;
+pub const cGroupedGraphic: u32 = 0x63706963;
 
 /// 0x696e736c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cinsertionloc?language=objc)
-pub const cInsertionLoc: OSType = 0x696e736c;
+pub const cInsertionLoc: u32 = 0x696e736c;
 /// 0x63696e73
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cinsertionpoint?language=objc)
-pub const cInsertionPoint: OSType = 0x63696e73;
+pub const cInsertionPoint: u32 = 0x63696e73;
 /// 0x69747874
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cintltext?language=objc)
-pub const cIntlText: OSType = 0x69747874;
+pub const cIntlText: u32 = 0x69747874;
 /// 0x696e746c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cintlwritingcode?language=objc)
-pub const cIntlWritingCode: OSType = 0x696e746c;
+pub const cIntlWritingCode: u32 = 0x696e746c;
 /// 0x6369746d
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/citem?language=objc)
-pub const cItem: OSType = 0x6369746d;
+pub const cItem: u32 = 0x6369746d;
 /// 0x636c696e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cline?language=objc)
-pub const cLine: OSType = 0x636c696e;
+pub const cLine: u32 = 0x636c696e;
 /// 0x6c647420
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/clongdatetime?language=objc)
-pub const cLongDateTime: OSType = 0x6c647420;
+pub const cLongDateTime: u32 = 0x6c647420;
 /// 0x6c667864
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/clongfixed?language=objc)
-pub const cLongFixed: OSType = 0x6c667864;
+pub const cLongFixed: u32 = 0x6c667864;
 /// 0x6c667074
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/clongfixedpoint?language=objc)
-pub const cLongFixedPoint: OSType = 0x6c667074;
+pub const cLongFixedPoint: u32 = 0x6c667074;
 /// 0x6c667263
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/clongfixedrectangle?language=objc)
-pub const cLongFixedRectangle: OSType = 0x6c667263;
+pub const cLongFixedRectangle: u32 = 0x6c667263;
 /// 0x6c6f6e67
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/clonginteger?language=objc)
-pub const cLongInteger: OSType = 0x6c6f6e67;
+pub const cLongInteger: u32 = 0x6c6f6e67;
 /// 0x6c706e74
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/clongpoint?language=objc)
-pub const cLongPoint: OSType = 0x6c706e74;
+pub const cLongPoint: u32 = 0x6c706e74;
 /// 0x6c726374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/clongrectangle?language=objc)
-pub const cLongRectangle: OSType = 0x6c726374;
+pub const cLongRectangle: u32 = 0x6c726374;
 /// 0x6d4c6f63
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cmachineloc?language=objc)
-pub const cMachineLoc: OSType = 0x6d4c6f63;
+pub const cMachineLoc: u32 = 0x6d4c6f63;
 /// 0x636d6e75
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cmenu?language=objc)
-pub const cMenu: OSType = 0x636d6e75;
+pub const cMenu: u32 = 0x636d6e75;
 /// 0x636d656e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cmenuitem?language=objc)
-pub const cMenuItem: OSType = 0x636d656e;
+pub const cMenuItem: u32 = 0x636d656e;
 /// 0x636f626a
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cobject?language=objc)
-pub const cObject: OSType = 0x636f626a;
+pub const cObject: u32 = 0x636f626a;
 /// 0x6f626a20
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cobjectspecifier?language=objc)
-pub const cObjectSpecifier: OSType = 0x6f626a20;
+pub const cObjectSpecifier: u32 = 0x6f626a20;
 /// 0x636f6f62
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/copenableobject?language=objc)
-pub const cOpenableObject: OSType = 0x636f6f62;
+pub const cOpenableObject: u32 = 0x636f6f62;
 /// 0x636f766c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/coval?language=objc)
-pub const cOval: OSType = 0x636f766c;
+pub const cOval: u32 = 0x636f766c;
 
 /// 0x63706172
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cparagraph?language=objc)
-pub const cParagraph: OSType = 0x63706172;
+pub const cParagraph: u32 = 0x63706172;
 /// 0x50494354
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cpict?language=objc)
-pub const cPICT: OSType = 0x50494354;
+pub const cPICT: u32 = 0x50494354;
 /// 0x6370786c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cpixel?language=objc)
-pub const cPixel: OSType = 0x6370786c;
+pub const cPixel: u32 = 0x6370786c;
 /// 0x63706978
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cpixelmap?language=objc)
-pub const cPixelMap: OSType = 0x63706978;
+pub const cPixelMap: u32 = 0x63706978;
 /// 0x6370676e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cpolygon?language=objc)
-pub const cPolygon: OSType = 0x6370676e;
+pub const cPolygon: u32 = 0x6370676e;
 /// 0x70726f70
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cproperty?language=objc)
-pub const cProperty: OSType = 0x70726f70;
+pub const cProperty: u32 = 0x70726f70;
 /// 0x51447074
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cqdpoint?language=objc)
-pub const cQDPoint: OSType = 0x51447074;
+pub const cQDPoint: u32 = 0x51447074;
 /// 0x71647274
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cqdrectangle?language=objc)
-pub const cQDRectangle: OSType = 0x71647274;
+pub const cQDRectangle: u32 = 0x71647274;
 /// 0x63726563
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/crectangle?language=objc)
-pub const cRectangle: OSType = 0x63726563;
+pub const cRectangle: u32 = 0x63726563;
 /// 0x63524742
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/crgbcolor?language=objc)
-pub const cRGBColor: OSType = 0x63524742;
+pub const cRGBColor: u32 = 0x63524742;
 /// 0x74726f74
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/crotation?language=objc)
-pub const cRotation: OSType = 0x74726f74;
+pub const cRotation: u32 = 0x74726f74;
 /// 0x63727263
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/croundedrectangle?language=objc)
-pub const cRoundedRectangle: OSType = 0x63727263;
+pub const cRoundedRectangle: u32 = 0x63727263;
 /// 0x63726f77
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/crow?language=objc)
-pub const cRow: OSType = 0x63726f77;
+pub const cRow: u32 = 0x63726f77;
 /// 0x6373656c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cselection?language=objc)
-pub const cSelection: OSType = 0x6373656c;
+pub const cSelection: u32 = 0x6373656c;
 /// 0x73686f72
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cshortinteger?language=objc)
-pub const cShortInteger: OSType = 0x73686f72;
+pub const cShortInteger: u32 = 0x73686f72;
 /// 0x6374626c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ctable?language=objc)
-pub const cTable: OSType = 0x6374626c;
+pub const cTable: u32 = 0x6374626c;
 /// 0x63747874
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ctext?language=objc)
-pub const cText: OSType = 0x63747874;
+pub const cText: u32 = 0x63747874;
 /// 0x63666c6f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ctextflow?language=objc)
-pub const cTextFlow: OSType = 0x63666c6f;
+pub const cTextFlow: u32 = 0x63666c6f;
 /// 0x74737479
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ctextstyles?language=objc)
-pub const cTextStyles: OSType = 0x74737479;
+pub const cTextStyles: u32 = 0x74737479;
 /// 0x74797065
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ctype?language=objc)
-pub const cType: OSType = 0x74797065;
+pub const cType: u32 = 0x74797065;
 
 /// 0x76657273
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cversion?language=objc)
-pub const cVersion: OSType = 0x76657273;
+pub const cVersion: u32 = 0x76657273;
 /// 0x6377696e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cwindow?language=objc)
-pub const cWindow: OSType = 0x6377696e;
+pub const cWindow: u32 = 0x6377696e;
 /// 0x63776f72
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/cword?language=objc)
-pub const cWord: OSType = 0x63776f72;
+pub const cWord: u32 = 0x63776f72;
 /// 0x6172726f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/enumarrows?language=objc)
-pub const enumArrows: OSType = 0x6172726f;
+pub const enumArrows: u32 = 0x6172726f;
 /// 0x6a757374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/enumjustification?language=objc)
-pub const enumJustification: OSType = 0x6a757374;
+pub const enumJustification: u32 = 0x6a757374;
 /// 0x6b66726d
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/enumkeyform?language=objc)
-pub const enumKeyForm: OSType = 0x6b66726d;
+pub const enumKeyForm: u32 = 0x6b66726d;
 /// 0x706f7369
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/enumposition?language=objc)
-pub const enumPosition: OSType = 0x706f7369;
+pub const enumPosition: u32 = 0x706f7369;
 /// 0x7072746e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/enumprotection?language=objc)
-pub const enumProtection: OSType = 0x7072746e;
+pub const enumProtection: u32 = 0x7072746e;
 /// 0x7175616c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/enumquality?language=objc)
-pub const enumQuality: OSType = 0x7175616c;
+pub const enumQuality: u32 = 0x7175616c;
 /// 0x7361766f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/enumsaveoptions?language=objc)
-pub const enumSaveOptions: OSType = 0x7361766f;
+pub const enumSaveOptions: u32 = 0x7361766f;
 /// 0x7374796c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/enumstyle?language=objc)
-pub const enumStyle: OSType = 0x7374796c;
+pub const enumStyle: u32 = 0x7374796c;
 /// 0x7472616e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/enumtransfermode?language=objc)
-pub const enumTransferMode: OSType = 0x7472616e;
+pub const enumTransferMode: u32 = 0x7472616e;
 /// 0x61626f75
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeabout?language=objc)
-pub const kAEAbout: OSType = 0x61626f75;
+pub const kAEAbout: u32 = 0x61626f75;
 /// 0x61667465
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeafter?language=objc)
-pub const kAEAfter: OSType = 0x61667465;
+pub const kAEAfter: u32 = 0x61667465;
 /// 0x73616c69
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaealiasselection?language=objc)
-pub const kAEAliasSelection: OSType = 0x73616c69;
+pub const kAEAliasSelection: u32 = 0x73616c69;
 /// 0x616c6370
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeallcaps?language=objc)
-pub const kAEAllCaps: OSType = 0x616c6370;
+pub const kAEAllCaps: u32 = 0x616c6370;
 /// 0x6172656e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaearrowatend?language=objc)
-pub const kAEArrowAtEnd: OSType = 0x6172656e;
+pub const kAEArrowAtEnd: u32 = 0x6172656e;
 /// 0x61727374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaearrowatstart?language=objc)
-pub const kAEArrowAtStart: OSType = 0x61727374;
+pub const kAEArrowAtStart: u32 = 0x61727374;
 /// 0x6172626f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaearrowbothends?language=objc)
-pub const kAEArrowBothEnds: OSType = 0x6172626f;
+pub const kAEArrowBothEnds: u32 = 0x6172626f;
 
 /// 0x61736b20
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeask?language=objc)
-pub const kAEAsk: OSType = 0x61736b20;
+pub const kAEAsk: u32 = 0x61736b20;
 /// 0x6265666f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaebefore?language=objc)
-pub const kAEBefore: OSType = 0x6265666f;
+pub const kAEBefore: u32 = 0x6265666f;
 /// 0x62676e67
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaebeginning?language=objc)
-pub const kAEBeginning: OSType = 0x62676e67;
+pub const kAEBeginning: u32 = 0x62676e67;
 /// 0x62677774
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaebeginswith?language=objc)
-pub const kAEBeginsWith: OSType = 0x62677774;
+pub const kAEBeginsWith: u32 = 0x62677774;
 /// 0x62656769
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaebegintransaction?language=objc)
-pub const kAEBeginTransaction: OSType = 0x62656769;
+pub const kAEBeginTransaction: u32 = 0x62656769;
 /// 0x626f6c64
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaebold?language=objc)
-pub const kAEBold: OSType = 0x626f6c64;
+pub const kAEBold: u32 = 0x626f6c64;
 /// 0x63736571
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaecasesensequals?language=objc)
-pub const kAECaseSensEquals: OSType = 0x63736571;
+pub const kAECaseSensEquals: u32 = 0x63736571;
 /// 0x63656e74
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaecentered?language=objc)
-pub const kAECentered: OSType = 0x63656e74;
+pub const kAECentered: u32 = 0x63656e74;
 /// 0x76696577
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaechangeview?language=objc)
-pub const kAEChangeView: OSType = 0x76696577;
+pub const kAEChangeView: u32 = 0x76696577;
 /// 0x636c6f6e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeclone?language=objc)
-pub const kAEClone: OSType = 0x636c6f6e;
+pub const kAEClone: u32 = 0x636c6f6e;
 /// 0x636c6f73
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeclose?language=objc)
-pub const kAEClose: OSType = 0x636c6f73;
+pub const kAEClose: u32 = 0x636c6f73;
 /// 0x636f6e64
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaecondensed?language=objc)
-pub const kAECondensed: OSType = 0x636f6e64;
+pub const kAECondensed: u32 = 0x636f6e64;
 /// 0x636f6e74
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaecontains?language=objc)
-pub const kAEContains: OSType = 0x636f6e74;
+pub const kAEContains: u32 = 0x636f6e74;
 /// 0x636f7079
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaecopy?language=objc)
-pub const kAECopy: OSType = 0x636f7079;
+pub const kAECopy: u32 = 0x636f7079;
 /// 0x636f7265
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaecoresuite?language=objc)
-pub const kAECoreSuite: OSType = 0x636f7265;
+pub const kAECoreSuite: u32 = 0x636f7265;
 /// 0x636e7465
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaecountelements?language=objc)
-pub const kAECountElements: OSType = 0x636e7465;
+pub const kAECountElements: u32 = 0x636e7465;
 /// 0x6372656c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaecreateelement?language=objc)
-pub const kAECreateElement: OSType = 0x6372656c;
+pub const kAECreateElement: u32 = 0x6372656c;
 /// 0x63707562
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaecreatepublisher?language=objc)
-pub const kAECreatePublisher: OSType = 0x63707562;
+pub const kAECreatePublisher: u32 = 0x63707562;
 /// 0x63757420
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaecut?language=objc)
-pub const kAECut: OSType = 0x63757420;
+pub const kAECut: u32 = 0x63757420;
 /// 0x64656c6f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaedelete?language=objc)
-pub const kAEDelete: OSType = 0x64656c6f;
+pub const kAEDelete: u32 = 0x64656c6f;
 
 /// 0x646f6578
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaedoobjectsexist?language=objc)
-pub const kAEDoObjectsExist: OSType = 0x646f6578;
+pub const kAEDoObjectsExist: u32 = 0x646f6578;
 /// 0x646f7363
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaedoscript?language=objc)
-pub const kAEDoScript: OSType = 0x646f7363;
+pub const kAEDoScript: u32 = 0x646f7363;
 /// 0x64726167
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaedrag?language=objc)
-pub const kAEDrag: OSType = 0x64726167;
+pub const kAEDrag: u32 = 0x64726167;
 /// 0x73647570
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeduplicateselection?language=objc)
-pub const kAEDuplicateSelection: OSType = 0x73647570;
+pub const kAEDuplicateSelection: u32 = 0x73647570;
 /// 0x65646974
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeeditgraphic?language=objc)
-pub const kAEEditGraphic: OSType = 0x65646974;
+pub const kAEEditGraphic: u32 = 0x65646974;
 /// 0x656d7074
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeemptytrash?language=objc)
-pub const kAEEmptyTrash: OSType = 0x656d7074;
+pub const kAEEmptyTrash: u32 = 0x656d7074;
 /// 0x656e6420
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeend?language=objc)
-pub const kAEEnd: OSType = 0x656e6420;
+pub const kAEEnd: u32 = 0x656e6420;
 /// 0x656e6473
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeendswith?language=objc)
-pub const kAEEndsWith: OSType = 0x656e6473;
+pub const kAEEndsWith: u32 = 0x656e6473;
 /// 0x656e6474
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeendtransaction?language=objc)
-pub const kAEEndTransaction: OSType = 0x656e6474;
+pub const kAEEndTransaction: u32 = 0x656e6474;
 /// 0x3d202020
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeequals?language=objc)
-pub const kAEEquals: OSType = 0x3d202020;
+pub const kAEEquals: u32 = 0x3d202020;
 /// 0x70657870
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeexpanded?language=objc)
-pub const kAEExpanded: OSType = 0x70657870;
+pub const kAEExpanded: u32 = 0x70657870;
 /// 0x66617374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaefast?language=objc)
-pub const kAEFast: OSType = 0x66617374;
+pub const kAEFast: u32 = 0x66617374;
 /// 0x464e4452
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaefinderevents?language=objc)
-pub const kAEFinderEvents: OSType = 0x464e4452;
+pub const kAEFinderEvents: u32 = 0x464e4452;
 /// 0x6670726f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeformulaprotect?language=objc)
-pub const kAEFormulaProtect: OSType = 0x6670726f;
+pub const kAEFormulaProtect: u32 = 0x6670726f;
 /// 0x66756c6c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaefullyjustified?language=objc)
-pub const kAEFullyJustified: OSType = 0x66756c6c;
+pub const kAEFullyJustified: u32 = 0x66756c6c;
 /// 0x716f626a
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaegetclassinfo?language=objc)
-pub const kAEGetClassInfo: OSType = 0x716f626a;
+pub const kAEGetClassInfo: u32 = 0x716f626a;
 /// 0x67657464
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaegetdata?language=objc)
-pub const kAEGetData: OSType = 0x67657464;
+pub const kAEGetData: u32 = 0x67657464;
 /// 0x6473697a
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaegetdatasize?language=objc)
-pub const kAEGetDataSize: OSType = 0x6473697a;
+pub const kAEGetDataSize: u32 = 0x6473697a;
 /// 0x67746569
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaegeteventinfo?language=objc)
-pub const kAEGetEventInfo: OSType = 0x67746569;
+pub const kAEGetEventInfo: u32 = 0x67746569;
 /// 0x73696e66
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaegetinfoselection?language=objc)
-pub const kAEGetInfoSelection: OSType = 0x73696e66;
+pub const kAEGetInfoSelection: u32 = 0x73696e66;
 
 /// 0x73707276
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaegetprivilegeselection?language=objc)
-pub const kAEGetPrivilegeSelection: OSType = 0x73707276;
+pub const kAEGetPrivilegeSelection: u32 = 0x73707276;
 /// 0x67747369
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaegetsuiteinfo?language=objc)
-pub const kAEGetSuiteInfo: OSType = 0x67747369;
+pub const kAEGetSuiteInfo: u32 = 0x67747369;
 /// 0x3e202020
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaegreaterthan?language=objc)
-pub const kAEGreaterThan: OSType = 0x3e202020;
+pub const kAEGreaterThan: u32 = 0x3e202020;
 /// 0x3e3d2020
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaegreaterthanequals?language=objc)
-pub const kAEGreaterThanEquals: OSType = 0x3e3d2020;
+pub const kAEGreaterThanEquals: u32 = 0x3e3d2020;
 /// 0x67726f77
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaegrow?language=objc)
-pub const kAEGrow: OSType = 0x67726f77;
+pub const kAEGrow: u32 = 0x67726f77;
 /// 0x6869646e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaehidden?language=objc)
-pub const kAEHidden: OSType = 0x6869646e;
+pub const kAEHidden: u32 = 0x6869646e;
 /// 0x68697175
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaehiquality?language=objc)
-pub const kAEHiQuality: OSType = 0x68697175;
+pub const kAEHiQuality: u32 = 0x68697175;
 /// 0x696d6772
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeimagegraphic?language=objc)
-pub const kAEImageGraphic: OSType = 0x696d6772;
+pub const kAEImageGraphic: u32 = 0x696d6772;
 /// 0x6973756e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisuniform?language=objc)
-pub const kAEIsUniform: OSType = 0x6973756e;
+pub const kAEIsUniform: u32 = 0x6973756e;
 /// 0x6974616c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeitalic?language=objc)
-pub const kAEItalic: OSType = 0x6974616c;
+pub const kAEItalic: u32 = 0x6974616c;
 /// 0x6c656674
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeleftjustified?language=objc)
-pub const kAELeftJustified: OSType = 0x6c656674;
+pub const kAELeftJustified: u32 = 0x6c656674;
 /// 0x3c202020
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaelessthan?language=objc)
-pub const kAELessThan: OSType = 0x3c202020;
+pub const kAELessThan: u32 = 0x3c202020;
 /// 0x3c3d2020
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaelessthanequals?language=objc)
-pub const kAELessThanEquals: OSType = 0x3c3d2020;
+pub const kAELessThanEquals: u32 = 0x3c3d2020;
 /// 0x6c6f7763
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaelowercase?language=objc)
-pub const kAELowercase: OSType = 0x6c6f7763;
+pub const kAELowercase: u32 = 0x6c6f7763;
 /// 0x6d766973
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaemakeobjectsvisible?language=objc)
-pub const kAEMakeObjectsVisible: OSType = 0x6d766973;
+pub const kAEMakeObjectsVisible: u32 = 0x6d766973;
 /// 0x6d697363
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaemiscstandards?language=objc)
-pub const kAEMiscStandards: OSType = 0x6d697363;
+pub const kAEMiscStandards: u32 = 0x6d697363;
 /// 0x6d6f6466
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaemodifiable?language=objc)
-pub const kAEModifiable: OSType = 0x6d6f6466;
+pub const kAEModifiable: u32 = 0x6d6f6466;
 /// 0x6d6f7665
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaemove?language=objc)
-pub const kAEMove: OSType = 0x6d6f7665;
+pub const kAEMove: u32 = 0x6d6f7665;
 /// 0x6e6f2020
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeno?language=objc)
-pub const kAENo: OSType = 0x6e6f2020;
+pub const kAENo: u32 = 0x6e6f2020;
 /// 0x61726e6f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaenoarrow?language=objc)
-pub const kAENoArrow: OSType = 0x61726e6f;
+pub const kAENoArrow: u32 = 0x61726e6f;
 
 /// 0x6e6d6f64
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaenonmodifiable?language=objc)
-pub const kAENonmodifiable: OSType = 0x6e6d6f64;
+pub const kAENonmodifiable: u32 = 0x6e6d6f64;
 /// 0x6f646f63
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeopen?language=objc)
-pub const kAEOpen: OSType = 0x6f646f63;
+pub const kAEOpen: u32 = 0x6f646f63;
 /// 0x736f7065
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeopenselection?language=objc)
-pub const kAEOpenSelection: OSType = 0x736f7065;
+pub const kAEOpenSelection: u32 = 0x736f7065;
 /// 0x6f75746c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeoutline?language=objc)
-pub const kAEOutline: OSType = 0x6f75746c;
+pub const kAEOutline: u32 = 0x6f75746c;
 /// 0x70677375
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaepagesetup?language=objc)
-pub const kAEPageSetup: OSType = 0x70677375;
+pub const kAEPageSetup: u32 = 0x70677375;
 /// 0x70617374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaepaste?language=objc)
-pub const kAEPaste: OSType = 0x70617374;
+pub const kAEPaste: u32 = 0x70617374;
 /// 0x706c616e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeplain?language=objc)
-pub const kAEPlain: OSType = 0x706c616e;
+pub const kAEPlain: u32 = 0x706c616e;
 /// 0x70646f63
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeprint?language=objc)
-pub const kAEPrint: OSType = 0x70646f63;
+pub const kAEPrint: u32 = 0x70646f63;
 /// 0x73707269
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeprintselection?language=objc)
-pub const kAEPrintSelection: OSType = 0x73707269;
+pub const kAEPrintSelection: u32 = 0x73707269;
 /// 0x7077696e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeprintwindow?language=objc)
-pub const kAEPrintWindow: OSType = 0x7077696e;
+pub const kAEPrintWindow: u32 = 0x7077696e;
 /// 0x73707574
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeputawayselection?language=objc)
-pub const kAEPutAwaySelection: OSType = 0x73707574;
+pub const kAEPutAwaySelection: u32 = 0x73707574;
 /// 0x6164646f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdaddover?language=objc)
-pub const kAEQDAddOver: OSType = 0x6164646f;
+pub const kAEQDAddOver: u32 = 0x6164646f;
 /// 0x61646470
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdaddpin?language=objc)
-pub const kAEQDAddPin: OSType = 0x61646470;
+pub const kAEQDAddPin: u32 = 0x61646470;
 /// 0x61646d78
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdadmax?language=objc)
-pub const kAEQDAdMax: OSType = 0x61646d78;
+pub const kAEQDAdMax: u32 = 0x61646d78;
 /// 0x61646d6e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdadmin?language=objc)
-pub const kAEQDAdMin: OSType = 0x61646d6e;
+pub const kAEQDAdMin: u32 = 0x61646d6e;
 /// 0x62696320
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdbic?language=objc)
-pub const kAEQDBic: OSType = 0x62696320;
+pub const kAEQDBic: u32 = 0x62696320;
 /// 0x626c6e64
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdblend?language=objc)
-pub const kAEQDBlend: OSType = 0x626c6e64;
+pub const kAEQDBlend: u32 = 0x626c6e64;
 /// 0x63707920
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdcopy?language=objc)
-pub const kAEQDCopy: OSType = 0x63707920;
+pub const kAEQDCopy: u32 = 0x63707920;
 /// 0x6e626963
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdnotbic?language=objc)
-pub const kAEQDNotBic: OSType = 0x6e626963;
+pub const kAEQDNotBic: u32 = 0x6e626963;
 /// 0x6e637079
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdnotcopy?language=objc)
-pub const kAEQDNotCopy: OSType = 0x6e637079;
+pub const kAEQDNotCopy: u32 = 0x6e637079;
 
 /// 0x6e746f72
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdnotor?language=objc)
-pub const kAEQDNotOr: OSType = 0x6e746f72;
+pub const kAEQDNotOr: u32 = 0x6e746f72;
 /// 0x6e786f72
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdnotxor?language=objc)
-pub const kAEQDNotXor: OSType = 0x6e786f72;
+pub const kAEQDNotXor: u32 = 0x6e786f72;
 /// 0x6f722020
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdor?language=objc)
-pub const kAEQDOr: OSType = 0x6f722020;
+pub const kAEQDOr: u32 = 0x6f722020;
 /// 0x7375626f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdsubover?language=objc)
-pub const kAEQDSubOver: OSType = 0x7375626f;
+pub const kAEQDSubOver: u32 = 0x7375626f;
 /// 0x73756270
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdsubpin?language=objc)
-pub const kAEQDSubPin: OSType = 0x73756270;
+pub const kAEQDSubPin: u32 = 0x73756270;
 /// 0x71647370
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdsupplementalsuite?language=objc)
-pub const kAEQDSupplementalSuite: OSType = 0x71647370;
+pub const kAEQDSupplementalSuite: u32 = 0x71647370;
 /// 0x786f7220
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeqdxor?language=objc)
-pub const kAEQDXor: OSType = 0x786f7220;
+pub const kAEQDXor: u32 = 0x786f7220;
 /// 0x71647277
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaequickdrawsuite?language=objc)
-pub const kAEQuickdrawSuite: OSType = 0x71647277;
+pub const kAEQuickdrawSuite: u32 = 0x71647277;
 /// 0x71756961
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaequitall?language=objc)
-pub const kAEQuitAll: OSType = 0x71756961;
+pub const kAEQuitAll: u32 = 0x71756961;
 /// 0x7265646f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeredo?language=objc)
-pub const kAERedo: OSType = 0x7265646f;
+pub const kAERedo: u32 = 0x7265646f;
 /// 0x7265676c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeregular?language=objc)
-pub const kAERegular: OSType = 0x7265676c;
+pub const kAERegular: u32 = 0x7265676c;
 /// 0x72617070
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaereopenapplication?language=objc)
-pub const kAEReopenApplication: OSType = 0x72617070;
+pub const kAEReopenApplication: u32 = 0x72617070;
 /// 0x72706c63
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaereplace?language=objc)
-pub const kAEReplace: OSType = 0x72706c63;
+pub const kAEReplace: u32 = 0x72706c63;
 /// 0x72657164
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaerequiredsuite?language=objc)
-pub const kAERequiredSuite: OSType = 0x72657164;
+pub const kAERequiredSuite: u32 = 0x72657164;
 /// 0x72657374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaerestart?language=objc)
-pub const kAERestart: OSType = 0x72657374;
+pub const kAERestart: u32 = 0x72657374;
 /// 0x73726576
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaerevealselection?language=objc)
-pub const kAERevealSelection: OSType = 0x73726576;
+pub const kAERevealSelection: u32 = 0x73726576;
 /// 0x72767274
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaerevert?language=objc)
-pub const kAERevert: OSType = 0x72767274;
+pub const kAERevert: u32 = 0x72767274;
 /// 0x72676874
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaerightjustified?language=objc)
-pub const kAERightJustified: OSType = 0x72676874;
+pub const kAERightJustified: u32 = 0x72676874;
 /// 0x73617665
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaesave?language=objc)
-pub const kAESave: OSType = 0x73617665;
+pub const kAESave: u32 = 0x73617665;
 /// 0x736c6374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeselect?language=objc)
-pub const kAESelect: OSType = 0x736c6374;
+pub const kAESelect: u32 = 0x736c6374;
 /// 0x73657464
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaesetdata?language=objc)
-pub const kAESetData: OSType = 0x73657464;
+pub const kAESetData: u32 = 0x73657464;
 
 /// 0x706f736e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaesetposition?language=objc)
-pub const kAESetPosition: OSType = 0x706f736e;
+pub const kAESetPosition: u32 = 0x706f736e;
 /// 0x73686164
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeshadow?language=objc)
-pub const kAEShadow: OSType = 0x73686164;
+pub const kAEShadow: u32 = 0x73686164;
 /// 0x7368636c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeshowclipboard?language=objc)
-pub const kAEShowClipboard: OSType = 0x7368636c;
+pub const kAEShowClipboard: u32 = 0x7368636c;
 /// 0x73687574
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeshutdown?language=objc)
-pub const kAEShutDown: OSType = 0x73687574;
+pub const kAEShutDown: u32 = 0x73687574;
 /// 0x736c6570
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaesleep?language=objc)
-pub const kAESleep: OSType = 0x736c6570;
+pub const kAESleep: u32 = 0x736c6570;
 /// 0x736d6370
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaesmallcaps?language=objc)
-pub const kAESmallCaps: OSType = 0x736d6370;
+pub const kAESmallCaps: u32 = 0x736d6370;
 /// 0x63402321
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaespecialclassproperties?language=objc)
-pub const kAESpecialClassProperties: OSType = 0x63402321;
+pub const kAESpecialClassProperties: u32 = 0x63402321;
 /// 0x7374726b
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaestrikethrough?language=objc)
-pub const kAEStrikethrough: OSType = 0x7374726b;
+pub const kAEStrikethrough: u32 = 0x7374726b;
 /// 0x73627363
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaesubscript?language=objc)
-pub const kAESubscript: OSType = 0x73627363;
+pub const kAESubscript: u32 = 0x73627363;
 /// 0x73707363
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaesuperscript?language=objc)
-pub const kAESuperscript: OSType = 0x73707363;
+pub const kAESuperscript: u32 = 0x73707363;
 /// 0x74626c73
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaetablesuite?language=objc)
-pub const kAETableSuite: OSType = 0x74626c73;
+pub const kAETableSuite: u32 = 0x74626c73;
 /// 0x54455854
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaetextsuite?language=objc)
-pub const kAETextSuite: OSType = 0x54455854;
+pub const kAETextSuite: u32 = 0x54455854;
 /// 0x7474726d
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaetransactionterminated?language=objc)
-pub const kAETransactionTerminated: OSType = 0x7474726d;
+pub const kAETransactionTerminated: u32 = 0x7474726d;
 /// 0x756e646c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeunderline?language=objc)
-pub const kAEUnderline: OSType = 0x756e646c;
+pub const kAEUnderline: u32 = 0x756e646c;
 /// 0x756e646f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeundo?language=objc)
-pub const kAEUndo: OSType = 0x756e646f;
+pub const kAEUndo: u32 = 0x756e646f;
 /// 0x77776571
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaewholewordequals?language=objc)
-pub const kAEWholeWordEquals: OSType = 0x77776571;
+pub const kAEWholeWordEquals: u32 = 0x77776571;
 /// 0x79657320
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeyes?language=objc)
-pub const kAEYes: OSType = 0x79657320;
+pub const kAEYes: u32 = 0x79657320;
 /// 0x7a6f6f6d
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaezoom?language=objc)
-pub const kAEZoom: OSType = 0x7a6f6f6d;
+pub const kAEZoom: u32 = 0x7a6f6f6d;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaelogout?language=objc)
-pub const kAELogOut: OSType = 0x6c6f676f;
+pub const kAELogOut: u32 = 0x6c6f676f;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaereallylogout?language=objc)
-pub const kAEReallyLogOut: OSType = 0x726c676f;
+pub const kAEReallyLogOut: u32 = 0x726c676f;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeshowrestartdialog?language=objc)
-pub const kAEShowRestartDialog: OSType = 0x72727374;
+pub const kAEShowRestartDialog: u32 = 0x72727374;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeshowshutdowndialog?language=objc)
-pub const kAEShowShutdownDialog: OSType = 0x7273646e;
+pub const kAEShowShutdownDialog: u32 = 0x7273646e;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaemouseclass?language=objc)
-pub const kAEMouseClass: OSType = 0x6d6f7573;
+pub const kAEMouseClass: u32 = 0x6d6f7573;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaedown?language=objc)
-pub const kAEDown: OSType = 0x646f776e;
+pub const kAEDown: u32 = 0x646f776e;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeup?language=objc)
-pub const kAEUp: OSType = 0x75702020;
+pub const kAEUp: u32 = 0x75702020;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaemoved?language=objc)
-pub const kAEMoved: OSType = 0x6d6f7665;
+pub const kAEMoved: u32 = 0x6d6f7665;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaestoppedmoving?language=objc)
-pub const kAEStoppedMoving: OSType = 0x73746f70;
+pub const kAEStoppedMoving: u32 = 0x73746f70;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaewindowclass?language=objc)
-pub const kAEWindowClass: OSType = 0x77696e64;
+pub const kAEWindowClass: u32 = 0x77696e64;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeupdate?language=objc)
-pub const kAEUpdate: OSType = 0x75706474;
+pub const kAEUpdate: u32 = 0x75706474;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeactivate?language=objc)
-pub const kAEActivate: OSType = 0x61637476;
+pub const kAEActivate: u32 = 0x61637476;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaedeactivate?language=objc)
-pub const kAEDeactivate: OSType = 0x64616374;
+pub const kAEDeactivate: u32 = 0x64616374;
 /// Modern Command Event Class
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaecommandclass?language=objc)
-pub const kAECommandClass: OSType = 0x636d6e64;
+pub const kAECommandClass: u32 = 0x636d6e64;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaekeyclass?language=objc)
-pub const kAEKeyClass: OSType = 0x6b657963;
+pub const kAEKeyClass: u32 = 0x6b657963;
 /// Modern Raw Key Event
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaerawkey?language=objc)
-pub const kAERawKey: OSType = 0x726b6579;
+pub const kAERawKey: u32 = 0x726b6579;
 /// Modern Virtual Key Event
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaevirtualkey?language=objc)
-pub const kAEVirtualKey: OSType = 0x6b657963;
+pub const kAEVirtualKey: u32 = 0x6b657963;
 /// Modern Navigation Key Event
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaenavigationkey?language=objc)
-pub const kAENavigationKey: OSType = 0x6e617665;
+pub const kAENavigationKey: u32 = 0x6e617665;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeautodown?language=objc)
-pub const kAEAutoDown: OSType = 0x6175746f;
+pub const kAEAutoDown: u32 = 0x6175746f;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeapplicationclass?language=objc)
-pub const kAEApplicationClass: OSType = 0x6170706c;
+pub const kAEApplicationClass: u32 = 0x6170706c;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaesuspend?language=objc)
-pub const kAESuspend: OSType = 0x73757370;
+pub const kAESuspend: u32 = 0x73757370;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeresume?language=objc)
-pub const kAEResume: OSType = 0x72736d65;
+pub const kAEResume: u32 = 0x72736d65;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaediskevent?language=objc)
-pub const kAEDiskEvent: OSType = 0x6469736b;
+pub const kAEDiskEvent: u32 = 0x6469736b;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaenullevent?language=objc)
-pub const kAENullEvent: OSType = 0x6e756c6c;
+pub const kAENullEvent: u32 = 0x6e756c6c;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaewakeupevent?language=objc)
-pub const kAEWakeUpEvent: OSType = 0x77616b65;
+pub const kAEWakeUpEvent: u32 = 0x77616b65;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaescrapevent?language=objc)
-pub const kAEScrapEvent: OSType = 0x73637270;
+pub const kAEScrapEvent: u32 = 0x73637270;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaehighlevel?language=objc)
-pub const kAEHighLevel: OSType = 0x68696768;
+pub const kAEHighLevel: u32 = 0x68696768;
 
 /// 0x6b616e67
 ///
@@ -1427,278 +1427,278 @@ pub const keyHighLevelID: AEKeyword = 0x68696420;
 /// 0x70617263
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/parcangle?language=objc)
-pub const pArcAngle: OSType = 0x70617263;
+pub const pArcAngle: u32 = 0x70617263;
 /// 0x7062636c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pbackgroundcolor?language=objc)
-pub const pBackgroundColor: OSType = 0x7062636c;
+pub const pBackgroundColor: u32 = 0x7062636c;
 /// 0x70627074
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pbackgroundpattern?language=objc)
-pub const pBackgroundPattern: OSType = 0x70627074;
+pub const pBackgroundPattern: u32 = 0x70627074;
 /// 0x70627374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pbesttype?language=objc)
-pub const pBestType: OSType = 0x70627374;
+pub const pBestType: u32 = 0x70627374;
 /// 0x70626e64
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pbounds?language=objc)
-pub const pBounds: OSType = 0x70626e64;
+pub const pBounds: u32 = 0x70626e64;
 /// 0x70636c73
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pclass?language=objc)
-pub const pClass: OSType = 0x70636c73;
+pub const pClass: u32 = 0x70636c73;
 /// 0x70636c69
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pclipboard?language=objc)
-pub const pClipboard: OSType = 0x70636c69;
+pub const pClipboard: u32 = 0x70636c69;
 /// 0x636f6c72
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pcolor?language=objc)
-pub const pColor: OSType = 0x636f6c72;
+pub const pColor: u32 = 0x636f6c72;
 /// 0x636c7462
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pcolortable?language=objc)
-pub const pColorTable: OSType = 0x636c7462;
+pub const pColorTable: u32 = 0x636c7462;
 /// 0x70636e74
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pcontents?language=objc)
-pub const pContents: OSType = 0x70636e74;
+pub const pContents: u32 = 0x70636e74;
 /// 0x70636864
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pcornercurveheight?language=objc)
-pub const pCornerCurveHeight: OSType = 0x70636864;
+pub const pCornerCurveHeight: u32 = 0x70636864;
 /// 0x70637764
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pcornercurvewidth?language=objc)
-pub const pCornerCurveWidth: OSType = 0x70637764;
+pub const pCornerCurveWidth: u32 = 0x70637764;
 /// 0x70647374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pdashstyle?language=objc)
-pub const pDashStyle: OSType = 0x70647374;
+pub const pDashStyle: u32 = 0x70647374;
 /// 0x64656674
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pdefaulttype?language=objc)
-pub const pDefaultType: OSType = 0x64656674;
+pub const pDefaultType: u32 = 0x64656674;
 /// 0x70647274
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pdefinitionrect?language=objc)
-pub const pDefinitionRect: OSType = 0x70647274;
+pub const pDefinitionRect: u32 = 0x70647274;
 /// 0x656e626c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/penabled?language=objc)
-pub const pEnabled: OSType = 0x656e626c;
+pub const pEnabled: u32 = 0x656e626c;
 /// 0x70656e64
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pendpoint?language=objc)
-pub const pEndPoint: OSType = 0x70656e64;
+pub const pEndPoint: u32 = 0x70656e64;
 /// 0x666c636c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pfillcolor?language=objc)
-pub const pFillColor: OSType = 0x666c636c;
+pub const pFillColor: u32 = 0x666c636c;
 /// 0x666c7074
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pfillpattern?language=objc)
-pub const pFillPattern: OSType = 0x666c7074;
+pub const pFillPattern: u32 = 0x666c7074;
 /// 0x666f6e74
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pfont?language=objc)
-pub const pFont: OSType = 0x666f6e74;
+pub const pFont: u32 = 0x666f6e74;
 
 /// 0x70666f72
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pformula?language=objc)
-pub const pFormula: OSType = 0x70666f72;
+pub const pFormula: u32 = 0x70666f72;
 /// 0x676f6273
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pgraphicobjects?language=objc)
-pub const pGraphicObjects: OSType = 0x676f6273;
+pub const pGraphicObjects: u32 = 0x676f6273;
 /// 0x68636c62
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/phasclosebox?language=objc)
-pub const pHasCloseBox: OSType = 0x68636c62;
+pub const pHasCloseBox: u32 = 0x68636c62;
 /// 0x70746974
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/phastitlebar?language=objc)
-pub const pHasTitleBar: OSType = 0x70746974;
+pub const pHasTitleBar: u32 = 0x70746974;
 /// 0x49442020
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pid?language=objc)
-pub const pID: OSType = 0x49442020;
+pub const pID: u32 = 0x49442020;
 /// 0x70696478
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pindex?language=objc)
-pub const pIndex: OSType = 0x70696478;
+pub const pIndex: u32 = 0x70696478;
 /// 0x70696e73
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pinsertionloc?language=objc)
-pub const pInsertionLoc: OSType = 0x70696e73;
+pub const pInsertionLoc: u32 = 0x70696e73;
 /// 0x6973666c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pisfloating?language=objc)
-pub const pIsFloating: OSType = 0x6973666c;
+pub const pIsFloating: u32 = 0x6973666c;
 /// 0x70697366
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pisfrontprocess?language=objc)
-pub const pIsFrontProcess: OSType = 0x70697366;
+pub const pIsFrontProcess: u32 = 0x70697366;
 /// 0x706d6f64
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pismodal?language=objc)
-pub const pIsModal: OSType = 0x706d6f64;
+pub const pIsModal: u32 = 0x706d6f64;
 /// 0x696d6f64
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pismodified?language=objc)
-pub const pIsModified: OSType = 0x696d6f64;
+pub const pIsModified: u32 = 0x696d6f64;
 /// 0x7072737a
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pisresizable?language=objc)
-pub const pIsResizable: OSType = 0x7072737a;
+pub const pIsResizable: u32 = 0x7072737a;
 /// 0x70737064
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pisstationerypad?language=objc)
-pub const pIsStationeryPad: OSType = 0x70737064;
+pub const pIsStationeryPad: u32 = 0x70737064;
 /// 0x69737a6d
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/piszoomable?language=objc)
-pub const pIsZoomable: OSType = 0x69737a6d;
+pub const pIsZoomable: u32 = 0x69737a6d;
 /// 0x707a756d
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/piszoomed?language=objc)
-pub const pIsZoomed: OSType = 0x707a756d;
+pub const pIsZoomed: u32 = 0x707a756d;
 /// 0x69746d6e
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pitemnumber?language=objc)
-pub const pItemNumber: OSType = 0x69746d6e;
+pub const pItemNumber: u32 = 0x69746d6e;
 /// 0x706a7374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pjustification?language=objc)
-pub const pJustification: OSType = 0x706a7374;
+pub const pJustification: u32 = 0x706a7374;
 /// 0x6172726f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/plinearrow?language=objc)
-pub const pLineArrow: OSType = 0x6172726f;
+pub const pLineArrow: u32 = 0x6172726f;
 /// 0x6d6e6964
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pmenuid?language=objc)
-pub const pMenuID: OSType = 0x6d6e6964;
+pub const pMenuID: u32 = 0x6d6e6964;
 /// 0x706e616d
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pname?language=objc)
-pub const pName: OSType = 0x706e616d;
+pub const pName: u32 = 0x706e616d;
 
 /// 0x706e656c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pnewelementloc?language=objc)
-pub const pNewElementLoc: OSType = 0x706e656c;
+pub const pNewElementLoc: u32 = 0x706e656c;
 /// 0x7070636c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ppencolor?language=objc)
-pub const pPenColor: OSType = 0x7070636c;
+pub const pPenColor: u32 = 0x7070636c;
 /// 0x70707061
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ppenpattern?language=objc)
-pub const pPenPattern: OSType = 0x70707061;
+pub const pPenPattern: u32 = 0x70707061;
 /// 0x70707764
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ppenwidth?language=objc)
-pub const pPenWidth: OSType = 0x70707764;
+pub const pPenWidth: u32 = 0x70707764;
 /// 0x70647074
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ppixeldepth?language=objc)
-pub const pPixelDepth: OSType = 0x70647074;
+pub const pPixelDepth: u32 = 0x70647074;
 /// 0x70746c74
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ppointlist?language=objc)
-pub const pPointList: OSType = 0x70746c74;
+pub const pPointList: u32 = 0x70746c74;
 /// 0x7074737a
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ppointsize?language=objc)
-pub const pPointSize: OSType = 0x7074737a;
+pub const pPointSize: u32 = 0x7074737a;
 /// 0x7070726f
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pprotection?language=objc)
-pub const pProtection: OSType = 0x7070726f;
+pub const pProtection: u32 = 0x7070726f;
 /// 0x70726f74
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/protation?language=objc)
-pub const pRotation: OSType = 0x70726f74;
+pub const pRotation: u32 = 0x70726f74;
 /// 0x7073636c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pscale?language=objc)
-pub const pScale: OSType = 0x7073636c;
+pub const pScale: u32 = 0x7073636c;
 /// 0x73637074
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pscript?language=objc)
-pub const pScript: OSType = 0x73637074;
+pub const pScript: u32 = 0x73637074;
 /// 0x70736374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pscripttag?language=objc)
-pub const pScriptTag: OSType = 0x70736374;
+pub const pScriptTag: u32 = 0x70736374;
 /// 0x73656c63
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pselected?language=objc)
-pub const pSelected: OSType = 0x73656c63;
+pub const pSelected: u32 = 0x73656c63;
 /// 0x73656c65
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pselection?language=objc)
-pub const pSelection: OSType = 0x73656c65;
+pub const pSelection: u32 = 0x73656c65;
 /// 0x70616e67
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pstartangle?language=objc)
-pub const pStartAngle: OSType = 0x70616e67;
+pub const pStartAngle: u32 = 0x70616e67;
 /// 0x70737470
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pstartpoint?language=objc)
-pub const pStartPoint: OSType = 0x70737470;
+pub const pStartPoint: u32 = 0x70737470;
 /// 0x70747863
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ptextcolor?language=objc)
-pub const pTextColor: OSType = 0x70747863;
+pub const pTextColor: u32 = 0x70747863;
 /// 0x70747866
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ptextfont?language=objc)
-pub const pTextFont: OSType = 0x70747866;
+pub const pTextFont: u32 = 0x70747866;
 /// 0x7478646c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ptextitemdelimiters?language=objc)
-pub const pTextItemDelimiters: OSType = 0x7478646c;
+pub const pTextItemDelimiters: u32 = 0x7478646c;
 /// 0x70747073
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ptextpointsize?language=objc)
-pub const pTextPointSize: OSType = 0x70747073;
+pub const pTextPointSize: u32 = 0x70747073;
 
 /// 0x74787374
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ptextstyles?language=objc)
-pub const pTextStyles: OSType = 0x74787374;
+pub const pTextStyles: u32 = 0x74787374;
 /// 0x7070746d
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ptransfermode?language=objc)
-pub const pTransferMode: OSType = 0x7070746d;
+pub const pTransferMode: u32 = 0x7070746d;
 /// 0x70747273
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/ptranslation?language=objc)
-pub const pTranslation: OSType = 0x70747273;
+pub const pTranslation: u32 = 0x70747273;
 /// 0x7573746c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/puniformstyles?language=objc)
-pub const pUniformStyles: OSType = 0x7573746c;
+pub const pUniformStyles: u32 = 0x7573746c;
 /// 0x70757064
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pupdateon?language=objc)
-pub const pUpdateOn: OSType = 0x70757064;
+pub const pUpdateOn: u32 = 0x70757064;
 /// 0x7075736c
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/puserselection?language=objc)
-pub const pUserSelection: OSType = 0x7075736c;
+pub const pUserSelection: u32 = 0x7075736c;
 /// 0x76657273
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pversion?language=objc)
-pub const pVersion: OSType = 0x76657273;
+pub const pVersion: u32 = 0x76657273;
 /// 0x70766973
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pvisible?language=objc)
-pub const pVisible: OSType = 0x70766973;
+pub const pVisible: u32 = 0x70766973;
 
 /// 0x74545854
 ///
@@ -1994,19 +1994,19 @@ pub const typeGIF: DescType = 0x47494666;
 pub const typeVersion: DescType = 0x76657273;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaemenuclass?language=objc)
-pub const kAEMenuClass: OSType = 0x6d656e75;
+pub const kAEMenuClass: u32 = 0x6d656e75;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaemenuselect?language=objc)
-pub const kAEMenuSelect: OSType = 0x6d686974;
+pub const kAEMenuSelect: u32 = 0x6d686974;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaemousedown?language=objc)
-pub const kAEMouseDown: OSType = 0x6d64776e;
+pub const kAEMouseDown: u32 = 0x6d64776e;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaemousedowninback?language=objc)
-pub const kAEMouseDownInBack: OSType = 0x6d64626b;
+pub const kAEMouseDownInBack: u32 = 0x6d64626b;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaekeydown?language=objc)
-pub const kAEKeyDown: OSType = 0x6b64776e;
+pub const kAEKeyDown: u32 = 0x6b64776e;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeresized?language=objc)
-pub const kAEResized: OSType = 0x7273697a;
+pub const kAEResized: u32 = 0x7273697a;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaepromise?language=objc)
-pub const kAEPromise: OSType = 0x70726f6d;
+pub const kAEPromise: u32 = 0x70726f6d;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/keymenuid?language=objc)
 #[cfg(feature = "AEDataModel")]
@@ -2038,11 +2038,11 @@ pub const typeHIWindow: DescType = 0x776f626a;
 /// persistent state which may be restored on the next launch. The possible values are kAENo ( the default ), or kAEYes
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaequitpreservestate?language=objc)
-pub const kAEQuitPreserveState: OSType = 0x73746174;
+pub const kAEQuitPreserveState: u32 = 0x73746174;
 /// in a kAEQuitApplication event, this parameter if present is the reason the quit is being sent.  The possible values are kAEQuitAll, kAEShutDown, kAERestart, kAEReallyLogOut
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaequitreason?language=objc)
-pub const kAEQuitReason: OSType = 0x7768793f;
+pub const kAEQuitReason: u32 = 0x7768793f;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kbysmallicon?language=objc)
 pub const kBySmallIcon: c_uint = 0;
@@ -2076,130 +2076,130 @@ pub const kAEZoomIn: c_uint = 7;
 pub const kAEZoomOut: c_uint = 8;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ktextserviceclass?language=objc)
-pub const kTextServiceClass: OSType = 0x74737663;
+pub const kTextServiceClass: u32 = 0x74737663;
 /// update the active input area
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kupdateactiveinputarea?language=objc)
-pub const kUpdateActiveInputArea: OSType = 0x75706474;
+pub const kUpdateActiveInputArea: u32 = 0x75706474;
 /// show or hide the input window
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kshowhideinputwindow?language=objc)
-pub const kShowHideInputWindow: OSType = 0x73686977;
+pub const kShowHideInputWindow: u32 = 0x73686977;
 /// converting global coordinates to char position
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kpos2offset?language=objc)
-pub const kPos2Offset: OSType = 0x70327374;
+pub const kPos2Offset: u32 = 0x70327374;
 /// converting char position to global coordinates
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/koffset2pos?language=objc)
-pub const kOffset2Pos: OSType = 0x73743270;
+pub const kOffset2Pos: u32 = 0x73743270;
 /// Unicode text when event not handled by Input Method or no Input Method
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kunicodenotfrominputmethod?language=objc)
-pub const kUnicodeNotFromInputMethod: OSType = 0x756e696d;
+pub const kUnicodeNotFromInputMethod: u32 = 0x756e696d;
 /// Get text for current selection
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kgetselectedtext?language=objc)
-pub const kGetSelectedText: OSType = 0x67747874;
+pub const kGetSelectedText: u32 = 0x67747874;
 /// TSM document refcon, typeLongInteger
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaetsmdocumentrefcon?language=objc)
-pub const keyAETSMDocumentRefcon: OSType = 0x72656663;
+pub const keyAETSMDocumentRefcon: u32 = 0x72656663;
 /// component instance
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaeserverinstance?language=objc)
-pub const keyAEServerInstance: OSType = 0x73727669;
+pub const keyAEServerInstance: u32 = 0x73727669;
 /// typeText
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaethedata?language=objc)
-pub const keyAETheData: OSType = 0x6b646174;
+pub const keyAETheData: u32 = 0x6b646174;
 /// fix len
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaefixlength?language=objc)
-pub const keyAEFixLength: OSType = 0x6669786c;
+pub const keyAEFixLength: u32 = 0x6669786c;
 /// typeTextRangeArray
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaeupdaterange?language=objc)
-pub const keyAEUpdateRange: OSType = 0x75646e67;
+pub const keyAEUpdateRange: u32 = 0x75646e67;
 /// current point
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaecurrentpoint?language=objc)
-pub const keyAECurrentPoint: OSType = 0x63706f73;
+pub const keyAECurrentPoint: u32 = 0x63706f73;
 /// buffer size to get the text
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaebuffersize?language=objc)
-pub const keyAEBufferSize: OSType = 0x62756666;
+pub const keyAEBufferSize: u32 = 0x62756666;
 /// move view flag
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaemoveview?language=objc)
-pub const keyAEMoveView: OSType = 0x6d767677;
+pub const keyAEMoveView: u32 = 0x6d767677;
 /// next or previous body
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaenextbody?language=objc)
-pub const keyAENextBody: OSType = 0x6e786264;
+pub const keyAENextBody: u32 = 0x6e786264;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaetsmscripttag?language=objc)
-pub const keyAETSMScriptTag: OSType = 0x73636c67;
+pub const keyAETSMScriptTag: u32 = 0x73636c67;
 /// FMFontFamily or FOND ID
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaetsmtextfont?language=objc)
-pub const keyAETSMTextFont: OSType = 0x6b747866;
+pub const keyAETSMTextFont: u32 = 0x6b747866;
 /// FMFont
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaetsmtextfmfont?language=objc)
-pub const keyAETSMTextFMFont: OSType = 0x6b74786d;
+pub const keyAETSMTextFMFont: u32 = 0x6b74786d;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaetsmtextpointsize?language=objc)
-pub const keyAETSMTextPointSize: OSType = 0x6b747073;
+pub const keyAETSMTextPointSize: u32 = 0x6b747073;
 /// Low level Event Record, typeLowLevelEventRecord
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaetsmeventrecord?language=objc)
-pub const keyAETSMEventRecord: OSType = 0x74657674;
+pub const keyAETSMEventRecord: u32 = 0x74657674;
 /// Carbon EventRef, typeEventRef
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaetsmeventref?language=objc)
-pub const keyAETSMEventRef: OSType = 0x74657672;
+pub const keyAETSMEventRef: u32 = 0x74657672;
 /// Text Service encoding, mac or Unicode in UpdateActiveInputArea or GetSelectedText events.
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaetextserviceencoding?language=objc)
-pub const keyAETextServiceEncoding: OSType = 0x7473656e;
+pub const keyAETextServiceEncoding: u32 = 0x7473656e;
 /// Target mac encoding for TSM conversion of text from Unicode text service.
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaetextservicemacencoding?language=objc)
-pub const keyAETextServiceMacEncoding: OSType = 0x746d656e;
+pub const keyAETextServiceMacEncoding: u32 = 0x746d656e;
 /// typeGlyphInfoArray
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/keyaetsmglyphinfoarray?language=objc)
-pub const keyAETSMGlyphInfoArray: OSType = 0x74676961;
+pub const keyAETSMGlyphInfoArray: u32 = 0x74676961;
 /// TextRange
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/typetextrange?language=objc)
-pub const typeTextRange: OSType = 0x7478726e;
+pub const typeTextRange: u32 = 0x7478726e;
 /// server instance
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/typecomponentinstance?language=objc)
-pub const typeComponentInstance: OSType = 0x636d7069;
+pub const typeComponentInstance: u32 = 0x636d7069;
 /// offset array
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/typeoffsetarray?language=objc)
-pub const typeOffsetArray: OSType = 0x6f666179;
+pub const typeOffsetArray: u32 = 0x6f666179;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/typetextrangearray?language=objc)
-pub const typeTextRangeArray: OSType = 0x74726179;
+pub const typeTextRangeArray: u32 = 0x74726179;
 /// Low Level Event Record
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/typelowleveleventrecord?language=objc)
-pub const typeLowLevelEventRecord: OSType = 0x65767472;
+pub const typeLowLevelEventRecord: u32 = 0x65767472;
 /// Glyph/FMFont info array for sub ranges of Unicode text.  See GlyphInfoArray in TextServices.h
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/typeglyphinfoarray?language=objc)
-pub const typeGlyphInfoArray: OSType = 0x676c6961;
+pub const typeGlyphInfoArray: u32 = 0x676c6961;
 /// Carbon EventRef
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/typeeventref?language=objc)
-pub const typeEventRef: OSType = 0x65767266;
+pub const typeEventRef: u32 = 0x65767266;
 /// Plain text
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/typetext?language=objc)
 #[cfg(feature = "AEDataModel")]
-pub const typeText: OSType = typeChar;
+pub const typeText: u32 = typeChar;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ktsmoutsideofbody?language=objc)
 pub const kTSMOutsideOfBody: c_uint = 1;
@@ -2542,479 +2542,479 @@ pub const typeDegreesK: DescType = 0x6465676b;
 /// Creator code for Folder Actions Server
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfaserverapp?language=objc)
-pub const kFAServerApp: OSType = 0x73737276;
+pub const kFAServerApp: u32 = 0x73737276;
 /// Event the Finder sends to the Folder Actions FBA
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kdofolderactionevent?language=objc)
-pub const kDoFolderActionEvent: OSType = 0x666f6c61;
+pub const kDoFolderActionEvent: u32 = 0x666f6c61;
 /// Parameter that contains the Folder Action
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfolderactioncode?language=objc)
-pub const kFolderActionCode: OSType = 0x6163746e;
+pub const kFolderActionCode: u32 = 0x6163746e;
 /// Value of kFolderActionCode parameter; sent to script as event
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfolderopenedevent?language=objc)
-pub const kFolderOpenedEvent: OSType = 0x666f706e;
+pub const kFolderOpenedEvent: u32 = 0x666f706e;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfolderclosedevent?language=objc)
-pub const kFolderClosedEvent: OSType = 0x66636c6f;
+pub const kFolderClosedEvent: u32 = 0x66636c6f;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfolderwindowmovedevent?language=objc)
-pub const kFolderWindowMovedEvent: OSType = 0x6673697a;
+pub const kFolderWindowMovedEvent: u32 = 0x6673697a;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfolderitemsaddedevent?language=objc)
-pub const kFolderItemsAddedEvent: OSType = 0x66676574;
+pub const kFolderItemsAddedEvent: u32 = 0x66676574;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfolderitemsremovedevent?language=objc)
-pub const kFolderItemsRemovedEvent: OSType = 0x666c6f73;
+pub const kFolderItemsRemovedEvent: u32 = 0x666c6f73;
 /// List parameter for added and removed items
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kitemlist?language=objc)
-pub const kItemList: OSType = 0x666c7374;
+pub const kItemList: u32 = 0x666c7374;
 /// Parameter for moved window
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/knewsizeparameter?language=objc)
-pub const kNewSizeParameter: OSType = 0x666e737a;
+pub const kNewSizeParameter: u32 = 0x666e737a;
 /// Suite code for the following events
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfasuitecode?language=objc)
-pub const kFASuiteCode: OSType = 0x6661636f;
+pub const kFASuiteCode: u32 = 0x6661636f;
 /// Attach event id
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfaattachcommand?language=objc)
-pub const kFAAttachCommand: OSType = 0x61746661;
+pub const kFAAttachCommand: u32 = 0x61746661;
 /// Remove event id
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfaremovecommand?language=objc)
-pub const kFARemoveCommand: OSType = 0x726d6661;
+pub const kFARemoveCommand: u32 = 0x726d6661;
 /// Edit event id
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfaeditcommand?language=objc)
-pub const kFAEditCommand: OSType = 0x65646661;
+pub const kFAEditCommand: u32 = 0x65646661;
 /// Key for file parameter for Attach
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfafileparam?language=objc)
-pub const kFAFileParam: OSType = 0x6661616c;
+pub const kFAFileParam: u32 = 0x6661616c;
 /// Key for index (0-based) parameter for Remove and Edit
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/kfaindexparam?language=objc)
-pub const kFAIndexParam: OSType = 0x696e6478;
+pub const kFAIndexParam: u32 = 0x696e6478;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeinternetsuite?language=objc)
-pub const kAEInternetSuite: OSType = 0x6775726c;
+pub const kAEInternetSuite: u32 = 0x6775726c;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeiswebstarsuite?language=objc)
-pub const kAEISWebStarSuite: OSType = 0x575757BD;
+pub const kAEISWebStarSuite: u32 = 0x575757BD;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisgeturl?language=objc)
-pub const kAEISGetURL: OSType = 0x6775726c;
+pub const kAEISGetURL: u32 = 0x6775726c;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeishandlecgi?language=objc)
-pub const KAEISHandleCGI: OSType = 0x73646f63;
+pub const KAEISHandleCGI: u32 = 0x73646f63;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/curl?language=objc)
-pub const cURL: OSType = 0x75726c20;
+pub const cURL: u32 = 0x75726c20;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/cinternetaddress?language=objc)
-pub const cInternetAddress: OSType = 0x49504144;
+pub const cInternetAddress: u32 = 0x49504144;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/chtml?language=objc)
-pub const cHTML: OSType = 0x68746d6c;
+pub const cHTML: u32 = 0x68746d6c;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/cftpitem?language=objc)
-pub const cFTPItem: OSType = 0x66747020;
+pub const cFTPItem: u32 = 0x66747020;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeishttpsearchargs?language=objc)
-pub const kAEISHTTPSearchArgs: OSType = 0x6b666f72;
+pub const kAEISHTTPSearchArgs: u32 = 0x6b666f72;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeispostargs?language=objc)
-pub const kAEISPostArgs: OSType = 0x706f7374;
+pub const kAEISPostArgs: u32 = 0x706f7374;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeismethod?language=objc)
-pub const kAEISMethod: OSType = 0x6d657468;
+pub const kAEISMethod: u32 = 0x6d657468;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisclientaddress?language=objc)
-pub const kAEISClientAddress: OSType = 0x61646472;
+pub const kAEISClientAddress: u32 = 0x61646472;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisusername?language=objc)
-pub const kAEISUserName: OSType = 0x75736572;
+pub const kAEISUserName: u32 = 0x75736572;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeispassword?language=objc)
-pub const kAEISPassword: OSType = 0x70617373;
+pub const kAEISPassword: u32 = 0x70617373;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisfromuser?language=objc)
-pub const kAEISFromUser: OSType = 0x66726d75;
+pub const kAEISFromUser: u32 = 0x66726d75;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisservername?language=objc)
-pub const kAEISServerName: OSType = 0x73766e6d;
+pub const kAEISServerName: u32 = 0x73766e6d;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisserverport?language=objc)
-pub const kAEISServerPort: OSType = 0x73767074;
+pub const kAEISServerPort: u32 = 0x73767074;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisscriptname?language=objc)
-pub const kAEISScriptName: OSType = 0x73636e6d;
+pub const kAEISScriptName: u32 = 0x73636e6d;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeiscontenttype?language=objc)
-pub const kAEISContentType: OSType = 0x63747970;
+pub const kAEISContentType: u32 = 0x63747970;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisreferrer?language=objc)
-pub const kAEISReferrer: OSType = 0x72656672;
+pub const kAEISReferrer: u32 = 0x72656672;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisuseragent?language=objc)
-pub const kAEISUserAgent: OSType = 0x41676e74;
+pub const kAEISUserAgent: u32 = 0x41676e74;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisaction?language=objc)
-pub const kAEISAction: OSType = 0x4b616374;
+pub const kAEISAction: u32 = 0x4b616374;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisactionpath?language=objc)
-pub const kAEISActionPath: OSType = 0x4b617074;
+pub const kAEISActionPath: u32 = 0x4b617074;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisclientip?language=objc)
-pub const kAEISClientIP: OSType = 0x4b636970;
+pub const kAEISClientIP: u32 = 0x4b636970;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kaeisfullrequest?language=objc)
-pub const kAEISFullRequest: OSType = 0x4b667271;
+pub const kAEISFullRequest: u32 = 0x4b667271;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pscheme?language=objc)
-pub const pScheme: OSType = 0x70757363;
+pub const pScheme: u32 = 0x70757363;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/phost?language=objc)
-pub const pHost: OSType = 0x484f5354;
+pub const pHost: u32 = 0x484f5354;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ppath?language=objc)
-pub const pPath: OSType = 0x46545063;
+pub const pPath: u32 = 0x46545063;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pusername?language=objc)
-pub const pUserName: OSType = 0x5241756e;
+pub const pUserName: u32 = 0x5241756e;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/puserpassword?language=objc)
-pub const pUserPassword: OSType = 0x52417077;
+pub const pUserPassword: u32 = 0x52417077;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pdnsform?language=objc)
-pub const pDNSForm: OSType = 0x70444e53;
+pub const pDNSForm: u32 = 0x70444e53;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/purl?language=objc)
-pub const pURL: OSType = 0x7055524c;
+pub const pURL: u32 = 0x7055524c;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ptextencoding?language=objc)
-pub const pTextEncoding: OSType = 0x70747865;
+pub const pTextEncoding: u32 = 0x70747865;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pftpkind?language=objc)
-pub const pFTPKind: OSType = 0x6b696e64;
+pub const pFTPKind: u32 = 0x6b696e64;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/escheme?language=objc)
-pub const eScheme: OSType = 0x65736368;
+pub const eScheme: u32 = 0x65736368;
 /// RFC 2068
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlhttp?language=objc)
-pub const eurlHTTP: OSType = 0x68747470;
+pub const eurlHTTP: u32 = 0x68747470;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlhttps?language=objc)
-pub const eurlHTTPS: OSType = 0x68747073;
+pub const eurlHTTPS: u32 = 0x68747073;
 /// RFC 1738
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlftp?language=objc)
-pub const eurlFTP: OSType = 0x66747020;
+pub const eurlFTP: u32 = 0x66747020;
 /// RFC 2638
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlmail?language=objc)
-pub const eurlMail: OSType = 0x6d61696c;
+pub const eurlMail: u32 = 0x6d61696c;
 /// RFC 1738
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlfile?language=objc)
-pub const eurlFile: OSType = 0x66696c65;
+pub const eurlFile: u32 = 0x66696c65;
 /// RFC 1738
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlgopher?language=objc)
-pub const eurlGopher: OSType = 0x67706872;
+pub const eurlGopher: u32 = 0x67706872;
 /// RFC 1738
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurltelnet?language=objc)
-pub const eurlTelnet: OSType = 0x746c6e74;
+pub const eurlTelnet: u32 = 0x746c6e74;
 /// RFC 1738
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlnews?language=objc)
-pub const eurlNews: OSType = 0x6e657773;
+pub const eurlNews: u32 = 0x6e657773;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlsnews?language=objc)
-pub const eurlSNews: OSType = 0x736e7773;
+pub const eurlSNews: u32 = 0x736e7773;
 /// RFC 1738
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlnntp?language=objc)
-pub const eurlNNTP: OSType = 0x6e6e7470;
+pub const eurlNNTP: u32 = 0x6e6e7470;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlmessage?language=objc)
-pub const eurlMessage: OSType = 0x6d657373;
+pub const eurlMessage: u32 = 0x6d657373;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlmailbox?language=objc)
-pub const eurlMailbox: OSType = 0x6d626f78;
+pub const eurlMailbox: u32 = 0x6d626f78;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlmulti?language=objc)
-pub const eurlMulti: OSType = 0x6d756c74;
+pub const eurlMulti: u32 = 0x6d756c74;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurllaunch?language=objc)
-pub const eurlLaunch: OSType = 0x6c61756e;
+pub const eurlLaunch: u32 = 0x6c61756e;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlafp?language=objc)
-pub const eurlAFP: OSType = 0x61667020;
+pub const eurlAFP: u32 = 0x61667020;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlat?language=objc)
-pub const eurlAT: OSType = 0x61742020;
+pub const eurlAT: u32 = 0x61742020;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurleppc?language=objc)
-pub const eurlEPPC: OSType = 0x65707063;
+pub const eurlEPPC: u32 = 0x65707063;
 /// RFC 2326
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlrtsp?language=objc)
-pub const eurlRTSP: OSType = 0x72747370;
+pub const eurlRTSP: u32 = 0x72747370;
 /// RFC 2192
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlimap?language=objc)
-pub const eurlIMAP: OSType = 0x696d6170;
+pub const eurlIMAP: u32 = 0x696d6170;
 /// RFC 2224
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlnfs?language=objc)
-pub const eurlNFS: OSType = 0x756e6673;
+pub const eurlNFS: u32 = 0x756e6673;
 /// RFC 2384
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlpop?language=objc)
-pub const eurlPOP: OSType = 0x75706f70;
+pub const eurlPOP: u32 = 0x75706f70;
 /// RFC 2255
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlldap?language=objc)
-pub const eurlLDAP: OSType = 0x756c6470;
+pub const eurlLDAP: u32 = 0x756c6470;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eurlunknown?language=objc)
-pub const eurlUnknown: OSType = 0x75726c3f;
+pub const eurlUnknown: u32 = 0x75726c3f;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/kconnsuite?language=objc)
-pub const kConnSuite: OSType = 0x6d616363;
+pub const kConnSuite: u32 = 0x6d616363;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/cdevspec?language=objc)
-pub const cDevSpec: OSType = 0x63646576;
+pub const cDevSpec: u32 = 0x63646576;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/caddressspec?language=objc)
-pub const cAddressSpec: OSType = 0x63616472;
+pub const cAddressSpec: u32 = 0x63616472;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/cadbaddress?language=objc)
-pub const cADBAddress: OSType = 0x63616462;
+pub const cADBAddress: u32 = 0x63616462;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/cappletalkaddress?language=objc)
-pub const cAppleTalkAddress: OSType = 0x63617420;
+pub const cAppleTalkAddress: u32 = 0x63617420;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/cbusaddress?language=objc)
-pub const cBusAddress: OSType = 0x63627573;
+pub const cBusAddress: u32 = 0x63627573;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/cethernetaddress?language=objc)
-pub const cEthernetAddress: OSType = 0x63656e20;
+pub const cEthernetAddress: u32 = 0x63656e20;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/cfirewireaddress?language=objc)
-pub const cFireWireAddress: OSType = 0x63667720;
+pub const cFireWireAddress: u32 = 0x63667720;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/cipaddress?language=objc)
-pub const cIPAddress: OSType = 0x63697020;
+pub const cIPAddress: u32 = 0x63697020;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/clocaltalkaddress?language=objc)
-pub const cLocalTalkAddress: OSType = 0x636c7420;
+pub const cLocalTalkAddress: u32 = 0x636c7420;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/cscsiaddress?language=objc)
-pub const cSCSIAddress: OSType = 0x63736373;
+pub const cSCSIAddress: u32 = 0x63736373;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ctokenringaddress?language=objc)
-pub const cTokenRingAddress: OSType = 0x63746f6b;
+pub const cTokenRingAddress: u32 = 0x63746f6b;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/cusbaddress?language=objc)
-pub const cUSBAddress: OSType = 0x63757362;
+pub const cUSBAddress: u32 = 0x63757362;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pdevicetype?language=objc)
-pub const pDeviceType: OSType = 0x70647674;
+pub const pDeviceType: u32 = 0x70647674;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pdeviceaddress?language=objc)
-pub const pDeviceAddress: OSType = 0x70647661;
+pub const pDeviceAddress: u32 = 0x70647661;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pconduit?language=objc)
-pub const pConduit: OSType = 0x70636f6e;
+pub const pConduit: u32 = 0x70636f6e;
 /// cde 4/27/98 was 'ppro' conflicted with DB suite
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pprotocol?language=objc)
-pub const pProtocol: OSType = 0x70707274;
+pub const pProtocol: u32 = 0x70707274;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/patmachine?language=objc)
-pub const pATMachine: OSType = 0x7061746d;
+pub const pATMachine: u32 = 0x7061746d;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/patzone?language=objc)
-pub const pATZone: OSType = 0x7061747a;
+pub const pATZone: u32 = 0x7061747a;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pattype?language=objc)
-pub const pATType: OSType = 0x70617474;
+pub const pATType: u32 = 0x70617474;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pdotteddecimal?language=objc)
-pub const pDottedDecimal: OSType = 0x70697064;
+pub const pDottedDecimal: u32 = 0x70697064;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pdns?language=objc)
-pub const pDNS: OSType = 0x70646e73;
+pub const pDNS: u32 = 0x70646e73;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pport?language=objc)
-pub const pPort: OSType = 0x70706f72;
+pub const pPort: u32 = 0x70706f72;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pnetwork?language=objc)
-pub const pNetwork: OSType = 0x706e6574;
+pub const pNetwork: u32 = 0x706e6574;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pnode?language=objc)
-pub const pNode: OSType = 0x706e6f64;
+pub const pNode: u32 = 0x706e6f64;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/psocket?language=objc)
-pub const pSocket: OSType = 0x70736f63;
+pub const pSocket: u32 = 0x70736f63;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pscsibus?language=objc)
-pub const pSCSIBus: OSType = 0x70736362;
+pub const pSCSIBus: u32 = 0x70736362;
 /// cde 5/22/98 per WWDC developer request
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/pscsilun?language=objc)
-pub const pSCSILUN: OSType = 0x70736c75;
+pub const pSCSILUN: u32 = 0x70736c75;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/edevicetype?language=objc)
-pub const eDeviceType: OSType = 0x65647674;
+pub const eDeviceType: u32 = 0x65647674;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eaddressspec?language=objc)
-pub const eAddressSpec: OSType = 0x65616473;
+pub const eAddressSpec: u32 = 0x65616473;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/econduit?language=objc)
-pub const eConduit: OSType = 0x65636f6e;
+pub const eConduit: u32 = 0x65636f6e;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eprotocol?language=objc)
-pub const eProtocol: OSType = 0x6570726f;
+pub const eProtocol: u32 = 0x6570726f;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eadb?language=objc)
-pub const eADB: OSType = 0x65616462;
+pub const eADB: u32 = 0x65616462;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eanalogaudio?language=objc)
-pub const eAnalogAudio: OSType = 0x65706175;
+pub const eAnalogAudio: u32 = 0x65706175;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eappletalk?language=objc)
-pub const eAppleTalk: OSType = 0x65706174;
+pub const eAppleTalk: u32 = 0x65706174;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eaudiolinein?language=objc)
-pub const eAudioLineIn: OSType = 0x65636169;
+pub const eAudioLineIn: u32 = 0x65636169;
 /// cde 4/24/98 changed from 'ecao' to not conflict
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eaudiolineout?language=objc)
-pub const eAudioLineOut: OSType = 0x6563616c;
+pub const eAudioLineOut: u32 = 0x6563616c;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eaudioout?language=objc)
-pub const eAudioOut: OSType = 0x6563616f;
+pub const eAudioOut: u32 = 0x6563616f;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ebus?language=objc)
-pub const eBus: OSType = 0x65627573;
+pub const eBus: u32 = 0x65627573;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ecdrom?language=objc)
-pub const eCDROM: OSType = 0x65636420;
+pub const eCDROM: u32 = 0x65636420;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ecommslot?language=objc)
-pub const eCommSlot: OSType = 0x6563636d;
+pub const eCommSlot: u32 = 0x6563636d;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/edigitalaudio?language=objc)
-pub const eDigitalAudio: OSType = 0x65706461;
+pub const eDigitalAudio: u32 = 0x65706461;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/edisplay?language=objc)
-pub const eDisplay: OSType = 0x65646473;
+pub const eDisplay: u32 = 0x65646473;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/edvd?language=objc)
-pub const eDVD: OSType = 0x65647664;
+pub const eDVD: u32 = 0x65647664;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eethernet?language=objc)
-pub const eEthernet: OSType = 0x6563656e;
+pub const eEthernet: u32 = 0x6563656e;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/efirewire?language=objc)
-pub const eFireWire: OSType = 0x65636677;
+pub const eFireWire: u32 = 0x65636677;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/efloppy?language=objc)
-pub const eFloppy: OSType = 0x65666420;
+pub const eFloppy: u32 = 0x65666420;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ehd?language=objc)
-pub const eHD: OSType = 0x65686420;
+pub const eHD: u32 = 0x65686420;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/einfrared?language=objc)
-pub const eInfrared: OSType = 0x65636972;
+pub const eInfrared: u32 = 0x65636972;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eip?language=objc)
-pub const eIP: OSType = 0x65706970;
+pub const eIP: u32 = 0x65706970;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eirda?language=objc)
-pub const eIrDA: OSType = 0x65706972;
+pub const eIrDA: u32 = 0x65706972;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eirtalk?language=objc)
-pub const eIRTalk: OSType = 0x65706974;
+pub const eIRTalk: u32 = 0x65706974;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ekeyboard?language=objc)
-pub const eKeyboard: OSType = 0x656b6264;
+pub const eKeyboard: u32 = 0x656b6264;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/elcd?language=objc)
-pub const eLCD: OSType = 0x65646c63;
+pub const eLCD: u32 = 0x65646c63;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/elocaltalk?language=objc)
-pub const eLocalTalk: OSType = 0x65636c74;
+pub const eLocalTalk: u32 = 0x65636c74;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/emacip?language=objc)
-pub const eMacIP: OSType = 0x65706d69;
+pub const eMacIP: u32 = 0x65706d69;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/emacvideo?language=objc)
-pub const eMacVideo: OSType = 0x65706d76;
+pub const eMacVideo: u32 = 0x65706d76;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/emicrophone?language=objc)
-pub const eMicrophone: OSType = 0x65636d69;
+pub const eMicrophone: u32 = 0x65636d69;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/emodemport?language=objc)
-pub const eModemPort: OSType = 0x65636d70;
+pub const eModemPort: u32 = 0x65636d70;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/emodemprinterport?language=objc)
-pub const eModemPrinterPort: OSType = 0x656d7070;
+pub const eModemPrinterPort: u32 = 0x656d7070;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/emodem?language=objc)
-pub const eModem: OSType = 0x65646d6d;
+pub const eModem: u32 = 0x65646d6d;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/emonitorout?language=objc)
-pub const eMonitorOut: OSType = 0x65636d6e;
+pub const eMonitorOut: u32 = 0x65636d6e;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/emouse?language=objc)
-pub const eMouse: OSType = 0x656d6f75;
+pub const eMouse: u32 = 0x656d6f75;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/enubuscard?language=objc)
-pub const eNuBusCard: OSType = 0x65646e62;
+pub const eNuBusCard: u32 = 0x65646e62;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/enubus?language=objc)
-pub const eNuBus: OSType = 0x656e7562;
+pub const eNuBus: u32 = 0x656e7562;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/epccard?language=objc)
-pub const ePCcard: OSType = 0x65637063;
+pub const ePCcard: u32 = 0x65637063;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/epcibus?language=objc)
-pub const ePCIbus: OSType = 0x65637069;
+pub const ePCIbus: u32 = 0x65637069;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/epcicard?language=objc)
-pub const ePCIcard: OSType = 0x65647069;
+pub const ePCIcard: u32 = 0x65647069;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/epdsslot?language=objc)
-pub const ePDSslot: OSType = 0x65637064;
+pub const ePDSslot: u32 = 0x65637064;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/epdscard?language=objc)
-pub const ePDScard: OSType = 0x65706473;
+pub const ePDScard: u32 = 0x65706473;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/epointingdevice?language=objc)
-pub const ePointingDevice: OSType = 0x65647064;
+pub const ePointingDevice: u32 = 0x65647064;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/epostscript?language=objc)
-pub const ePostScript: OSType = 0x65707073;
+pub const ePostScript: u32 = 0x65707073;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eppp?language=objc)
-pub const ePPP: OSType = 0x65707070;
+pub const ePPP: u32 = 0x65707070;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eprinterport?language=objc)
-pub const ePrinterPort: OSType = 0x65637070;
+pub const ePrinterPort: u32 = 0x65637070;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eprinter?language=objc)
-pub const ePrinter: OSType = 0x65647072;
+pub const ePrinter: u32 = 0x65647072;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/esvideo?language=objc)
-pub const eSvideo: OSType = 0x65707376;
+pub const eSvideo: u32 = 0x65707376;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/escsi?language=objc)
-pub const eSCSI: OSType = 0x65637363;
+pub const eSCSI: u32 = 0x65637363;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eserial?language=objc)
-pub const eSerial: OSType = 0x65707372;
+pub const eSerial: u32 = 0x65707372;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/espeakers?language=objc)
-pub const eSpeakers: OSType = 0x65647370;
+pub const eSpeakers: u32 = 0x65647370;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/estoragedevice?language=objc)
-pub const eStorageDevice: OSType = 0x65647374;
+pub const eStorageDevice: u32 = 0x65647374;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/esvga?language=objc)
-pub const eSVGA: OSType = 0x65707367;
+pub const eSVGA: u32 = 0x65707367;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/etokenring?language=objc)
-pub const eTokenRing: OSType = 0x65746f6b;
+pub const eTokenRing: u32 = 0x65746f6b;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/etrackball?language=objc)
-pub const eTrackball: OSType = 0x6574726b;
+pub const eTrackball: u32 = 0x6574726b;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/etrackpad?language=objc)
-pub const eTrackpad: OSType = 0x65647470;
+pub const eTrackpad: u32 = 0x65647470;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eusb?language=objc)
-pub const eUSB: OSType = 0x65637573;
+pub const eUSB: u32 = 0x65637573;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/evideoin?language=objc)
-pub const eVideoIn: OSType = 0x65637669;
+pub const eVideoIn: u32 = 0x65637669;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/evideomonitor?language=objc)
-pub const eVideoMonitor: OSType = 0x6564766d;
+pub const eVideoMonitor: u32 = 0x6564766d;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/evideoout?language=objc)
-pub const eVideoOut: OSType = 0x6563766f;
+pub const eVideoOut: u32 = 0x6563766f;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ckeystroke?language=objc)
-pub const cKeystroke: OSType = 0x6b707273;
+pub const cKeystroke: u32 = 0x6b707273;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pkeystrokekey?language=objc)
-pub const pKeystrokeKey: OSType = 0x6b4d7367;
+pub const pKeystrokeKey: u32 = 0x6b4d7367;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pmodifiers?language=objc)
-pub const pModifiers: OSType = 0x6b4d6f64;
+pub const pModifiers: u32 = 0x6b4d6f64;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/pkeykind?language=objc)
-pub const pKeyKind: OSType = 0x6b6b6e64;
+pub const pKeyKind: u32 = 0x6b6b6e64;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/emodifiers?language=objc)
-pub const eModifiers: OSType = 0x654d6473;
+pub const eModifiers: u32 = 0x654d6473;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eoptiondown?language=objc)
-pub const eOptionDown: OSType = 0x4b6f7074;
+pub const eOptionDown: u32 = 0x4b6f7074;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ecommanddown?language=objc)
-pub const eCommandDown: OSType = 0x4b636d64;
+pub const eCommandDown: u32 = 0x4b636d64;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/econtroldown?language=objc)
-pub const eControlDown: OSType = 0x4b63746c;
+pub const eControlDown: u32 = 0x4b63746c;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eshiftdown?language=objc)
-pub const eShiftDown: OSType = 0x4b736674;
+pub const eShiftDown: u32 = 0x4b736674;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ecapslockdown?language=objc)
-pub const eCapsLockDown: OSType = 0x4b636c6b;
+pub const eCapsLockDown: u32 = 0x4b636c6b;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ekeykind?language=objc)
-pub const eKeyKind: OSType = 0x656b7374;
+pub const eKeyKind: u32 = 0x656b7374;
 /// Third byte is virtual key code byte
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/eescapekey?language=objc)
-pub const eEscapeKey: OSType = 0x6B733500;
+pub const eEscapeKey: u32 = 0x6B733500;
 /// (see IM Mac Toolbox Essentials, pp. 2-43)
 ///
 /// See also [Apple's documentation](https://developer.apple.com/documentation/coreservices/edeletekey?language=objc)
-pub const eDeleteKey: OSType = 0x6B733300;
+pub const eDeleteKey: u32 = 0x6B733300;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/etabkey?language=objc)
-pub const eTabKey: OSType = 0x6B733000;
+pub const eTabKey: u32 = 0x6B733000;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ereturnkey?language=objc)
-pub const eReturnKey: OSType = 0x6B732400;
+pub const eReturnKey: u32 = 0x6B732400;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eclearkey?language=objc)
-pub const eClearKey: OSType = 0x6B734700;
+pub const eClearKey: u32 = 0x6B734700;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eenterkey?language=objc)
-pub const eEnterKey: OSType = 0x6B734C00;
+pub const eEnterKey: u32 = 0x6B734C00;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/euparrowkey?language=objc)
-pub const eUpArrowKey: OSType = 0x6B737E00;
+pub const eUpArrowKey: u32 = 0x6B737E00;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/edownarrowkey?language=objc)
-pub const eDownArrowKey: OSType = 0x6B737D00;
+pub const eDownArrowKey: u32 = 0x6B737D00;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eleftarrowkey?language=objc)
-pub const eLeftArrowKey: OSType = 0x6B737B00;
+pub const eLeftArrowKey: u32 = 0x6B737B00;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/erightarrowkey?language=objc)
-pub const eRightArrowKey: OSType = 0x6B737C00;
+pub const eRightArrowKey: u32 = 0x6B737C00;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ehelpkey?language=objc)
-pub const eHelpKey: OSType = 0x6B737200;
+pub const eHelpKey: u32 = 0x6B737200;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ehomekey?language=objc)
-pub const eHomeKey: OSType = 0x6B737300;
+pub const eHomeKey: u32 = 0x6B737300;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/epageupkey?language=objc)
-pub const ePageUpKey: OSType = 0x6B737400;
+pub const ePageUpKey: u32 = 0x6B737400;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/epagedownkey?language=objc)
-pub const ePageDownKey: OSType = 0x6B737900;
+pub const ePageDownKey: u32 = 0x6B737900;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eforwarddelkey?language=objc)
-pub const eForwardDelKey: OSType = 0x6B737500;
+pub const eForwardDelKey: u32 = 0x6B737500;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/eendkey?language=objc)
-pub const eEndKey: OSType = 0x6B737700;
+pub const eEndKey: u32 = 0x6B737700;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef1key?language=objc)
-pub const eF1Key: OSType = 0x6B737A00;
+pub const eF1Key: u32 = 0x6B737A00;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef2key?language=objc)
-pub const eF2Key: OSType = 0x6B737800;
+pub const eF2Key: u32 = 0x6B737800;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef3key?language=objc)
-pub const eF3Key: OSType = 0x6B736300;
+pub const eF3Key: u32 = 0x6B736300;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef4key?language=objc)
-pub const eF4Key: OSType = 0x6B737600;
+pub const eF4Key: u32 = 0x6B737600;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef5key?language=objc)
-pub const eF5Key: OSType = 0x6B736000;
+pub const eF5Key: u32 = 0x6B736000;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef6key?language=objc)
-pub const eF6Key: OSType = 0x6B736100;
+pub const eF6Key: u32 = 0x6B736100;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef7key?language=objc)
-pub const eF7Key: OSType = 0x6B736200;
+pub const eF7Key: u32 = 0x6B736200;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef8key?language=objc)
-pub const eF8Key: OSType = 0x6B736400;
+pub const eF8Key: u32 = 0x6B736400;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef9key?language=objc)
-pub const eF9Key: OSType = 0x6B736500;
+pub const eF9Key: u32 = 0x6B736500;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef10key?language=objc)
-pub const eF10Key: OSType = 0x6B736D00;
+pub const eF10Key: u32 = 0x6B736D00;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef11key?language=objc)
-pub const eF11Key: OSType = 0x6B736700;
+pub const eF11Key: u32 = 0x6B736700;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef12key?language=objc)
-pub const eF12Key: OSType = 0x6B736F00;
+pub const eF12Key: u32 = 0x6B736F00;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef13key?language=objc)
-pub const eF13Key: OSType = 0x6B736900;
+pub const eF13Key: u32 = 0x6B736900;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef14key?language=objc)
-pub const eF14Key: OSType = 0x6B736B00;
+pub const eF14Key: u32 = 0x6B736B00;
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/ef15key?language=objc)
-pub const eF15Key: OSType = 0x6B737100;
+pub const eF15Key: u32 = 0x6B737100;
 
 /// If present in a kAEOpenApplication event, application was launched as a login item and probably shouldn't open up untitled documents, etc. Mac OS X 10.4 and later.
 ///

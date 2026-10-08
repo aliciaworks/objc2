@@ -291,11 +291,11 @@ impl ar_camera_video_format_t {
     #[doc(alias = "ar_camera_video_format_get_pixel_format")]
     #[cfg(feature = "objc2")]
     #[inline]
-    pub unsafe fn pixel_format(video_format: &ar_camera_video_format_t) -> OSType {
+    pub unsafe fn pixel_format(video_format: &ar_camera_video_format_t) -> u32 {
         extern "C-unwind" {
             fn ar_camera_video_format_get_pixel_format(
                 video_format: &ar_camera_video_format_t,
-            ) -> OSType;
+            ) -> u32;
         }
         unsafe { ar_camera_video_format_get_pixel_format(video_format) }
     }

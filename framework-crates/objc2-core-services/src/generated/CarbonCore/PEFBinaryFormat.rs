@@ -10,9 +10,9 @@ use crate::*;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct PEFContainerHeader {
-    pub tag1: OSType,
-    pub tag2: OSType,
-    pub architecture: OSType,
+    pub tag1: u32,
+    pub tag2: u32,
+    pub architecture: u32,
     pub formatVersion: u32,
     pub dateTimeStamp: u32,
     pub oldDefVersion: u32,
@@ -28,9 +28,9 @@ unsafe impl Encode for PEFContainerHeader {
     const ENCODING: Encoding = Encoding::Struct(
         "PEFContainerHeader",
         &[
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
@@ -601,8 +601,8 @@ pub const kPEFRelocLgSetOrBySectionMaxIndex: c_uint = 0x003FFFFF;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct XLibContainerHeader {
-    pub tag1: OSType,
-    pub tag2: OSType,
+    pub tag1: u32,
+    pub tag2: u32,
     pub currentFormat: u32,
     pub containerStringsOffset: u32,
     pub exportHashOffset: u32,
@@ -615,8 +615,8 @@ pub struct XLibContainerHeader {
     pub fragNameLength: u32,
     pub dylibPathOffset: u32,
     pub dylibPathLength: u32,
-    pub cpuFamily: OSType,
-    pub cpuModel: OSType,
+    pub cpuFamily: u32,
+    pub cpuModel: u32,
     pub dateTimeStamp: u32,
     pub currentVersion: u32,
     pub oldDefVersion: u32,
@@ -628,8 +628,6 @@ unsafe impl Encode for XLibContainerHeader {
     const ENCODING: Encoding = Encoding::Struct(
         "XLibContainerHeader",
         &[
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
@@ -642,8 +640,10 @@ unsafe impl Encode for XLibContainerHeader {
             <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,

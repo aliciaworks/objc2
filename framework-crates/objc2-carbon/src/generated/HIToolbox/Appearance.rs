@@ -1246,7 +1246,7 @@ pub const kThemeDragSoundScrollBarArrowIncreasing: c_uint = 0x73626169;
 pub const kThemeDragSoundDragging: c_uint = 0x64726167;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/themedragsoundkind?language=objc)
-pub type ThemeDragSoundKind = OSType;
+pub type ThemeDragSoundKind = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/kthemesoundnone?language=objc)
 pub const kThemeSoundNone: c_uint = 0;
@@ -1484,7 +1484,7 @@ pub const kThemeSoundFinderDragOnIcon: c_uint = 0x66646f6e;
 pub const kThemeSoundFinderDragOffIcon: c_uint = 0x66646f66;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/themesoundkind?language=objc)
-pub type ThemeSoundKind = OSType;
+pub type ThemeSoundKind = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/kthemepopuptabnormalposition?language=objc)
 pub const kThemePopupTabNormalPosition: c_uint = 0;

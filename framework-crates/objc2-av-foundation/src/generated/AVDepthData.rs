@@ -117,7 +117,7 @@ impl AVDepthData {
         #[unsafe(method_family = none)]
         pub unsafe fn depthDataByConvertingToDepthDataType(
             &self,
-            depth_data_type: OSType,
+            depth_data_type: u32,
         ) -> Retained<Self>;
 
         #[cfg(feature = "objc2-image-io")]
@@ -186,7 +186,7 @@ impl AVDepthData {
         /// One of kCVPixelFormatType_DisparityFloat16, kCVPixelFormatType_DisparityFloat32, kCVPixelFormatType_DepthFloat16, or kCVPixelFormatType_DepthFloat32.
         #[unsafe(method(depthDataType))]
         #[unsafe(method_family = none)]
-        pub unsafe fn depthDataType(&self) -> OSType;
+        pub unsafe fn depthDataType(&self) -> u32;
 
         #[cfg(feature = "objc2-core-video")]
         /// Provides access to the depth data object's internal map.

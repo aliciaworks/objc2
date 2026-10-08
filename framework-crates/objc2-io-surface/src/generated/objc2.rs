@@ -220,7 +220,7 @@ impl IOSurface {
 
         #[unsafe(method(pixelFormat))]
         #[unsafe(method_family = none)]
-        pub fn pixelFormat(&self) -> OSType;
+        pub fn pixelFormat(&self) -> u32;
 
         #[unsafe(method(bytesPerRow))]
         #[unsafe(method_family = none)]

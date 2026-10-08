@@ -124,9 +124,9 @@ pub const registerComponentAliasesOnly: c_uint = 8;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct ComponentDescription {
-    pub componentType: OSType,
-    pub componentSubType: OSType,
-    pub componentManufacturer: OSType,
+    pub componentType: u32,
+    pub componentSubType: u32,
+    pub componentManufacturer: u32,
     pub componentFlags: u32,
     pub componentFlagsMask: u32,
 }
@@ -136,9 +136,9 @@ unsafe impl Encode for ComponentDescription {
     const ENCODING: Encoding = Encoding::Struct(
         "ComponentDescription",
         &[
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
         ],
@@ -154,14 +154,14 @@ unsafe impl RefEncode for ComponentDescription {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct ResourceSpec {
-    pub resType: OSType,
+    pub resType: u32,
     pub resID: i16,
 }
 
 #[cfg(feature = "objc2")]
 unsafe impl Encode for ResourceSpec {
     const ENCODING: Encoding =
-        Encoding::Struct("ResourceSpec", &[<OSType>::ENCODING, <i16>::ENCODING]);
+        Encoding::Struct("ResourceSpec", &[<u32>::ENCODING, <i16>::ENCODING]);
 }
 
 #[cfg(feature = "objc2")]
@@ -628,7 +628,7 @@ pub type ComponentRoutineProcPtr =
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/getmissingcomponentresourceprocptr?language=objc)
 pub type GetMissingComponentResourceProcPtr =
-    unsafe extern "C-unwind" fn(Component, OSType, i16, *mut c_void, *mut Handle) -> OSErr;
+    unsafe extern "C-unwind" fn(Component, u32, i16, *mut c_void, *mut Handle) -> OSErr;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/coreservices/componentmpworkfunctionupp?language=objc)
 pub type ComponentMPWorkFunctionUPP = ComponentMPWorkFunctionProcPtr;
@@ -791,9 +791,9 @@ pub unsafe fn GetComponentListModSeed() -> i32 {
 
 #[deprecated]
 #[inline]
-pub unsafe fn GetComponentTypeModSeed(component_type: OSType) -> i32 {
+pub unsafe fn GetComponentTypeModSeed(component_type: u32) -> i32 {
     extern "C-unwind" {
-        fn GetComponentTypeModSeed(component_type: OSType) -> i32;
+        fn GetComponentTypeModSeed(component_type: u32) -> i32;
     }
     unsafe { GetComponentTypeModSeed(component_type) }
 }
@@ -881,14 +881,14 @@ pub unsafe fn ResolveComponentAlias(a_component: Component) -> Component {
 #[inline]
 pub unsafe fn GetComponentPublicResource(
     a_component: Component,
-    resource_type: OSType,
+    resource_type: u32,
     resource_id: i16,
     the_resource: Option<&mut Handle>,
 ) -> OSErr {
     extern "C-unwind" {
         fn GetComponentPublicResource(
             a_component: Component,
-            resource_type: OSType,
+            resource_type: u32,
             resource_id: i16,
             the_resource: Option<&mut Handle>,
         ) -> OSErr;
@@ -906,7 +906,7 @@ pub unsafe fn GetComponentPublicResource(
 #[deprecated]
 #[inline]
 pub unsafe fn GetComponentPublicResourceList(
-    resource_type: OSType,
+    resource_type: u32,
     resource_id: i16,
     flags: i32,
     cd: Option<&mut ComponentDescription>,
@@ -916,7 +916,7 @@ pub unsafe fn GetComponentPublicResourceList(
 ) -> OSErr {
     extern "C-unwind" {
         fn GetComponentPublicResourceList(
-            resource_type: OSType,
+            resource_type: u32,
             resource_id: i16,
             flags: i32,
             cd: Option<&mut ComponentDescription>,
@@ -1059,14 +1059,14 @@ pub unsafe fn CloseComponentResFile(refnum: ResFileRefNum) -> OSErr {
 #[inline]
 pub unsafe fn GetComponentResource(
     a_component: Component,
-    res_type: OSType,
+    res_type: u32,
     res_id: i16,
     the_resource: Option<&mut Handle>,
 ) -> OSErr {
     extern "C-unwind" {
         fn GetComponentResource(
             a_component: Component,
-            res_type: OSType,
+            res_type: u32,
             res_id: i16,
             the_resource: Option<&mut Handle>,
         ) -> OSErr;
@@ -1204,14 +1204,11 @@ pub unsafe fn SetDefaultComponent(a_component: Component, flags: i16) -> OSErr {
 #[deprecated]
 #[inline]
 pub unsafe fn OpenDefaultComponent(
-    component_type: OSType,
-    component_sub_type: OSType,
+    component_type: u32,
+    component_sub_type: u32,
 ) -> ComponentInstance {
     extern "C-unwind" {
-        fn OpenDefaultComponent(
-            component_type: OSType,
-            component_sub_type: OSType,
-        ) -> ComponentInstance;
+        fn OpenDefaultComponent(component_type: u32, component_sub_type: u32) -> ComponentInstance;
     }
     unsafe { OpenDefaultComponent(component_type, component_sub_type) }
 }
@@ -1223,14 +1220,14 @@ pub unsafe fn OpenDefaultComponent(
 #[deprecated]
 #[inline]
 pub unsafe fn OpenADefaultComponent(
-    component_type: OSType,
-    component_sub_type: OSType,
+    component_type: u32,
+    component_sub_type: u32,
     ci: Option<&mut ComponentInstance>,
 ) -> OSErr {
     extern "C-unwind" {
         fn OpenADefaultComponent(
-            component_type: OSType,
-            component_sub_type: OSType,
+            component_type: u32,
+            component_sub_type: u32,
             ci: Option<&mut ComponentInstance>,
         ) -> OSErr;
     }
@@ -1444,14 +1441,14 @@ pub unsafe fn CallComponentGetMPWorkFunction(
 #[inline]
 pub unsafe fn CallComponentGetPublicResource(
     ci: ComponentInstance,
-    resource_type: OSType,
+    resource_type: u32,
     resource_id: i16,
     resource: Option<&mut Handle>,
 ) -> ComponentResult {
     extern "C-unwind" {
         fn CallComponentGetPublicResource(
             ci: ComponentInstance,
-            resource_type: OSType,
+            resource_type: u32,
             resource_id: i16,
             resource: Option<&mut Handle>,
         ) -> ComponentResult;
@@ -1616,7 +1613,7 @@ pub unsafe fn InvokeComponentRoutineUPP(
 #[inline]
 pub unsafe fn InvokeGetMissingComponentResourceUPP(
     c: Component,
-    res_type: OSType,
+    res_type: u32,
     res_id: i16,
     ref_con: *mut c_void,
     resource: Option<&mut Handle>,
@@ -1625,7 +1622,7 @@ pub unsafe fn InvokeGetMissingComponentResourceUPP(
     extern "C-unwind" {
         fn InvokeGetMissingComponentResourceUPP(
             c: Component,
-            res_type: OSType,
+            res_type: u32,
             res_id: i16,
             ref_con: *mut c_void,
             resource: Option<&mut Handle>,

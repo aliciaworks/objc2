@@ -666,7 +666,7 @@ extern_protocol!(
         unsafe fn temporarySurfaceWithIdentifier_format_width_height(
             &self,
             identifier: &NSString,
-            format: OSType,
+            format: u32,
             width: usize,
             height: usize,
         ) -> Option<Retained<IOSurface>>;
@@ -703,7 +703,7 @@ extern_protocol!(
         unsafe fn temporaryPixelBufferWithIdentifier_format_width_height_attributes(
             &self,
             identifier: &NSString,
-            format: OSType,
+            format: u32,
             width: usize,
             height: usize,
             attributes: Option<&NSDictionary>,

@@ -485,9 +485,9 @@ impl IOSurfaceRef {
 
     #[doc(alias = "IOSurfaceGetPixelFormat")]
     #[inline]
-    pub fn pixel_format(&self) -> OSType {
+    pub fn pixel_format(&self) -> u32 {
         extern "C-unwind" {
-            fn IOSurfaceGetPixelFormat(buffer: &IOSurfaceRef) -> OSType;
+            fn IOSurfaceGetPixelFormat(buffer: &IOSurfaceRef) -> u32;
         }
         unsafe { IOSurfaceGetPixelFormat(self) }
     }

@@ -16,11 +16,6 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-/// `uuid_t`: sixteen bytes. C's, not a Rust type.
-pub type uuid_t = [u8; 16];
-/// `OSType`: a four-character code.
-pub type OSType = u32;
-
 mod generated;
 #[allow(unused_imports, unreachable_pub)]
 pub use self::generated::*;

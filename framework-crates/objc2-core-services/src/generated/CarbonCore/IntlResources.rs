@@ -544,7 +544,7 @@ pub type NItl4Handle = *mut NItl4Ptr;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct TableDirectoryRecord {
-    pub tableSignature: OSType,
+    pub tableSignature: u32,
     pub reserved: u32,
     pub tableStartOffset: u32,
     pub tableSize: u32,
@@ -555,7 +555,7 @@ unsafe impl Encode for TableDirectoryRecord {
     const ENCODING: Encoding = Encoding::Struct(
         "TableDirectoryRecord",
         &[
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,
             <u32>::ENCODING,

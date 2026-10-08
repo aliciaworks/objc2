@@ -99,14 +99,14 @@ pub type EventTimerInterval = EventTime;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct EventTypeSpec {
-    pub eventClass: OSType,
+    pub eventClass: u32,
     pub eventKind: u32,
 }
 
 #[cfg(feature = "objc2")]
 unsafe impl Encode for EventTypeSpec {
     const ENCODING: Encoding =
-        Encoding::Struct("EventTypeSpec", &[<OSType>::ENCODING, <u32>::ENCODING]);
+        Encoding::Struct("EventTypeSpec", &[<u32>::ENCODING, <u32>::ENCODING]);
 }
 
 #[cfg(feature = "objc2")]
@@ -115,10 +115,10 @@ unsafe impl RefEncode for EventTypeSpec {
 }
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/eventparamname?language=objc)
-pub type EventParamName = OSType;
+pub type EventParamName = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/eventparamtype?language=objc)
-pub type EventParamType = OSType;
+pub type EventParamType = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/eventloop?language=objc)
 #[doc(alias = "EventLoopRef")]
@@ -228,7 +228,7 @@ pub const kEventAttributeMonitored: c_uint = 1 << 3;
 #[inline]
 pub unsafe fn CreateEvent(
     in_allocator: Option<&CFAllocator>,
-    in_class_id: OSType,
+    in_class_id: u32,
     in_kind: u32,
     in_when: EventTime,
     in_attributes: EventAttributes,
@@ -237,7 +237,7 @@ pub unsafe fn CreateEvent(
     extern "C-unwind" {
         fn CreateEvent(
             in_allocator: Option<&CFAllocator>,
-            in_class_id: OSType,
+            in_class_id: u32,
             in_kind: u32,
             in_when: EventTime,
             in_attributes: EventAttributes,
@@ -276,14 +276,14 @@ pub unsafe fn CopyEvent(in_other: Option<&Event>) -> *mut Event {
 pub unsafe fn CopyEventAs(
     in_allocator: Option<&CFAllocator>,
     in_other: Option<&Event>,
-    in_event_class: OSType,
+    in_event_class: u32,
     in_event_kind: u32,
 ) -> *mut Event {
     extern "C-unwind" {
         fn CopyEventAs(
             in_allocator: Option<&CFAllocator>,
             in_other: Option<&Event>,
-            in_event_class: OSType,
+            in_event_class: u32,
             in_event_kind: u32,
         ) -> *mut Event;
     }
@@ -406,9 +406,9 @@ pub unsafe fn RemoveEventParameter(in_event: Option<&Event>, in_name: EventParam
 /// - `in_event` might need manual memory-management.
 /// - `in_event` might not allow `None`.
 #[inline]
-pub unsafe fn GetEventClass(in_event: Option<&Event>) -> OSType {
+pub unsafe fn GetEventClass(in_event: Option<&Event>) -> u32 {
     extern "C-unwind" {
-        fn GetEventClass(in_event: Option<&Event>) -> OSType;
+        fn GetEventClass(in_event: Option<&Event>) -> u32;
     }
     unsafe { GetEventClass(in_event) }
 }

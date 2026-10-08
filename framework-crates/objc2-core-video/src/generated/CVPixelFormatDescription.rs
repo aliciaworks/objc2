@@ -227,12 +227,12 @@ extern "C" {
 #[inline]
 pub fn CVPixelFormatDescriptionCreateWithPixelFormatType(
     allocator: Option<&CFAllocator>,
-    pixel_format: OSType,
+    pixel_format: u32,
 ) -> Option<CFRetained<CFDictionary<CFString, CFType>>> {
     extern "C-unwind" {
         fn CVPixelFormatDescriptionCreateWithPixelFormatType(
             allocator: Option<&CFAllocator>,
-            pixel_format: OSType,
+            pixel_format: u32,
         ) -> Option<NonNull<CFDictionary<CFString, CFType>>>;
     }
     let ret = unsafe { CVPixelFormatDescriptionCreateWithPixelFormatType(allocator, pixel_format) };
@@ -258,12 +258,12 @@ pub fn CVPixelFormatDescriptionArrayCreateWithAllPixelFormatTypes(
 #[inline]
 pub unsafe fn CVPixelFormatDescriptionRegisterDescriptionWithPixelFormatType(
     description: &CFDictionary<CFString, CFType>,
-    pixel_format: OSType,
+    pixel_format: u32,
 ) {
     extern "C-unwind" {
         fn CVPixelFormatDescriptionRegisterDescriptionWithPixelFormatType(
             description: &CFDictionary<CFString, CFType>,
-            pixel_format: OSType,
+            pixel_format: u32,
         );
     }
     unsafe {
@@ -277,11 +277,9 @@ pub unsafe fn CVPixelFormatDescriptionRegisterDescriptionWithPixelFormatType(
 ///
 /// Returns: A string with a user displayable conversion of a pixel format.
 #[inline]
-pub fn CVPixelFormatTypeCopyFourCharCodeString(pixel_format: OSType) -> CFRetained<CFString> {
+pub fn CVPixelFormatTypeCopyFourCharCodeString(pixel_format: u32) -> CFRetained<CFString> {
     extern "C-unwind" {
-        fn CVPixelFormatTypeCopyFourCharCodeString(
-            pixel_format: OSType,
-        ) -> Option<NonNull<CFString>>;
+        fn CVPixelFormatTypeCopyFourCharCodeString(pixel_format: u32) -> Option<NonNull<CFString>>;
     }
     let ret = unsafe { CVPixelFormatTypeCopyFourCharCodeString(pixel_format) };
     let ret = ret.expect("function was marked as returning non-null, but actually returned NULL");
@@ -294,9 +292,9 @@ pub fn CVPixelFormatTypeCopyFourCharCodeString(pixel_format: OSType) -> CFRetain
 ///
 /// Returns: True if pixel format is supported on the current platform.
 #[inline]
-pub fn CVIsCompressedPixelFormatAvailable(pixel_format_type: OSType) -> bool {
+pub fn CVIsCompressedPixelFormatAvailable(pixel_format_type: u32) -> bool {
     extern "C-unwind" {
-        fn CVIsCompressedPixelFormatAvailable(pixel_format_type: OSType) -> Boolean;
+        fn CVIsCompressedPixelFormatAvailable(pixel_format_type: u32) -> Boolean;
     }
     let ret = unsafe { CVIsCompressedPixelFormatAvailable(pixel_format_type) };
     ret != 0

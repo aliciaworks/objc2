@@ -269,7 +269,7 @@ pub type MenuID = i16;
 pub type MenuItemIndex = u16;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/menucommand?language=objc)
-pub type MenuCommand = OSType;
+pub type MenuCommand = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/menu?language=objc)
 #[doc(alias = "MenuRef")]

@@ -30,7 +30,7 @@ unsafe impl RefEncode for Drag {
 pub type DragItemRef = URefCon;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/flavortype?language=objc)
-pub type FlavorType = OSType;
+pub type FlavorType = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/dragattributes?language=objc)
 pub type DragAttributes = OptionBits;
@@ -199,8 +199,8 @@ pub const kDragPseudoFileTypeDirectory: c_uint = 0x666f6c64;
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct HFSFlavor {
-    pub fileType: OSType,
-    pub fileCreator: OSType,
+    pub fileType: u32,
+    pub fileCreator: u32,
     pub fdFlags: u16,
     pub fileSpec: FSSpec,
 }
@@ -210,8 +210,8 @@ unsafe impl Encode for HFSFlavor {
     const ENCODING: Encoding = Encoding::Struct(
         "HFSFlavor",
         &[
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u16>::ENCODING,
             <FSSpec>::ENCODING,
         ],
@@ -227,8 +227,8 @@ unsafe impl RefEncode for HFSFlavor {
 #[repr(C, packed(2))]
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct PromiseHFSFlavor {
-    pub fileType: OSType,
-    pub fileCreator: OSType,
+    pub fileType: u32,
+    pub fileCreator: u32,
     pub fdFlags: u16,
     pub promisedFlavor: FlavorType,
 }
@@ -238,8 +238,8 @@ unsafe impl Encode for PromiseHFSFlavor {
     const ENCODING: Encoding = Encoding::Struct(
         "PromiseHFSFlavor",
         &[
-            <OSType>::ENCODING,
-            <OSType>::ENCODING,
+            <u32>::ENCODING,
+            <u32>::ENCODING,
             <u16>::ENCODING,
             <FlavorType>::ENCODING,
         ],
@@ -295,7 +295,7 @@ pub const kDragStandardDropLocationTrash: c_uint = 0x74727368;
 pub const kDragStandardDropLocationUnknown: c_uint = 0x756e6b6e;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/standarddroplocation?language=objc)
-pub type StandardDropLocation = OSType;
+pub type StandardDropLocation = u32;
 
 /// [Apple's documentation](https://developer.apple.com/documentation/carbon/dragsenddataprocptr?language=objc)
 pub type DragSendDataProcPtr =
