@@ -1,0 +1,174 @@
+name: generate visionOS bindings
+
+# The generator needs all ten platform SDKs and a libclang of the same era as the headers, which is what a
+# macOS runner with Xcode is and what a borrowed Linux tree is not. It also needs **Xcode 27**: on the
+# macOS 26 image's default 26.6 it panics reading the module map of a framework that declares iOS, and that
+# is where upstream runs too.
+#
+# It runs **all** the frameworks, because a run rewrites its crate's feature list from the SDK it read and the
+# sibling crates that name those features are only rewritten in the same pass.
+#
+# Two things are done to the tree first, and both are the same lesson: this fork reads ARKit from the SDK that
+# has the visionOS module, which renames its features from class names to header names - so the crates that
+# consume it, generated against the old names, cannot resolve, and neither can the root manifest's entries for
+# the crates that go. Both are removed before anything is built.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/generate-visionos.yml'
+      - 'framework-crates/**'
+      - 'crates/header-translator/**'
+
+jobs:
+  generate:
+    runs-on: xcode-27
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          # The translator formats what it writes, and asserts that the format succeeded - so a toolchain
+          # without rustfmt is a panic after every framework has been generated.
+          components: rustfmt
+
+      # Upstream generates with Xcode 27; the image's default is not it.
+      - name: Which Xcode
+        run: |
+          set -euo pipefail
+          ls -d /Applications/Xcode*.app || true
+          pick="$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          echo "using ${pick}"
+          echo "DEVELOPER_DIR=${pick}/Contents/Developer" >> "$GITHUB_ENV"
+          DEVELOPER_DIR="${pick}/Contents/Developer" xcodebuild -version
+
+      # Before the build, because a workspace that cannot resolve cannot build anything - including the tool
+      # that is supposed to regenerate it. A workspace dependency whose path has been deleted is the other half
+      # of that, and leaving it out is what stopped an earlier attempt.
+      # The branch has been mutated by hand across attempts, so every diagnosis made after one of them was made
+      # against a tree whose starting point was unknown - which is what turned one wrong prune into an hour of
+      # them. This restores the two things the trim touches from upstream, and re-applies the one config change
+      # this fork exists for, so a run starts from the same tree every time.
+      - name: Start from upstream
+        run: |
+          set -euo pipefail
+          # The base is the *released* `objc2`, not `main`: a generated crate carries the `objc2` it was
+          # built with, and this workspace consumes the fork as a `[patch.crates-io]` - so it has to be
+          # the release the registry has, or the patch replaces one API with another.
+          git fetch --depth=1 https://github.com/madsmtm/objc2.git \
+            'refs/tags/objc2-0.6.5:refs/tags/objc2-0.6.5'
+          git checkout objc2-0.6.5 -- framework-crates Cargo.toml
+
+          # ARKit read from the SDK that has its visionOS module, and the two skips that were there because
+          # upstream reads that framework from iOS.
+          python3 - <<'INNER'
+          from pathlib import Path
+          p = Path("framework-crates/objc2-ar-kit/translation-config.toml")
+          s = p.read_text()
+          for line in ('maccatalyst = "14.0"\n', 'ios = "11.0"\n'):
+              s = s.replace(line, "")
+          # ARKit's visionOS headers use a GameController trait, and the crate needs the dependency that
+          # provides it - which is what this key is for.
+          s = s.replace('required-crates = []', 'required-crates = ["objc2-game-controller"]')
+          # The dependency alone is not enough: the generated code references GCDevice
+          # unqualified, so the item must be located in GameController for the crate to
+          # import it. Idempotent, and appended at the end, which is valid TOML.
+          if 'external.GCDevice' not in s:
+              s += '\nexternal.GCDevice.module = "GameController.GCDevice"\n'
+          s = s.replace(
+              "# ARKit is generated for iOS, and does not include\n"
+              "# the visionOS module required here.\n"
+              "fn.cp_drawable_set_device_anchor.skipped = true\n"
+              "fn.cp_drawable_get_device_anchor.skipped = true\n",
+              "",
+          )
+          p.write_text(s)
+          print("ARKit config: visionOS only, no device-anchor skips")
+          INNER
+
+      - name: Drop what cannot resolve
+        run: |
+          set -euo pipefail
+          python3 - <<'INNER'
+          import re, shutil
+          from pathlib import Path
+
+          fc = Path("framework-crates")
+          keep = {"objc2-ar-kit", "objc2-compositor-services"}
+          removed = {
+              d.name
+              for d in fc.iterdir()
+              if d.is_dir() and d.name not in keep and "objc2-ar-kit" in (d / "Cargo.toml").read_text()
+          }
+          for name in removed:
+              shutil.rmtree(fc / name)
+
+          root = Path("Cargo.toml")
+          # By name rather than by path: a removed crate is named in workspace.dependencies, in the members
+          # list and in patch, and matching the *name* at the start of a line covers all three - where
+          # matching the path only covered the spellings that happened to be in the first two.
+          kept = [
+              line
+              for line in root.read_text().splitlines()
+              if not any(re.match(rf"^\s*{re.escape(name)}\b", line) for name in removed)
+          ]
+          text = "\n".join(kept)
+          leftover = [n for n in removed if re.search(rf"^\s*{re.escape(n)}\b", text, re.M)]
+          assert not leftover, f"still named in the root manifest: {leftover}"
+          print(f"pruned; {len(removed)} crates, none left in the root manifest")
+
+          # A removed workspace dependency is still inherited by whoever named it, and a member that inherits
+          # nothing is a member that cannot load - which is the error the last attempt ended on. What is left
+          # of crates/ is what the tool itself needs; the test and example crates are not.
+          # Their directories stay and only their membership goes: the tool's last steps write into paths inside
+          # crates/ and examples/ without checking that they are there, so a deleted directory is a panic after
+          # the generation has already finished - which is exactly how the last two attempts ended.
+          keep_crates = ["objc2", "objc2-encode", "objc2-exception-helper", "objc2-proc-macros",
+                         "block2", "dispatch2", "header-translator"]
+          members = "\n".join(f'    "crates/{c}",' for c in keep_crates) + '\n    "framework-crates/*",'
+          text = re.sub(r"members = \[[^]]*\]", f"members = [\n{members}\n]", text, count=1)
+          root.write_text(text)
+          print(f"removed {len(removed)} framework crates: {' '.join(sorted(removed))}")
+          INNER
+
+      - name: Build the translator
+        run: cargo build --release -p header-translator
+
+      - name: Generate
+        run: |
+          set -euo pipefail
+          rm -rf generated framework-crates/objc2-ar-kit/src/generated
+          rm -rf framework-crates/objc2-compositor-services/src/generated
+          cargo run --release -p header-translator --bin header-translator all
+
+      # `-L`: `src/generated` is a symlink into the top-level `generated/` upstream, and copying the link rather
+      # than what it points at produces a crate whose `mod generated;` finds nothing.
+      # Everything, not a chosen part of it. Three attempts in a row failed on the same thing from three
+      # directions - one crate's manifest, then which crates are members, then only two crates' sources - and
+      # each time the failure was that some part of the tree came from this run and some from the last one.
+      # The generator's output is a whole tree; this takes it as one.
+      - name: Collect what the run produced
+        run: |
+          set -euo pipefail
+          rm -rf out && mkdir -p out
+          # `-L`: `src/generated` is a symlink into the top-level `generated/`, which is upstream's layout.
+          cp -aL framework-crates out/framework-crates
+          cp -a generated out/generated
+          du -sh out
+          echo "crates: $(ls out/framework-crates | wc -l)"
+
+      - name: What the backend needs
+        run: |
+          set -euo pipefail
+          for n in ar_plane_detection_provider_create ar_plane_anchors_enumerate_anchors_f \
+                   cp_drawable_set_device_anchor ar_session_create; do
+            if grep -rq "fn $n" out/framework-crates; then echo "  generated  $n"; else echo "  MISSING    $n"; fi
+          done
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: visionos-generated
+          path: out/
+          retention-days: 30

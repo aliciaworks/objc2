@@ -824,7 +824,12 @@ fn update_test_metadata(workspace_dir: &Path, config: &Config) {
         }
         writeln!(&mut s, "pub use {}::*;", &lib.krate.replace('-', "_")).unwrap();
     }
-    fs::write(test_crate_dir.join("src").join("imports.rs"), s).unwrap();
+    // This fork's workspace is the tool, the core crates and the frameworks it generates, and has no test
+    // crate at all - a missing directory is a reason not to write this file rather than to stop after the
+    // whole generation has succeeded.
+    if let Err(e) = fs::write(test_crate_dir.join("src").join("imports.rs"), s) {
+        tracing::warn!("not updating the test crate's imports: {e}");
+    }
 
     // Make library be imported by test crate
     let mut f = std::fs::OpenOptions::new()
