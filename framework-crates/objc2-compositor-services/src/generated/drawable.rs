@@ -5,8 +5,6 @@ use core::ffi::*;
 use core::marker::{PhantomData, PhantomPinned};
 use core::ptr::NonNull;
 use objc2::__framework_prelude::*;
-#[cfg(feature = "objc2-ar-kit")]
-use objc2_ar_kit::*;
 #[cfg(feature = "objc2-metal")]
 use objc2_metal::*;
 
@@ -440,36 +438,6 @@ impl cp_drawable {
             fn cp_drawable_get_view(drawable: cp_drawable_t, index: usize) -> cp_view_t;
         }
         unsafe { cp_drawable_get_view(drawable, index) }
-    }
-
-    /// # Safety
-    ///
-    /// - `drawable` must be a valid pointer.
-    /// - `device_anchor` must be a valid pointer or null.
-    #[doc(alias = "cp_drawable_set_device_anchor")]
-    #[cfg(feature = "objc2-ar-kit")]
-    #[inline]
-    pub unsafe fn set_device_anchor(drawable: cp_drawable_t, device_anchor: ar_device_anchor_t) {
-        extern "C-unwind" {
-            fn cp_drawable_set_device_anchor(
-                drawable: cp_drawable_t,
-                device_anchor: ar_device_anchor_t,
-            );
-        }
-        unsafe { cp_drawable_set_device_anchor(drawable, device_anchor) }
-    }
-
-    /// # Safety
-    ///
-    /// `drawable` must be a valid pointer.
-    #[doc(alias = "cp_drawable_get_device_anchor")]
-    #[cfg(feature = "objc2-ar-kit")]
-    #[inline]
-    pub unsafe fn device_anchor(drawable: cp_drawable_t) -> ar_device_anchor_t {
-        extern "C-unwind" {
-            fn cp_drawable_get_device_anchor(drawable: cp_drawable_t) -> ar_device_anchor_t;
-        }
-        unsafe { cp_drawable_get_device_anchor(drawable) }
     }
 
     /// Encodes a notification event to the specified command buffer to present
