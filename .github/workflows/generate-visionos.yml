@@ -54,12 +54,12 @@ jobs:
       - name: Start from upstream
         run: |
           set -euo pipefail
-          # The base is the *released* `objc2`, not `main`: a generated crate carries the `objc2` it was
-          # built with, and this workspace consumes the fork as a `[patch.crates-io]` - so it has to be
-          # the release the registry has, or the patch replaces one API with another.
-          git fetch --depth=1 https://github.com/madsmtm/objc2.git \
-            'refs/tags/objc2-0.6.5:refs/tags/objc2-0.6.5'
-          git checkout objc2-0.6.5 -- framework-crates Cargo.toml
+          # The configs and templates come from `main`, because the translator does: its config format
+          # and the framework set move with it. The *runtime* crates stay the release's - `crates/` in
+          # this branch is `objc2-0.6.5`, and a generated crate's `objc2 = { workspace = true }` resolves
+          # there, which is what makes this fork a drop-in `[patch.crates-io]` and not a second objc2.
+          git fetch --depth=1 origin main
+          git checkout origin/main -- framework-crates Cargo.toml
 
           # ARKit read from the SDK that has its visionOS module, and the two skips that were there because
           # upstream reads that framework from iOS.
