@@ -1,6 +1,6 @@
 framework = "ARKit"
 crate = "objc2-ar-kit"
-required-crates = []
+required-crates = ["objc2-game-controller"]
 flags = [
     # Needed for unclear reasons? Maybe because ARKitCore exists?
     "-DUSE_ARKIT_PUBLIC_HEADERS=1",
