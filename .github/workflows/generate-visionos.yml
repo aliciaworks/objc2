@@ -67,9 +67,7 @@ jobs:
               s = s.replace(line, "")
           # ARKit's visionOS headers use a GameController trait, and the crate needs the dependency that
           # provides it - which is what this key is for.
-          # Inserted rather than replaced: this config has no `required-crates` line to replace, which is
-          # why the first attempt at this changed nothing.
-          s = s.replace('framework = "ARKit"\n', 'framework = "ARKit"\nrequired-crates = ["objc2-game-controller"]\n', 1)
+          s = s.replace('required-crates = []', 'required-crates = ["objc2-game-controller"]')
           s = s.replace(
               "# ARKit is generated for iOS, and does not include\n"
               "# the visionOS module required here.\n"
