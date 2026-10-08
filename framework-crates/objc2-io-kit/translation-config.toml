@@ -8,6 +8,7 @@ ios = "16.0"
 visionos = "1.0"
 
 # FIXME: Map the rest of IOKit
+# NOTE: Be sure to audit for safety as well (we're marking IOKit as safe below).
 module.audio.skipped = true
 module.avc.skipped = true
 module.firewire.skipped = true
@@ -63,6 +64,8 @@ const.kIOUSBInterfaceInterfaceID.skipped = true
 # Redefine for kUSBHostMessageRenegotiateCurrent
 const.kIOUSBMessageRenegotiateCurrent.skipped = true
 
+# TODO: Check cfgs with `TARGET_OS_MACCATALYST`.
+
 # Requires C++
 module.video.skipped = true
 
@@ -80,12 +83,8 @@ typedef.IOReturn.skipped = true
 const.kOSAsyncRef64Size.skipped = true
 const.kOSAsyncRef64Count.skipped = true
 
-# Needs io_user_reference_t, and contains arrays in typedefs
-typedef.OSAsyncReference64.skipped = true
-struct.OSNotificationHeader64.skipped = true
-struct.IOServiceInterestContent64.skipped = true
-
 # Needs mach_msg_size_t/mach_msg_header_t/mach_timespec_t, which isn't exposed by libc
+struct.OSNotificationHeader64.skipped = true
 typedef.OSAsyncReference.skipped = true
 struct.OSNotificationHeader.skipped = true
 fn.IODispatchCalloutFromMessage.skipped = true
@@ -113,6 +112,11 @@ struct.LowLatencyUserBufferInfoV3.skipped = true
 # Overflows while calculating on 32-bit.
 const.kIORPCMessageIDKernel.skipped = true
 const.kUSBAllStreams.skipped = true
+const.kIOUSBLinkSpeed5Gbps.skipped = true
+const.kIOUSBLinkSpeed10Gbps.skipped = true
+const.kIOUSBLinkSpeed20Gbps.skipped = true
+const.kIOUSBLinkSpeed40Gbps.skipped = true
+const.kIOUSBLinkSpeed80Gbps.skipped = true
 
 # Defined twice
 const.kIOUserServerCDHashKey.skipped = true
@@ -130,7 +134,10 @@ const.kUSBHostReturnRedundant.skipped = true
 # Defined before the thing it refers to.
 const.kUSBDeviceContainerID.skipped = true
 
-# Overflows while calculating
+# Overflows while calculating, needs to be c_ulong
+const.kIOUSB20BitrateLow.skipped = true
+const.kIOUSB20BitrateFull.skipped = true
+const.kIOUSB20BitrateHigh.skipped = true
 const.kIOUSB30Bitrate5Gbps.skipped = true
 const.kIOUSB30Bitrate10Gbps.skipped = true
 const.kIOUSB32Bitrate20Gbps.skipped = true
@@ -151,12 +158,6 @@ const.IOPagedPixels.skipped = false
 const.IO_SampleTypeAlpha.skipped = false
 const.IO_SampleTypeSkip.skipped = false
 
-# https://github.com/shurizzle/rust-four-char-code/issues/2
-const.kConnectionIgnore.skipped = true
-const.kConnectionControllerDepthsSupported.skipped = true
-const.kConnectionControllerColorDepth.skipped = true
-const.kConnectionControllerDitherControl.skipped = true
-
 # Needs OSSpinLock
 struct.StdFBShmem_t.skipped = true
 typedef.StdFBShmem_t.skipped = true
@@ -170,16 +171,6 @@ struct._evGlobals.skipped = true
 typedef.EvGlobals.skipped = true
 const.IOSharedLockData.skipped = true
 const.ev_lock_data_t.skipped = true
-
-# Unknown ABI
-typedef.IOPixelEncoding.skipped = true
-struct.IOPixelInformation.skipped = true
-typedef.IOPixelInformation.skipped = true
-struct.bm12Cursor.skipped = true
-struct.bm18Cursor.skipped = true
-struct.bm34Cursor.skipped = true
-struct.bm38Cursor.skipped = true
-typedef.NXEventSystemInfoData.skipped = true
 
 # Double typedefs
 typedef.NXTabletPointDataPtr.skipped = true
@@ -246,3 +237,294 @@ const.kIOMediumOptionLoopback.use-value = true
 const.kIONetworkLinkValid.use-value = true
 const.kIONetworkLinkActive.use-value = true
 const.kIONetworkLinkNoNetworkChange.use-value = true
+
+typedef.IOBlitMemory.skipped = true
+
+##
+## Generics.
+##
+
+# Matching dictionaries use (CFString, CFType)
+fn.IOServiceGetMatchingService.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOServiceGetMatchingServices.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOServiceAddNotification.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOServiceAddMatchingNotification.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOServiceMatchPropertyTable.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IORegistryEntryCreateCFProperties.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOServiceMatching.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOServiceNameMatching.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOBSDNameMatching.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOOpenFirmwarePathMatching.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IORegistryEntryIDMatching.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+# Same as CFURL methods.
+fn.IOURLCreateDataAndPropertiesFromResource.arguments.3.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOURLCreateDataAndPropertiesFromResource.arguments.4.generics = ["CoreFoundation.CFString.CFString"]
+fn.IOURLWriteDataAndPropertiesToResource.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+fn.IODisplayCreateInfoDictionary.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IODisplayMatchDictionaries.arguments.0.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IODisplayMatchDictionaries.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+# IODisplaySetFloatParameter and IODisplaySetIntegerParameter converts to CFNumber before adding to the dict.
+fn.IODisplaySetParameters.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IODisplayCopyParameters.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IODisplayCopyFloatParameters.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+fn.IOHIDDeviceCopyMatchingElements.return.generics = ["IOKit.hid.IOHIDElement"]
+fn.IOHIDDeviceCopyMatchingElements.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOHIDDeviceSetInputValueMatching.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOHIDDeviceSetInputValueMatchingMultiple.arguments.1.generics = ["CoreFoundation.CFDictionary.CFDictionary<CoreFoundation.CFString.CFString, CoreFoundation.CFType>"]
+fn.IOHIDDeviceSetValueMultiple.arguments.1.generics = ["IOKit.hid.IOHIDElement", "IOKit.hid.IOHIDValue"]
+fn.IOHIDDeviceSetValueMultipleWithCallback.arguments.1.generics = ["IOKit.hid.IOHIDElement", "IOKit.hid.IOHIDValue"]
+fn.IOHIDDeviceCopyValueMultiple.arguments.1.generics = ["IOKit.hid.IOHIDElement"]
+fn.IOHIDDeviceCopyValueMultiple.arguments.2.generics = ["IOKit.hid.IOHIDElement", "IOKit.hid.IOHIDValue"]
+fn.IOHIDDeviceCopyValueMultipleWithCallback.arguments.1.generics = ["IOKit.hid.IOHIDElement"]
+fn.IOHIDDeviceCopyValueMultipleWithCallback.arguments.2.generics = ["IOKit.hid.IOHIDElement", "IOKit.hid.IOHIDValue"]
+fn.IOHIDElementCreateWithDictionary.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOHIDElementGetChildren.return.generics = ["IOKit.hid.IOHIDElement"]
+fn.IOHIDElementCopyAttached.return.generics = ["IOKit.hid.IOHIDElement"]
+fn.IOHIDManagerSetDeviceMatching.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOHIDManagerSetDeviceMatchingMultiple.arguments.1.generics = ["CoreFoundation.CFDictionary.CFDictionary<CoreFoundation.CFString.CFString, CoreFoundation.CFType>"]
+fn.IOHIDManagerCopyDevices.return.generics = ["IOKit.hid.IOHIDDevice"]
+fn.IOHIDManagerSetInputValueMatching.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOHIDManagerSetInputValueMatchingMultiple.arguments.1.generics = ["CoreFoundation.CFDictionary.CFDictionary<CoreFoundation.CFString.CFString, CoreFoundation.CFType>"]
+fn.IOHIDEventSystemClientCopyServices.return.generics = ["IOKit.hidsystem.IOHIDServiceClient"]
+fn.IOHIDUserDeviceCreateWithProperties.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+fn.IOPSCopyPowerSourcesList.return.generics = ["CoreFoundation.CFType"]
+fn.IOPSGetPowerSourceDescription.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOPSCopyExternalPowerAdapterDetails.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+fn.IOPMCopyBatteryInfo.arguments.1.generics = ["CoreFoundation.CFDictionary.CFDictionary<CoreFoundation.CFString.CFString, CoreFoundation.CFType>"]
+fn.IOPMCopyScheduledPowerEvents.return.generics = ["CoreFoundation.CFDictionary.CFDictionary<CoreFoundation.CFString.CFString, CoreFoundation.CFType>"]
+fn.IOPMAssertionCreateWithProperties.arguments.0.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOPMAssertionCopyProperties.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOPMCopyAssertionsByProcess.arguments.0.generics = ["CoreFoundation.CFNumber.CFNumber", "CoreFoundation.CFArray.CFArray<CoreFoundation.CFDictionary.CFDictionary<CoreFoundation.CFString.CFString, CoreFoundation.CFType>>"]
+fn.IOPMCopyAssertionsStatus.arguments.0.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOPMCopyCPUPowerStatus.arguments.0.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.IOCopySystemLoadAdvisoryDetailed.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+##
+## Lifetime
+##
+
+# Probably create-rule, these are error strings.
+fn.IOCFUnserialize.arguments.3.lifetime = "out-pointer-retained"
+fn.IOCFUnserializeBinary.arguments.4.lifetime = "out-pointer-retained"
+fn.IOCFUnserializeWithSize.arguments.4.lifetime = "out-pointer-retained"
+
+##
+## Pointer bounds
+##
+
+# IOKitLib.h
+fn.IOMainPort.arguments.1.bounds = "single"
+fn.IOMasterPort.arguments.1.bounds = "single"
+fn.IOCreateReceivePort.arguments.1.bounds = "single"
+fn.IOObjectConformsTo.arguments.1.bounds = "null-terminated"
+fn.IOServiceAddNotification.arguments.1.bounds = "null-terminated"
+fn.IOServiceAddNotification.arguments.5.bounds = "single"
+fn.IOServiceAddMatchingNotification.arguments.1.bounds = "null-terminated"
+fn.IOServiceAddInterestNotification.arguments.2.bounds = "null-terminated"
+fn.IOServiceAddInterestNotification.arguments.5.bounds = "single"
+fn.IOServiceMatchPropertyTable.arguments.2.bounds = "single"
+fn.IOServiceGetBusyState.arguments.1.bounds = "single"
+fn.IOKitGetBusyState.arguments.1.bounds = "single"
+fn.IOServiceOpen.arguments.3.bounds = "single"
+fn.IOConnectGetService.arguments.1.bounds = "single"
+fn.IOConnectMapMemory.arguments.3.bounds = "single"
+fn.IOConnectMapMemory.arguments.4.bounds = "single"
+fn.IOConnectMapMemory64.arguments.3.bounds = "single"
+fn.IOConnectMapMemory64.arguments.4.bounds = "single"
+fn.IOConnectCallMethod.arguments.2.bounds.counted-by = "input_cnt"
+fn.IOConnectCallMethod.arguments.6.bounds.counted-by = "*output_cnt"
+fn.IOConnectCallMethod.arguments.7.bounds = "single"
+fn.IOConnectCallMethod.arguments.8.bounds.counted-by = "*output_struct_cnt"
+fn.IOConnectCallMethod.arguments.9.bounds = "single"
+fn.IOConnectCallAsyncMethod.arguments.3.bounds.counted-by = "reference_cnt"
+fn.IOConnectCallAsyncMethod.arguments.5.bounds.counted-by = "input_cnt"
+fn.IOConnectCallAsyncMethod.arguments.7.bounds.counted-by = "input_struct_cnt"
+fn.IOConnectCallAsyncMethod.arguments.9.bounds.counted-by = "*output_cnt"
+fn.IOConnectCallAsyncMethod.arguments.10.bounds = "single"
+fn.IOConnectCallAsyncMethod.arguments.11.bounds.counted-by = "*output_struct_cnt"
+fn.IOConnectCallAsyncMethod.arguments.12.bounds = "single"
+fn.IOConnectCallStructMethod.arguments.2.bounds.counted-by = "input_struct_cnt"
+fn.IOConnectCallStructMethod.arguments.4.bounds.counted-by = "*output_struct_cnt"
+fn.IOConnectCallStructMethod.arguments.5.bounds = "single"
+fn.IOConnectCallAsyncStructMethod.arguments.3.bounds.counted-by = "reference_cnt"
+fn.IOConnectCallAsyncStructMethod.arguments.5.bounds.counted-by = "input_struct_cnt"
+fn.IOConnectCallAsyncStructMethod.arguments.7.bounds.counted-by = "*output_struct_cnt"
+fn.IOConnectCallAsyncStructMethod.arguments.8.bounds = "single"
+fn.IOConnectCallScalarMethod.arguments.2.bounds.counted-by = "input_cnt"
+fn.IOConnectCallScalarMethod.arguments.4.bounds.counted-by = "*output_cnt"
+fn.IOConnectCallScalarMethod.arguments.5.bounds = "single"
+fn.IOConnectCallAsyncScalarMethod.arguments.3.bounds.counted-by = "reference_cnt"
+fn.IOConnectCallAsyncScalarMethod.arguments.5.bounds.counted-by = "input_cnt"
+fn.IOConnectCallAsyncScalarMethod.arguments.7.bounds.counted-by = "*output_cnt"
+fn.IOConnectCallAsyncScalarMethod.arguments.8.bounds = "single"
+fn.IORegistryEntryFromPath.arguments.1.bounds = "null-terminated"
+fn.IORegistryCreateIterator.arguments.1.bounds = "null-terminated"
+fn.IORegistryCreateIterator.arguments.3.bounds = "single"
+fn.IORegistryEntryCreateIterator.arguments.1.bounds = "null-terminated"
+fn.IORegistryEntryCreateIterator.arguments.3.bounds = "single"
+fn.IORegistryEntryGetNameInPlane.arguments.1.bounds = "null-terminated"
+fn.IORegistryEntryGetLocationInPlane.arguments.1.bounds = "null-terminated"
+fn.IORegistryEntryGetPath.arguments.1.bounds = "null-terminated"
+fn.IORegistryEntryCopyPath.arguments.1.bounds = "null-terminated"
+fn.IORegistryEntryGetRegistryEntryID.arguments.1.bounds = "single"
+fn.IORegistryEntrySearchCFProperty.arguments.1.bounds = "null-terminated"
+fn.IORegistryEntryGetProperty.arguments.1.bounds = "null-terminated"
+fn.IORegistryEntryGetProperty.arguments.2.bounds = "single" # NOT sized by *size
+fn.IORegistryEntryGetProperty.arguments.3.bounds = "single"
+fn.IORegistryEntryGetChildIterator.arguments.1.bounds = "null-terminated"
+fn.IORegistryEntryGetChildIterator.arguments.2.bounds = "single"
+fn.IORegistryEntryGetChildEntry.arguments.1.bounds = "null-terminated"
+fn.IORegistryEntryGetChildEntry.arguments.2.bounds = "single"
+fn.IORegistryEntryGetParentIterator.arguments.1.bounds = "null-terminated"
+fn.IORegistryEntryGetParentIterator.arguments.2.bounds = "single"
+fn.IORegistryEntryGetParentEntry.arguments.1.bounds = "null-terminated"
+fn.IORegistryEntryGetParentEntry.arguments.2.bounds = "single"
+fn.IORegistryEntryInPlane.arguments.1.bounds = "null-terminated"
+fn.IOServiceMatching.arguments.0.bounds = "null-terminated"
+fn.IOServiceNameMatching.arguments.0.bounds = "null-terminated"
+fn.IOBSDNameMatching.arguments.2.bounds = "null-terminated"
+fn.IOOpenFirmwarePathMatching.arguments.2.bounds = "null-terminated"
+fn.IOServiceOFPathToBSDName.arguments.1.bounds = "null-terminated"
+fn.IOCatalogueSendData.arguments.2.bounds.counted-by = "size" # Probably
+fn.IOCatalogueGetData.arguments.2.bounds.counted-by = "*size" # Probably
+fn.IOCatalogueGetData.arguments.3.bounds = "single"
+
+# IODataQueueClient.h
+# IODataQueueMemory is variable sized, so we can't really make using it safe.
+fn.IODataQueueDataAvailable.arguments.0.bounds = "unsafe" # IODataQueueMemory
+fn.IODataQueuePeek.arguments.0.bounds = "unsafe" # IODataQueueMemory
+fn.IODataQueuePeek.return.bounds = "unsafe" # Unclear lifetime
+fn.IODataQueueDequeue.arguments.0.bounds = "unsafe" # IODataQueueMemory
+fn.IODataQueueDequeue.arguments.1.bounds.sized-by = "*data_size"
+fn.IODataQueueDequeue.arguments.2.bounds = "single"
+fn.IODataQueueWaitForAvailableData.arguments.0.bounds = "unsafe" # IODataQueueMemory
+fn.IODataQueueEnqueue.arguments.0.bounds = "unsafe" # IODataQueueMemory
+fn.IODataQueueEnqueue.arguments.1.bounds.sized-by = "data_size"
+fn.IODataQueueSetNotificationPort.arguments.0.bounds = "unsafe" # IODataQueueMemory
+
+# IOCFPlugin.h
+# Unsure about these, there's no documentation on it
+fn.IOCreatePlugInInterfaceForService.arguments.3.bounds = "unsafe"
+fn.IOCreatePlugInInterfaceForService.arguments.4.bounds = "unsafe"
+fn.IODestroyPlugInInterface.arguments.0.bounds = "unsafe"
+
+# IOCFURLAccess.h
+fn.IOURLCreatePropertyFromResource.arguments.3.bounds = "single"
+fn.IOURLCreateDataAndPropertiesFromResource.arguments.5.bounds = "single"
+fn.IOURLWriteDataAndPropertiesToResource.arguments.3.bounds = "single"
+
+# IOCFUnserialize.h
+fn.IOCFUnserialize.arguments.0.bounds = "null-terminated"
+fn.IOCFUnserializeBinary.arguments.0.bounds.sized-by = "buffer_size"
+fn.IOCFUnserializeWithSize.arguments.0.bounds.sized-by = "buffer_size"
+
+# graphics/IOGraphicsInterface.h
+fn.IOAccelFindAccelerator.arguments.1.bounds = "single"
+fn.IOAccelFindAccelerator.arguments.2.bounds = "single"
+# graphics/IOGraphicsLib.h
+fn.IOFramebufferOpen.arguments.3.bounds = "single"
+fn.IODisplayGetFloatParameter.arguments.3.bounds = "single"
+fn.IODisplayGetIntegerRangeParameter.arguments.3.bounds = "single"
+fn.IODisplayGetIntegerRangeParameter.arguments.4.bounds = "single"
+fn.IODisplayGetIntegerRangeParameter.arguments.5.bounds = "single"
+
+# hid/IOHIDDevice.h
+fn.IOHIDDeviceRegisterInputReportCallback.arguments.1.bounds.sized-by = "report_length"
+fn.IOHIDDeviceRegisterInputReportWithTimeStampCallback.arguments.1.bounds.sized-by = "report_length"
+fn.IOHIDDeviceSetReport.arguments.3.bounds.sized-by = "report_length"
+fn.IOHIDDeviceSetReportWithCallback.arguments.3.bounds.sized-by = "report_length"
+fn.IOHIDDeviceGetReport.arguments.3.bounds.sized-by = "*p_report_length"
+fn.IOHIDDeviceGetReport.arguments.4.bounds = "single"
+fn.IOHIDDeviceGetReportWithCallback.arguments.3.bounds.sized-by = "*p_report_length"
+fn.IOHIDDeviceGetReportWithCallback.arguments.4.bounds = "single"
+# hid/IOHIDValue.h
+fn.IOHIDValueCreateWithBytes.arguments.3.bounds.sized-by = "length"
+fn.IOHIDValueCreateWithBytesNoCopy.arguments.3.bounds.sized-by = "length"
+fn.IOHIDValueGetBytePtr.return.bounds.sized-by = "self.length()"
+
+# hidsystem/IOHIDLib.h
+fn.IOHIDPostEvent.arguments.3.bounds = "unsafe" # Needs correct event_data_version
+fn.IOHIDGetButtonEventNum.arguments.2.bounds = "single"
+fn.IOHIDGetScrollAcceleration.arguments.1.bounds = "single"
+fn.IOHIDGetMouseAcceleration.arguments.1.bounds = "single"
+fn.IOHIDGetMouseButtonMode.arguments.1.bounds = "single"
+fn.IOHIDGetAccelerationWithKey.arguments.2.bounds = "single"
+fn.IOHIDGetParameter.arguments.3.bounds.sized-by = "max_size"
+fn.IOHIDGetParameter.arguments.4.bounds = "single"
+fn.IOHIDGetStateForSelector.arguments.2.bounds = "single"
+fn.IOHIDGetModifierLockState.arguments.2.bounds = "single"
+fn.IOHIDRegisterVirtualDisplay.arguments.1.bounds = "single"
+fn.IOHIDSetVirtualDisplayBounds.arguments.2.bounds = "single"
+fn.IOHIDGetActivityState.arguments.1.bounds = "single"
+# hidsystem/event_status_driver.h
+fn.NXEventSystemInfo.arguments.1.written = false
+fn.NXEventSystemInfo.arguments.1.bounds = "null-terminated"
+fn.NXEventSystemInfo.arguments.2.bounds.counted-by = "*evs_info_cnt"
+fn.NXEventSystemInfo.arguments.3.bounds = "single"
+fn.NXSetClickSpace.arguments.1.written = false
+fn.NXSetClickSpace.arguments.1.bounds = "single"
+fn.NXGetClickSpace.arguments.1.bounds = "single"
+# hidsystem/IOHIDUserDevice.h
+fn.IOHIDUserDeviceHandleReportWithTimeStamp.arguments.2.bounds.sized-by = "report_length"
+
+# network/IONetworkLib.h
+fn.IONetworkOpen.arguments.1.bounds = "single"
+fn.IONetworkWriteData.arguments.2.bounds.sized-by = "in_size"
+fn.IONetworkReadData.arguments.2.bounds.sized-by = "*in_out_size_p"
+fn.IONetworkReadData.arguments.3.bounds = "single"
+fn.IONetworkGetDataCapacity.arguments.2.bounds = "single"
+fn.IONetworkGetDataHandle.arguments.1.bounds = "null-terminated"
+fn.IONetworkGetDataHandle.arguments.2.bounds = "single"
+fn.IONetworkSetPacketFiltersMask.arguments.1.bounds = "null-terminated"
+fn.IONetworkGetPacketFiltersMask.arguments.1.bounds = "null-terminated"
+fn.IONetworkGetPacketFiltersMask.arguments.2.bounds = "single"
+
+# pwr_mgt/IOPMLib.h
+fn.IOPMGetAggressiveness.arguments.2.bounds = "single"
+fn.IORegisterApp.arguments.2.bounds = "single"
+fn.IORegisterApp.arguments.4.bounds = "single"
+fn.IORegisterForSystemPower.arguments.1.bounds = "single"
+fn.IORegisterForSystemPower.arguments.3.bounds = "single"
+fn.IODeregisterApp.arguments.0.bounds = "single"
+fn.IODeregisterForSystemPower.arguments.0.bounds = "single"
+fn.IOPMAssertionCreateWithDescription.arguments.7.bounds = "single"
+fn.IOPMAssertionCreateWithProperties.arguments.1.bounds = "single"
+fn.IOPMAssertionDeclareUserActivity.arguments.2.bounds = "single"
+fn.IOPMDeclareNetworkClientActivity.arguments.1.bounds = "single"
+fn.IOPMAssertionCreate.arguments.2.bounds = "single"
+fn.IOPMAssertionCreateWithName.arguments.3.bounds = "single"
+fn.IOPMGetThermalWarningLevel.arguments.0.bounds = "single"
+
+##
+## Safety
+##
+
+# SAFETY: The IOKit functions that we map are well-behaved.
+#
+# A lot of HID functions document something like
+# > If this parameter is not a valid IOHIDElementRef, the behavior is undefined
+#
+# Which is perfectly fine, because the functions are correctly typed
+# (so this requirement is upheld by the type system).
+#
+# Note that some functions take handles like `io_object_t`, including
+# `IOObjectRelease`/`IOObjectRetain`. These are safe to use, the kernel checks
+# these, and returns an error if you pass e.g. an over-released handle (just
+# like file handles).
+#
+# There's also functions like `IOHIDDeviceActivate`, which says that a queue
+# must be set before activation, or that register functions shouldn't be called
+# after activation, but it's hard to see how that would cause memory safety
+# (as compared to just logical safety).
+unsafe-default-safety.documentation-is-reviewed = true
+
+# Unsure if memory (un-)mapping has further constraints?
+fn.IOConnectMapMemory.unsafe = true
+fn.IOConnectMapMemory64.unsafe = true
+fn.IOConnectUnmapMemory.unsafe = true
+fn.IOConnectUnmapMemory64.unsafe = true

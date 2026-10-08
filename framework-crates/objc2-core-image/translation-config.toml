@@ -1,6 +1,7 @@
 framework = "CoreImage"
 crate = "objc2-core-image"
 required-crates = ["objc2", "objc2-foundation"]
+undesired-default-dependencies = ["objc2-open-gl", "objc2-open-gl-es"] # OpenGL is deprecated
 custom-lib-rs = true
 macos = "10.11"
 maccatalyst = "13.0"
@@ -9,10 +10,7 @@ tvos = "9.0"
 visionos = "1.0"
 
 external.MLModel.module = "CoreML.MLModel"
-
-# Breaks usual conventions for errors, the return value is _not_ nullable, so
-# the user must always check the error variable.
-class.CIFilter.methods."filterArrayFromSerializedXMP:inputImageExtent:error:".skipped = true
+external.__IOSurface.module = "IOSurface.IOSurfaceRef"
 
 # Both a protocol and a class, so we use Swift's naming scheme
 protocol.CIFilter.renamed = "CIFilterProtocol"
@@ -22,11 +20,10 @@ class.CIImage.categories.AVDepthData.skipped = true
 class.CIImage.categories.AVPortraitEffectsMatte.skipped = true
 class.CIImage.categories.AVSemanticSegmentationMatte.skipped = true
 
-# Needs `EAGLContext`
-class.CIContext.methods."contextWithEAGLContext:".skipped = true
-class.CIContext.methods."contextWithEAGLContext:options:".skipped = true
+# Reserved for future use, pass NULL.
+class.CIContext.methods."createCGLayerWithSize:info:".arguments.1.generics = []
 
-# Needs CGLContextObj from OpenGL
-class.CIContext.methods."contextWithCGLContext:pixelFormat:colorSpace:options:".skipped = true
-class.CIContext.methods."contextWithCGLContext:pixelFormat:options:".skipped = true
-class.CIContext.methods."contextForOfflineGPUAtIndex:colorSpace:options:sharedContext:".skipped = true
+# Pointer bounds
+class.CIVector.methods."vectorWithValues:count:".arguments.0.bounds.counted-by = "count"
+class.CIVector.methods."initWithValues:count:".arguments.0.bounds.counted-by = "count"
+class.CIColor.methods.components.return.bounds.counted-by = "self.numberOfComponents()"

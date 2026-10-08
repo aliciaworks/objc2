@@ -5,11 +5,6 @@ custom-lib-rs = true
 macos = "10.0"
 maccatalyst = "13.0"
 
-# Headers say that these are "private".
-module.ATS.skipped = true
-module.QD.skipped = true
-# Maybe private?
-module.ATSUI.skipped = true
 # Replaced by AVFoundation
 module.SpeechSynthesis.skipped = true
 
@@ -52,11 +47,6 @@ const.kProcessDictionaryIncludeAllInformationMask.skipped = true
 # Uses `sizeof`
 const.kICFileSpecHeaderSize.skipped = true
 const.extendedBlockLen.skipped = true
-
-# Uses Str255 (an array) directly in parameter, which is unclear ABI-wise.
-fn.ICGetConfigName.skipped = true
-fn.ICGetIndPref.skipped = true
-fn.ICGetProfileName.skipped = true
 
 # Needs ApplicationServices.QD
 fn.HIShapeCreateWithQDRgn.skipped = true
@@ -123,3 +113,274 @@ typedef.ICDirSpecArrayPtr.skipped = true
 fn.HIShapeCreateDifference.renamed = "create_difference"
 fn.HIShapeCreateUnion.renamed = "create_union"
 fn.HIShapeCreateXor.renamed = "create_xor"
+
+# Uses sizeof(CMProfileLocation), whose value depends on the target.
+const.cmCurrentProfileLocationSize.skipped = true
+
+# Uses kNilOptions from MacTypes.h
+const.kATSOptionFlagsDefault.use-value = true
+
+# Recursive, we must define it ourselves to get the encoding right.
+struct.GDevice.skipped = true
+
+# Literal overflows i32, needs to be cast / converted to a negative literal.
+const.kATSNoTracking.use-value = true
+const.cmProfileMajorVersionMask.use-value = true
+const.cmCMSReservedFlagsMask.use-value = true
+const.kUseProfileIntent.use-value = true
+const.cmColorSpaceReservedMask.use-value = true
+const.cmDeviceStateForceNotify.use-value = true
+const.cmDeviceStateAppleRsvdBits.use-value = true
+
+##
+## Nullability
+##
+
+fn.HIShapeSetEmpty.arguments.0.nullability = "nonnull"
+fn.HIShapeOffset.arguments.0.nullability = "nonnull"
+fn.HIShapeInset.arguments.0.nullability = "nonnull"
+fn.HIShapeUnionWithRect.arguments.0.nullability = "nonnull"
+
+##
+## Lifetime
+##
+
+# Most of these are documented with "You should not release the * without first retaining it".
+fn.PMSessionGetCGGraphicsContext.arguments.1.lifetime = "out-pointer-not-retained"
+fn.PMPageFormatGetPrinterID.arguments.1.lifetime = "out-pointer-not-retained"
+fn.PMPrintSettingsGetJobName.arguments.1.lifetime = "out-pointer-not-retained"
+fn.PMPrinterGetMakeAndModelName.arguments.1.lifetime = "out-pointer-not-retained"
+fn.PMPrinterGetMimeTypes.arguments.2.lifetime = "out-pointer-not-retained"
+fn.PMPrinterGetPaperList.arguments.1.lifetime = "out-pointer-not-retained"
+fn.PMPresetGetAttributes.arguments.1.lifetime = "out-pointer-not-retained"
+fn.PMPaperGetID.arguments.1.lifetime = "out-pointer-not-retained"
+fn.PMPaperGetPPDPaperName.arguments.1.lifetime = "out-pointer-not-retained"
+fn.PMPaperGetPrinterID.arguments.1.lifetime = "out-pointer-not-retained"
+# Except for these two, they don't document memory management.
+# I find it likely that it uses the same scheme though.
+fn.PMSessionGetDataFromSession.arguments.2.lifetime = "out-pointer-not-retained"
+fn.PMPrintSettingsGetValue.arguments.2.lifetime = "out-pointer-not-retained"
+
+# I have a hard time calling these functions, I'm guessing they're retained.
+fn.TranslationPerformForData.arguments.2.lifetime = "out-pointer-retained"
+fn.TranslationPerformForURL.arguments.3.lifetime = "out-pointer-retained"
+
+# These have "Get" in the name, I'm guessing they're not retained.
+fn.ATSFontFamilyGetName.arguments.2.lifetime = "out-pointer-not-retained"
+fn.ATSFontGetName.arguments.2.lifetime = "out-pointer-not-retained"
+fn.ATSFontGetPostScriptName.arguments.2.lifetime = "out-pointer-not-retained"
+
+fn.PMPrintSettingsToOptions.arguments.1.lifetime = "out-pointer-retained"
+fn.PMPrintSettingsToOptionsWithPrinterAndPageFormat.arguments.3.lifetime = "out-pointer-retained"
+
+##
+## Pointer bounds
+##
+
+fn.ATSFontActivateFromFileReference.arguments.0.bounds = "single"
+fn.ATSFontActivateFromFileReference.arguments.5.bounds = "single"
+fn.ATSFontActivateFromMemory.arguments.6.bounds = "single"
+fn.ATSFontGetContainerFromFileReference.arguments.0.bounds = "single"
+fn.ATSFontGetContainerFromFileReference.arguments.3.bounds = "single"
+fn.ATSFontGetContainer.arguments.2.bounds = "single"
+fn.ATSFontFamilyIteratorCreate.arguments.1.bounds = "single"
+fn.ATSFontFamilyIteratorCreate.arguments.4.bounds = "single"
+fn.ATSFontFamilyIteratorRelease.arguments.0.bounds = "single"
+fn.ATSFontFamilyIteratorReset.arguments.1.bounds = "single"
+fn.ATSFontFamilyIteratorReset.arguments.4.bounds = "single"
+fn.ATSFontFamilyIteratorNext.arguments.1.bounds = "single"
+fn.ATSFontIteratorCreate.arguments.1.bounds = "single"
+fn.ATSFontIteratorCreate.arguments.4.bounds = "single"
+fn.ATSFontIteratorRelease.arguments.0.bounds = "single"
+fn.ATSFontIteratorReset.arguments.1.bounds = "single"
+fn.ATSFontIteratorReset.arguments.4.bounds = "single"
+fn.ATSFontIteratorNext.arguments.1.bounds = "single"
+fn.ATSFontFindFromContainer.arguments.3.bounds.counted-by = "i_count"
+fn.ATSFontFindFromContainer.arguments.4.bounds = "single"
+fn.ATSFontGetTableDirectory.arguments.3.bounds = "single"
+fn.ATSFontGetTable.arguments.4.bounds.sized-by = "i_buffer_size"
+fn.ATSFontGetTable.arguments.5.bounds = "single"
+fn.ATSFontGetHorizontalMetrics.arguments.2.bounds = "single"
+fn.ATSFontGetVerticalMetrics.arguments.2.bounds = "single"
+fn.ATSFontGetFileReference.arguments.1.bounds = "single"
+fn.ATSFontGetFontFamilyResource.arguments.3.bounds = "single"
+fn.ATSFontNotificationSubscribe.arguments.3.bounds = "single"
+fn.ATSCreateFontQueryRunLoopSource.arguments.3.bounds = "single"
+fn.ATSFontNotificationUnsubscribe.arguments.0.bounds = "unsafe" # probably deallocates
+
+fn.AXUIElementGetAttributeValueCount.arguments.2.bounds = "single"
+fn.AXUIElementIsAttributeSettable.arguments.2.bounds = "single"
+fn.AXUIElementGetPid.arguments.1.bounds = "single"
+fn.AXTextMarkerCreate.arguments.1.bounds.sized-by = "length"
+fn.AXTextMarkerGetBytePtr.return.bounds.sized-by = "self.length()"
+fn.AXTextMarkerRangeCreateWithBytes.arguments.1.bounds.sized-by = "start_marker_length"
+fn.AXTextMarkerRangeCreateWithBytes.arguments.3.bounds.sized-by = "end_marker_length"
+
+fn.HIShapeCreateWithRect.arguments.0.bounds = "single"
+fn.HIShapeContainsPoint.arguments.1.bounds = "single"
+fn.HIShapeIntersectsRect.arguments.1.bounds = "single"
+fn.HIShapeGetBounds.arguments.1.bounds = "single"
+fn.HIShapeGetBounds.return.bounds = "single"
+fn.HIShapeCreateMutableWithRect.arguments.0.bounds = "single"
+fn.HIShapeUnionWithRect.arguments.1.bounds = "single"
+
+fn.InvokeIconActionUPP.arguments.1.bounds = "single"
+fn.IconRefToIconFamily.arguments.2.bounds = "single"
+fn.IconRefContainsCGPoint.arguments.0.bounds = "single"
+fn.IconRefContainsCGPoint.arguments.1.bounds = "single"
+fn.IconRefIntersectsCGRect.arguments.0.bounds = "single"
+fn.IconRefIntersectsCGRect.arguments.1.bounds = "single"
+fn.IconRefToHIShape.arguments.0.bounds = "single"
+fn.GetIconRefVariant.arguments.2.bounds = "single"
+
+fn.ICStart.arguments.0.bounds = "single"
+fn.ICGetVersion.arguments.2.bounds = "single"
+fn.ICGetSeed.arguments.1.bounds = "single"
+fn.ICGetPerm.arguments.1.bounds = "single"
+fn.ICGetPref.arguments.2.bounds = "single"
+fn.ICGetPref.arguments.3.bounds.sized-by = "*size"
+fn.ICGetPref.arguments.4.bounds = "single"
+fn.ICFindPrefHandle.arguments.2.bounds = "single"
+fn.ICGetPrefHandle.arguments.2.bounds = "single"
+fn.ICGetPrefHandle.arguments.3.bounds = "single"
+fn.ICCountPref.arguments.1.bounds = "single"
+fn.ICLaunchURL.arguments.4.bounds = "single"
+fn.ICLaunchURL.arguments.5.bounds = "single"
+fn.ICParseURL.arguments.4.bounds = "single"
+fn.ICParseURL.arguments.5.bounds = "single"
+fn.ICCreateGURLEvent.arguments.3.bounds = "single"
+fn.ICSendGURLEvent.arguments.1.bounds = "single"
+fn.ICMapFilename.arguments.2.bounds = "single"
+fn.ICMapTypeCreator.arguments.4.bounds = "single"
+fn.ICMapEntriesFilename.arguments.3.bounds = "single"
+fn.ICMapEntriesTypeCreator.arguments.5.bounds = "single"
+fn.ICCountMapEntries.arguments.2.bounds = "single"
+fn.ICGetIndMapEntry.arguments.3.bounds = "single"
+fn.ICGetIndMapEntry.arguments.4.bounds = "single"
+fn.ICGetMapEntry.arguments.3.bounds = "single"
+fn.ICSetMapEntry.arguments.3.bounds = "single"
+fn.ICAddMapEntry.arguments.2.bounds = "single"
+fn.ICGetCurrentProfile.arguments.1.bounds = "single"
+fn.ICCountProfiles.arguments.1.bounds = "single"
+fn.ICGetIndProfile.arguments.2.bounds = "single"
+fn.ICAddProfile.arguments.2.bounds = "single"
+
+fn.GetCurrentProcess.arguments.0.bounds = "single"
+fn.GetFrontProcess.arguments.0.bounds = "single"
+fn.GetNextProcess.arguments.0.bounds = "single"
+fn.ProcessInformationCopyDictionary.arguments.0.bounds = "single"
+fn.SetFrontProcess.arguments.0.bounds = "single"
+fn.SetFrontProcessWithOptions.arguments.0.bounds = "single"
+fn.WakeUpProcess.arguments.0.bounds = "single"
+fn.SameProcess.arguments.0.bounds = "single"
+fn.SameProcess.arguments.1.bounds = "single"
+fn.SameProcess.arguments.2.bounds = "single"
+fn.KillProcess.arguments.0.bounds = "single"
+fn.CopyProcessName.arguments.0.bounds = "single"
+fn.GetProcessPID.arguments.0.bounds = "single"
+fn.GetProcessPID.arguments.1.bounds = "single"
+fn.GetProcessForPID.arguments.1.bounds = "single"
+fn.IsProcessVisible.arguments.0.bounds = "single"
+fn.ShowHideProcess.arguments.0.bounds = "single"
+fn.TransformProcessType.arguments.0.bounds = "single"
+
+fn.PasteboardGetItemCount.arguments.1.bounds = "single"
+fn.PasteboardGetItemIdentifier.arguments.2.bounds = "single"
+fn.PasteboardGetItemFlavorFlags.arguments.3.bounds = "single"
+
+fn.TranslationGetTranslationFlags.arguments.1.bounds = "single"
+
+fn.UAZoomChangeFocus.arguments.0.bounds = "single"
+fn.UAZoomChangeFocus.arguments.1.bounds = "single"
+
+fn.PMCreateSession.arguments.0.bounds = "single"
+fn.PMSessionBeginPageNoDialog.arguments.2.bounds = "single"
+fn.PMSessionGetDestinationType.arguments.2.bounds = "single"
+fn.PMSessionCreatePrinterList.arguments.2.bounds = "single"
+fn.PMSessionCreatePrinterList.arguments.3.bounds = "single"
+fn.PMSessionGetCurrentPrinter.arguments.1.bounds = "single"
+fn.PMCreatePageFormat.arguments.0.bounds = "single"
+fn.PMSessionValidatePageFormat.arguments.2.bounds = "single"
+fn.PMCreatePageFormatWithPMPaper.arguments.0.bounds = "single"
+fn.PMPageFormatCreateWithDataRepresentation.arguments.1.bounds = "single"
+fn.PMGetAdjustedPageRect.arguments.1.bounds = "single"
+fn.PMGetAdjustedPaperRect.arguments.1.bounds = "single"
+fn.PMGetOrientation.arguments.1.bounds = "single"
+fn.PMGetPageFormatExtendedData.arguments.2.bounds = "single"
+fn.PMGetPageFormatExtendedData.arguments.3.bounds.sized-by = "*size"
+fn.PMGetScale.arguments.1.bounds = "single"
+fn.PMGetUnadjustedPageRect.arguments.1.bounds = "single"
+fn.PMGetUnadjustedPaperRect.arguments.1.bounds = "single"
+fn.PMSetPageFormatExtendedData.arguments.3.bounds.sized-by = "size"
+fn.PMCreatePrintSettings.arguments.0.bounds = "single"
+fn.PMSessionValidatePrintSettings.arguments.2.bounds = "single"
+fn.PMPrintSettingsCreateWithDataRepresentation.arguments.1.bounds = "single"
+fn.PMGetCollate.arguments.1.bounds = "single"
+fn.PMGetCopies.arguments.1.bounds = "single"
+fn.PMGetDuplex.arguments.1.bounds = "single"
+fn.PMGetFirstPage.arguments.1.bounds = "single"
+fn.PMGetLastPage.arguments.1.bounds = "single"
+fn.PMGetPageRange.arguments.1.bounds = "single"
+fn.PMGetPageRange.arguments.2.bounds = "single"
+fn.PMCreateGenericPrinter.arguments.0.bounds = "single"
+fn.PMPrinterGetCommInfo.arguments.1.bounds = "single"
+fn.PMPrinterGetCommInfo.arguments.2.bounds = "single"
+fn.PMPrinterGetDriverCreator.arguments.1.bounds = "single"
+fn.PMPrinterGetPrinterResolutionCount.arguments.1.bounds = "single"
+fn.PMPrinterGetIndexedPrinterResolution.arguments.2.bounds = "single"
+fn.PMPrinterGetOutputResolution.arguments.2.bounds = "single"
+fn.PMPrinterSetOutputResolution.arguments.2.bounds = "single"
+fn.PMPrinterGetLanguageInfo.arguments.1.bounds = "single"
+fn.PMPrinterGetState.arguments.1.bounds = "single"
+fn.PMPrinterIsPostScriptPrinter.arguments.1.bounds = "single"
+fn.PMPrinterIsRemote.arguments.1.bounds = "single"
+fn.PMPresetCreatePrintSettings.arguments.2.bounds = "single"
+fn.PMGetPageFormatPaper.arguments.1.bounds = "single"
+fn.PMPaperCreateCustom.arguments.5.bounds = "single"
+fn.PMPaperCreateCustom.arguments.6.bounds = "single"
+fn.PMPaperGetWidth.arguments.1.bounds = "single"
+fn.PMPaperGetHeight.arguments.1.bounds = "single"
+fn.PMPaperGetMargins.arguments.1.bounds = "single"
+fn.PMWorkflowSubmitPDFWithOptions.arguments.2.bounds = "null-terminated"
+fn.PMPrintSettingsToOptions.arguments.1.bounds = "single"
+fn.PMPrintSettingsToOptionsWithPrinterAndPageFormat.arguments.3.bounds = "single"
+
+##
+## Generics
+##
+
+fn.ProcessInformationCopyDictionary.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.PasteboardCopyItemFlavors.arguments.2.generics = ["CoreFoundation.CFString.CFString"]
+fn.TranslationCreateWithSourceArray.arguments.0.generics = ["CoreFoundation.CFString.CFString"]
+fn.TranslationCreateWithSourceArray.arguments.2.generics = ["CoreFoundation.CFString.CFString"]
+fn.TranslationCreateWithSourceArray.arguments.3.generics = ["CoreFoundation.CFString.CFString", "ApplicationServices.HIServices.TranslationServices.Translation"]
+fn.AXIsProcessTrustedWithOptions.arguments.0.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.AXUIElementCopyAttributeNames.arguments.1.generics = ["CoreFoundation.CFString.CFString"]
+fn.AXUIElementCopyAttributeValues.arguments.4.generics = ["CoreFoundation.CFType"]
+fn.AXUIElementCopyMultipleAttributeValues.arguments.1.generics = ["CoreFoundation.CFString.CFString"]
+fn.AXUIElementCopyMultipleAttributeValues.arguments.3.generics = ["CoreFoundation.CFType"]
+fn.AXUIElementCopyParameterizedAttributeNames.arguments.1.generics = ["CoreFoundation.CFString.CFString"]
+fn.AXUIElementCopyActionNames.arguments.1.generics = ["CoreFoundation.CFString.CFString"]
+fn.PMSessionCopyOutputFormatList.arguments.2.generics = ["CoreFoundation.CFString.CFString"]
+fn.PMSessionCreatePageFormatList.arguments.2.generics = ["ApplicationServices.PMDefinitions.OpaquePMPageFormat"] # CFArrayRef of PMPageFormat
+fn.PMSessionCreatePrinterList.arguments.1.generics = ["ApplicationServices.PMDefinitions.OpaquePMPrinter"] # CFArrayRef of PMPrinter
+fn.PMPrintSettingsCopyAsDictionary.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.PMPrintSettingsCopyKeys.arguments.1.generics = ["CoreFoundation.CFString.CFString"]
+fn.PMServerCreatePrinterList.arguments.1.generics = ["ApplicationServices.PMDefinitions.OpaquePMPrinter"] # CFArrayRef of PMPrinter
+fn.PMServerLaunchPrinterBrowser.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"] # Probably?
+fn.PMPrinterCopyPresets.arguments.1.generics = ["ApplicationServices.PMDefinitions.OpaquePMPreset"] # CFArrayRef of PMPreset
+fn.PMPrinterGetMimeTypes.arguments.2.generics = ["CoreFoundation.CFString.CFString"]
+fn.PMPrinterGetPaperList.arguments.1.generics = ["ApplicationServices.PMDefinitions.OpaquePMPaper"] # CFArrayRef of PMPaper
+fn.PMPresetGetAttributes.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"] # Probably?
+fn.PMWorkflowCopyItems.arguments.0.generics = ["CoreFoundation.CFDictionary.CFDictionary<CoreFoundation.CFString.CFString, CoreFoundation.CFType>"]
+fn.PMPrinterSendCommand.arguments.3.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"] # Reserved, though probably this.
+fn.PMPrinterCopyState.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.PMCopyAvailablePPDs.arguments.1.generics = ["CoreFoundation.CFURL.CFURL"]
+
+##
+## Safety
+##
+
+# TODO: Unsure if the run loop source must be sendable?
+# https://github.com/madsmtm/objc2/issues/696
+fn.AXObserverGetRunLoopSource.unsafe = true

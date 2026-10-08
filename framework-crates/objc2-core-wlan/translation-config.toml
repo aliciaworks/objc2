@@ -8,7 +8,13 @@ maccatalyst = "13.0"
 external.SFAuthorization.module = "SecurityFoundation.SFAuthorization"
 
 # Set counterparts
-class.CWConfiguration.counterpart = "MutableSubclass(CoreWLAN.CWConfiguration.CWMutableConfiguration)"
-class.CWMutableConfiguration.counterpart = "ImmutableSuperclass(CoreWLAN.CWConfiguration.CWConfiguration)"
-class.CWNetworkProfile.counterpart = "MutableSubclass(CoreWLAN.CWNetworkProfile.CWMutableNetworkProfile)"
-class.CWMutableNetworkProfile.counterpart = "ImmutableSuperclass(CoreWLAN.CWNetworkProfile.CWNetworkProfile)"
+class.CWConfiguration.counterpart.mutable-subclass = "CoreWLAN.CWConfiguration.CWMutableConfiguration"
+class.CWMutableConfiguration.counterpart.immutable-superclass = "CoreWLAN.CWConfiguration.CWConfiguration"
+class.CWNetworkProfile.counterpart.mutable-subclass = "CoreWLAN.CWNetworkProfile.CWMutableNetworkProfile"
+class.CWMutableNetworkProfile.counterpart.immutable-superclass = "CoreWLAN.CWNetworkProfile.CWNetworkProfile"
+
+# See #828: the method has a wrongly-declared return nullability.
+class.CWConfiguration.methods.networkProfiles.return.nullability = "nullable"
+
+# Fix generics
+fn.CWKeychainCopyEAPIdentityList.arguments.0.generics = ["Security.SecIdentity.SecIdentity"]

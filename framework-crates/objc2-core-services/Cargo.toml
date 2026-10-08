@@ -27,6 +27,9 @@ objc2-security = { workspace = true, optional = true, features = [
     "SecBase",
 ] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-disk-arbitration = { workspace = true, optional = true, features = ["DADisk"] }
+
 [package.metadata.docs.rs]
 default-target = "aarch64-apple-darwin"
 rustc-args = ["--cfg", "docsrs"] # Fix cross-crate link to objc2::topics
@@ -51,46 +54,95 @@ default = [
     "AEPackObject",
     "AERegistry",
     "AEUserTermTypes",
+    "AIFF",
+    "AVLTree",
+    "Aliases",
     "AppleEvents",
+    "BackupCore",
     "CSIdentity",
     "CSIdentityAuthority",
     "CSIdentityBase",
     "CSIdentityQuery",
+    "CarbonCore",
+    "CodeFragments",
+    "Collections",
+    "Components",
+    "DateTimeUtils",
+    "Debugging",
     "DictionaryServices",
+    "DiskSpaceRecovery",
+    "DriverServices",
+    "DriverSynchronization",
+    "Endian",
     "FSEvents",
+    "Files",
+    "Finder",
+    "FixMath",
+    "Folders",
+    "Gestalt",
+    "HFSVolumes",
     "IconStorage",
     "IconsCore",
+    "IntlResources",
     "LSConstants",
     "LSInfo",
     "LSOpen",
     "LSQuarantine",
     "LSSharedFileList",
     "LaunchServices",
+    "LowMem",
     "MDImporter",
     "MDItem",
     "MDLabel",
     "MDQuery",
     "MDSchema",
+    "MacErrors",
+    "MacLocales",
+    "MacMemory",
+    "MachineExceptions",
+    "Math64",
     "Metadata",
+    "MixedMode",
+    "Multiprocessing",
+    "MultiprocessingInfo",
+    "NumberFormatting",
     "OSServices",
+    "OSUtils",
+    "PEFBinaryFormat",
+    "PLStringFuncs",
+    "Resources",
     "SKAnalysis",
     "SKDocument",
     "SKIndex",
     "SKSearch",
     "SKSummary",
+    "Script",
     "SearchKit",
     "SecurityCore",
     "SharedFileList",
+    "StringCompare",
+    "TextCommon",
+    "TextEncodingConverter",
+    "TextEncodingPlugin",
+    "TextUtils",
+    "Threads",
+    "Timer",
+    "ToolUtils",
+    "UTCUtils",
     "UTCoreTypes",
     "UTType",
+    "UnicodeConverter",
+    "UnicodeUtilities",
     "WSMethodInvocation",
     "WSProtocolHandler",
     "WSTypes",
     "bitflags",
     "block2",
     "dispatch2",
+    "fp",
     "libc",
     "objc2",
+    "objc2-disk-arbitration",
     "objc2-security",
 ]
 std = ["alloc"]
@@ -103,9 +155,12 @@ objc2 = [
     "dep:objc2",
     "dispatch2?/objc2",
     "objc2-core-foundation/objc2",
+    "objc2-disk-arbitration?/objc2",
     "objc2-security?/objc2",
 ]
+objc2-disk-arbitration = ["dep:objc2-disk-arbitration"]
 objc2-security = ["dep:objc2-security"]
+unstable-darwin-objc = []
 
 AE = []
 AEDataModel = []
@@ -115,17 +170,24 @@ AEObjects = []
 AEPackObject = []
 AERegistry = []
 AEUserTermTypes = []
+AIFF = []
+AVLTree = []
+Aliases = []
 AppleEvents = [
     "objc2-core-foundation/CFArray",
+    "objc2-core-foundation/CFDictionary",
     "objc2-core-foundation/CFRunLoop",
     "objc2-core-foundation/CFStream",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFURL",
 ]
+BackupCore = ["objc2-core-foundation/CFURL"]
 CSIdentity = [
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFData",
     "objc2-core-foundation/CFError",
     "objc2-core-foundation/CFRunLoop",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFURL",
     "objc2-core-foundation/CFUUID",
 ]
@@ -138,20 +200,50 @@ CSIdentityQuery = [
     "objc2-core-foundation/CFRunLoop",
     "objc2-core-foundation/CFUUID",
 ]
+CarbonCore = []
+CodeFragments = []
+Collections = []
+Components = []
+DateTimeUtils = ["objc2-core-foundation/CFDate"]
+Debugging = []
 DictionaryServices = []
+DiskSpaceRecovery = [
+    "objc2-core-foundation/CFError",
+    "objc2-core-foundation/CFURL",
+    "objc2-core-foundation/CFUUID",
+]
+DriverServices = []
+DriverSynchronization = []
+Endian = []
 FSEvents = [
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFDate",
     "objc2-core-foundation/CFRunLoop",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFUUID",
 ]
+Files = [
+    "objc2-core-foundation/CFDate",
+    "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFRunLoop",
+    "objc2-core-foundation/CFString",
+    "objc2-core-foundation/CFURL",
+    "objc2-core-foundation/CFUUID",
+]
+Finder = []
+FixMath = []
+Folders = []
+Gestalt = []
+HFSVolumes = []
 IconStorage = []
 IconsCore = []
+IntlResources = []
 LSConstants = ["bitflags"]
 LSInfo = [
     "bitflags",
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFError",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFURL",
 ]
 LSOpen = [
@@ -165,9 +257,11 @@ LSSharedFileList = [
     "objc2-core-foundation/CFDictionary",
     "objc2-core-foundation/CFError",
     "objc2-core-foundation/CFRunLoop",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFURL",
 ]
 LaunchServices = []
+LowMem = []
 MDImporter = [
     "objc2-core-foundation/CFDictionary",
     "objc2-core-foundation/CFPlugInCOM",
@@ -177,26 +271,47 @@ MDImporter = [
 MDItem = [
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFURL",
 ]
 MDLabel = [
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFUUID",
 ]
-MDQuery = ["objc2-core-foundation/CFArray"]
+MDQuery = [
+    "objc2-core-foundation/CFArray",
+    "objc2-core-foundation/CFString",
+]
 MDSchema = [
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFString",
 ]
+MacErrors = []
+MacLocales = []
+MacMemory = []
+MachineExceptions = []
+Math64 = []
 Metadata = []
+MixedMode = []
+Multiprocessing = []
+MultiprocessingInfo = []
+NumberFormatting = []
 OSServices = []
+OSUtils = []
+PEFBinaryFormat = []
+PLStringFuncs = []
+Resources = []
 SKAnalysis = []
 SKDocument = ["objc2-core-foundation/CFURL"]
 SKIndex = [
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFData",
     "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFNumber",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFURL",
 ]
 SKSearch = [
@@ -205,20 +320,35 @@ SKSearch = [
     "objc2-core-foundation/CFURL",
 ]
 SKSummary = []
+Script = []
 SearchKit = []
 SecurityCore = []
 SharedFileList = []
+StringCompare = []
+TextCommon = []
+TextEncodingConverter = []
+TextEncodingPlugin = []
+TextUtils = []
+Threads = []
+Timer = []
+ToolUtils = []
+UTCUtils = []
 UTCoreTypes = []
 UTType = [
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFPropertyList",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFURL",
 ]
+UnicodeConverter = []
+UnicodeUtilities = []
 WSMethodInvocation = [
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFData",
     "objc2-core-foundation/CFDictionary",
     "objc2-core-foundation/CFRunLoop",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFTree",
     "objc2-core-foundation/CFURL",
     "objc2-core-foundation/CFXMLNode",
@@ -227,7 +357,9 @@ WSProtocolHandler = [
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFData",
     "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFTree",
     "objc2-core-foundation/CFXMLNode",
 ]
 WSTypes = []
+fp = []

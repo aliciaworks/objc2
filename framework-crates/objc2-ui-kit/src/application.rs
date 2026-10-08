@@ -31,14 +31,9 @@ impl UIApplication {
     /// ```no_run
     /// use objc2::MainThreadMarker;
     /// use objc2::rc::{Allocated, Retained};
-    /// use objc2::{define_class, msg_send, ClassType, DefinedClass, MainThreadOnly};
+    /// use objc2::{define_class, msg_send, ClassType, Ivars, MainThreadOnly};
     /// use objc2_foundation::{NSNotification, NSObject, NSObjectProtocol, NSString};
     /// use objc2_ui_kit::{UIApplication, UIApplicationDelegate};
-    ///
-    /// #[derive(Default)]
-    /// struct AppState {
-    ///     // Whatever state you want to store in your delegate.
-    /// }
     ///
     /// define_class!(
     ///     // SAFETY:
@@ -46,14 +41,16 @@ impl UIApplication {
     ///     // - `AppDelegate` does not implement `Drop`.
     ///     #[unsafe(super(NSObject))]
     ///     #[thread_kind = MainThreadOnly]
-    ///     #[ivars = AppState]
-    ///     struct AppDelegate;
+    ///     #[derive(Debug)]
+    ///     struct AppDelegate {
+    ///         // Whatever state you want to store in your delegate.
+    ///     }
     ///
     ///     impl AppDelegate {
     ///         // Called by `UIApplication::main`.
-    ///         #[unsafe(method_id(init))]
+    ///         #[unsafe(method(init))]
     ///         fn init(this: Allocated<Self>) -> Retained<Self> {
-    ///             let this = this.set_ivars(AppState::default());
+    ///             let this = this.set_ivars(Ivars::<Self> {});
     ///             unsafe { msg_send![super(this), init] }
     ///         }
     ///     }
@@ -106,7 +103,7 @@ impl UIApplication {
         // here is just for show really.
         #[cfg(feature = "std")]
         {
-            std::process::exit(_ret as i32)
+            std::process::exit(_ret as _)
         }
         #[cfg(not(feature = "std"))]
         {

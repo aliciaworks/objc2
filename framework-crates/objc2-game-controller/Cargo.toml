@@ -24,6 +24,7 @@ dispatch2 = { workspace = true, optional = true, features = [
 ] }
 objc2 = { workspace = true, features = ["std"] }
 objc2-core-foundation = { workspace = true, optional = true, features = ["objc2"] }
+objc2-core-haptics = { workspace = true, optional = true, features = ["CHHapticEngine"] }
 objc2-foundation = { workspace = true, features = ["alloc"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -35,9 +36,6 @@ objc2-app-kit = { workspace = true, optional = true, features = [
     "NSUserInterfaceItemIdentification",
     "NSViewController",
 ] }
-
-[target.'cfg(any(target_os = "ios", target_os = "tvos", target_os = "visionos"))'.dependencies]
-objc2-core-haptics = { workspace = true, optional = true, features = ["CHHapticEngine"] }
 
 [package.metadata.docs.rs]
 default-target = "aarch64-apple-darwin"
@@ -65,16 +63,19 @@ default = [
     "GCControllerButtonInput",
     "GCControllerDirectionPad",
     "GCControllerElement",
+    "GCControllerHomeButtonSettingsManager",
     "GCControllerInput",
     "GCControllerTouchpad",
     "GCDevice",
     "GCDeviceBattery",
     "GCDeviceCursor",
     "GCDeviceHaptics",
+    "GCDeviceHapticsLocality",
     "GCDeviceLight",
     "GCDevicePhysicalInput",
     "GCDevicePhysicalInputState",
     "GCDevicePhysicalInputStateDiff",
+    "GCDeviceType",
     "GCDirectionPadElement",
     "GCDirectionalGamepad",
     "GCDualSenseAdaptiveTrigger",
@@ -99,6 +100,7 @@ default = [
     "GCMouse",
     "GCMouseInput",
     "GCPhysicalInputElement",
+    "GCPhysicalInputExtents",
     "GCPhysicalInputProfile",
     "GCPhysicalInputSource",
     "GCPressedStateInput",
@@ -106,7 +108,9 @@ default = [
     "GCRacingWheel",
     "GCRacingWheelInput",
     "GCRelativeInput",
+    "GCSpatialAccessory",
     "GCSteeringWheelElement",
+    "GCStylus",
     "GCSwitchElement",
     "GCSwitchPositionInput",
     "GCSyntheticDeviceKeys",
@@ -127,6 +131,7 @@ dispatch2 = ["dep:dispatch2"]
 objc2-app-kit = ["dep:objc2-app-kit"]
 objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-core-haptics = ["dep:objc2-core-haptics"]
+unstable-darwin-objc = []
 
 GCAxis2DInput = [
     "objc2-foundation/NSDate",
@@ -150,6 +155,7 @@ GCControllerElement = [
     "objc2-foundation/NSSet",
     "objc2-foundation/NSString",
 ]
+GCControllerHomeButtonSettingsManager = ["objc2-foundation/NSError"]
 GCControllerInput = []
 GCControllerTouchpad = []
 GCDevice = ["objc2-foundation/NSString"]
@@ -159,13 +165,18 @@ GCDeviceHaptics = [
     "objc2-foundation/NSSet",
     "objc2-foundation/NSString",
 ]
+GCDeviceHapticsLocality = ["objc2-foundation/NSString"]
 GCDeviceLight = []
-GCDevicePhysicalInput = []
+GCDevicePhysicalInput = ["objc2-foundation/NSDate"]
 GCDevicePhysicalInputState = [
     "objc2-foundation/NSDate",
     "objc2-foundation/NSString",
 ]
 GCDevicePhysicalInputStateDiff = ["objc2-foundation/NSEnumerator"]
+GCDeviceType = [
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
 GCDirectionPadElement = []
 GCDirectionalGamepad = ["objc2-foundation/NSString"]
 GCDualSenseAdaptiveTrigger = []
@@ -173,7 +184,6 @@ GCDualSenseGamepad = []
 GCDualShockGamepad = []
 GCEventViewController = [
     "objc2-foundation/NSBundle",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
 ]
 GCExtendedGamepad = []
@@ -204,6 +214,7 @@ GCPhysicalInputElement = [
     "objc2-foundation/NSSet",
     "objc2-foundation/NSString",
 ]
+GCPhysicalInputExtents = []
 GCPhysicalInputProfile = [
     "objc2-foundation/NSDate",
     "objc2-foundation/NSDictionary",
@@ -230,7 +241,15 @@ GCRelativeInput = [
     "objc2-foundation/NSDate",
     "objc2-foundation/NSSet",
 ]
+GCSpatialAccessory = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSString",
+]
 GCSteeringWheelElement = []
+GCStylus = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSString",
+]
 GCSwitchElement = []
 GCSwitchPositionInput = [
     "objc2-foundation/NSDate",

@@ -8,174 +8,152 @@ ios = "2.0"
 tvos = "9.0"
 visionos = "1.0"
 
+# Transform libc::sockaddr to std::net::SocketAddr
+fn.SCNetworkCheckReachabilityByAddress.renamed = "__SCNetworkCheckReachabilityByAddress"
+fn.SCNetworkReachabilityCreateWithAddress.renamed = "__with_address"
+fn.SCNetworkReachabilityCreateWithAddressPair.renamed = "__with_address_pair"
+
 ##
-## Safety
+## Set pointer bounds information.
 ##
 
-# CaptiveNetwork
-fn.CNSetSupportedSSIDs.unsafe = true # CFArray can contain anything
-fn.CNMarkPortalOnline.unsafe = false
-fn.CNMarkPortalOffline.unsafe = false
-fn.CNCopySupportedInterfaces.unsafe = false
-fn.CNCopyCurrentNetworkInfo.unsafe = false
+# TODO: Lifetime = static
+# fn.SCErrorString.return.bounds = "null-terminated"
 
-# DHCPClientPreferences
+fn.DHCPClientPreferencesSetApplicationOptions.arguments.1.bounds.counted-by = "count"
+fn.DHCPClientPreferencesCopyApplicationOptions.arguments.1.bounds = "single"
+fn.DHCPClientPreferencesCopyApplicationOptions.return.bounds.counted-by = "count"
 
-# SCDynamicStore
-fn.SCDynamicStoreCreateRunLoopSource.unsafe = false
-fn.SCDynamicStoreCopyKeyList.unsafe = false
-fn.SCDynamicStoreAddValue.unsafe = true # CFPropertyList can be anything
-fn.SCDynamicStoreAddTemporaryValue.unsafe = true # CFPropertyList can be anything
-fn.SCDynamicStoreCopyValue.unsafe = false
-fn.SCDynamicStoreCopyMultiple.unsafe = true # CFArray can contain anything
-fn.SCDynamicStoreSetValue.unsafe = true # CFPropertyList can be anything
-fn.SCDynamicStoreSetMultiple.unsafe = true # CFArray can contain anything
-fn.SCDynamicStoreRemoveValue.unsafe = false
-fn.SCDynamicStoreNotifyValue.unsafe = false
-fn.SCDynamicStoreSetNotificationKeys.unsafe = true # CFArray can contain anything
-fn.SCDynamicStoreCopyNotifiedKeys.unsafe = false
+fn.SCDynamicStoreCreate.arguments.3.written = false
+fn.SCDynamicStoreCreate.arguments.3.bounds = "single"
+fn.SCDynamicStoreCreateWithOptions.arguments.4.written = false
+fn.SCDynamicStoreCreateWithOptions.arguments.4.bounds = "single"
 
-# SCDynamicStoreCopyDHCPInfo
-fn.SCDynamicStoreCopyDHCPInfo.unsafe = false
-fn.DHCPInfoGetOptionData.unsafe = true # CFDictionary can contain anything
-fn.DHCPInfoGetLeaseStartTime.unsafe = true # CFDictionary can contain anything
-fn.DHCPInfoGetLeaseExpirationTime.unsafe = true # CFDictionary can contain anything
+fn.SCDynamicStoreCopyComputerName.arguments.1.bounds = "single"
+fn.SCDynamicStoreCopyConsoleUser.arguments.1.bounds = "single"
+fn.SCDynamicStoreCopyConsoleUser.arguments.2.bounds = "single"
 
-# SCDynamicStoreCopySpecific
-fn.SCDynamicStoreCopyLocalHostName.unsafe = false
-fn.SCDynamicStoreCopyLocation.unsafe = false
-fn.SCDynamicStoreCopyProxies.unsafe = false
+fn.SCNetworkCheckReachabilityByAddress.arguments.0.bounds = "unsafe" # sockaddr
+fn.SCNetworkCheckReachabilityByAddress.arguments.2.bounds = "single"
+fn.SCNetworkCheckReachabilityByName.arguments.0.bounds = "null-terminated"
+fn.SCNetworkCheckReachabilityByName.arguments.1.bounds = "single"
 
-# SCDynamicStoreKey
-fn.SCDynamicStoreKeyCreateNetworkGlobalEntity.unsafe = false
-fn.SCDynamicStoreKeyCreateNetworkInterface.unsafe = false
-fn.SCDynamicStoreKeyCreateNetworkInterfaceEntity.unsafe = false
-fn.SCDynamicStoreKeyCreateNetworkServiceEntity.unsafe = false
-fn.SCDynamicStoreKeyCreateComputerName.unsafe = false
-fn.SCDynamicStoreKeyCreateConsoleUser.unsafe = false
-fn.SCDynamicStoreKeyCreateHostNames.unsafe = false
-fn.SCDynamicStoreKeyCreateLocation.unsafe = false
-fn.SCDynamicStoreKeyCreateProxies.unsafe = false
+fn.SCNetworkInterfaceCopyMediaOptions.arguments.1.bounds = "single"
+fn.SCNetworkInterfaceCopyMediaOptions.arguments.2.bounds = "single"
+fn.SCNetworkInterfaceCopyMediaOptions.arguments.3.bounds = "single"
+fn.SCNetworkInterfaceCopyMTU.arguments.1.bounds = "single"
+fn.SCNetworkInterfaceCopyMTU.arguments.2.bounds = "single"
+fn.SCNetworkInterfaceCopyMTU.arguments.3.bounds = "single"
 
-# SCNetwork
-fn.SCNetworkInterfaceRefreshConfiguration.unsafe = false
+fn.SCNetworkConnectionCopyUserPreferences.arguments.1.bounds = "single"
+fn.SCNetworkConnectionCopyUserPreferences.arguments.2.bounds = "single"
+fn.SCNetworkConnectionCreateWithServiceID.arguments.3.written = false
+fn.SCNetworkConnectionCreateWithServiceID.arguments.3.bounds = "single"
 
-# SCNetworkConfiguration
-fn.SCNetworkInterfaceCopyAll.unsafe = false
-fn.SCNetworkInterfaceGetSupportedInterfaceTypes.unsafe = false
-fn.SCNetworkInterfaceGetSupportedProtocolTypes.unsafe = false
-fn.SCNetworkInterfaceCreateWithInterface.unsafe = false
-fn.SCNetworkInterfaceGetBSDName.unsafe = false
-fn.SCNetworkInterfaceGetConfiguration.unsafe = false
-fn.SCNetworkInterfaceGetExtendedConfiguration.unsafe = false
-fn.SCNetworkInterfaceGetHardwareAddressString.unsafe = false
-fn.SCNetworkInterfaceGetInterface.unsafe = false
-fn.SCNetworkInterfaceGetInterfaceType.unsafe = false
-fn.SCNetworkInterfaceGetLocalizedDisplayName.unsafe = false
-fn.SCNetworkInterfaceSetConfiguration.unsafe = true # CFDictionary can contain anything
-fn.SCNetworkInterfaceSetExtendedConfiguration.unsafe = true # CFDictionary can contain anything
-fn.SCNetworkInterfaceCopyMediaSubTypes.unsafe = false
-fn.SCNetworkInterfaceCopyMediaSubTypeOptions.unsafe = false
-fn.SCNetworkInterfaceSetMediaOptions.unsafe = false
-fn.SCNetworkInterfaceSetMTU.unsafe = false
-fn.SCNetworkInterfaceForceConfigurationRefresh.unsafe = false
-fn.SCBondInterfaceCopyAll.unsafe = false
-fn.SCBondInterfaceCopyAvailableMemberInterfaces.unsafe = false
-fn.SCBondInterfaceCreate.unsafe = false
-fn.SCBondInterfaceRemove.unsafe = false
-fn.SCBondInterfaceGetMemberInterfaces.unsafe = false
-fn.SCBondInterfaceGetOptions.unsafe = false
-fn.SCBondInterfaceSetMemberInterfaces.unsafe = true # CFArray can contain anything
-fn.SCBondInterfaceSetLocalizedDisplayName.unsafe = false
-fn.SCBondInterfaceSetOptions.unsafe = true # CFDictionary can contain anything
-fn.SCBondInterfaceCopyStatus.unsafe = false
-fn.SCBondStatusGetMemberInterfaces.unsafe = false
-fn.SCBondStatusGetInterfaceStatus.unsafe = false
-fn.SCVLANInterfaceCopyAll.unsafe = false
-fn.SCVLANInterfaceCopyAvailablePhysicalInterfaces.unsafe = false
-fn.SCVLANInterfaceCreate.unsafe = false
-fn.SCVLANInterfaceRemove.unsafe = false
-fn.SCVLANInterfaceGetPhysicalInterface.unsafe = false
-fn.SCVLANInterfaceGetTag.unsafe = false
-fn.SCVLANInterfaceGetOptions.unsafe = false
-fn.SCVLANInterfaceSetPhysicalInterfaceAndTag.unsafe = false
-fn.SCVLANInterfaceSetLocalizedDisplayName.unsafe = false
-fn.SCVLANInterfaceSetOptions.unsafe = true # CFDictionary can contain anything
-fn.SCNetworkProtocolGetConfiguration.unsafe = false
-fn.SCNetworkProtocolGetEnabled.unsafe = false
-fn.SCNetworkProtocolGetProtocolType.unsafe = false
-fn.SCNetworkProtocolSetConfiguration.unsafe = true # CFDictionary can contain anything
-fn.SCNetworkProtocolSetEnabled.unsafe = false
-fn.SCNetworkServiceAddProtocolType.unsafe = false
-fn.SCNetworkServiceCopyAll.unsafe = false
-fn.SCNetworkServiceCopyProtocols.unsafe = false
-fn.SCNetworkServiceCreate.unsafe = false
-fn.SCNetworkServiceCopy.unsafe = false
-fn.SCNetworkServiceEstablishDefaultConfiguration.unsafe = false
-fn.SCNetworkServiceGetEnabled.unsafe = false
-fn.SCNetworkServiceGetInterface.unsafe = false
-fn.SCNetworkServiceGetName.unsafe = false
-fn.SCNetworkServiceCopyProtocol.unsafe = false
-fn.SCNetworkServiceGetServiceID.unsafe = false
-fn.SCNetworkServiceRemove.unsafe = false
-fn.SCNetworkServiceRemoveProtocolType.unsafe = false
-fn.SCNetworkServiceSetEnabled.unsafe = false
-fn.SCNetworkServiceSetName.unsafe = false
-fn.SCNetworkSetAddService.unsafe = false
-fn.SCNetworkSetContainsInterface.unsafe = false
-fn.SCNetworkSetCopyAll.unsafe = false
-fn.SCNetworkSetCopyCurrent.unsafe = false
-fn.SCNetworkSetCopyServices.unsafe = false
-fn.SCNetworkSetCreate.unsafe = false
-fn.SCNetworkSetCopy.unsafe = false
-fn.SCNetworkSetGetName.unsafe = false
-fn.SCNetworkSetGetSetID.unsafe = false
-fn.SCNetworkSetGetServiceOrder.unsafe = false
-fn.SCNetworkSetRemove.unsafe = false
-fn.SCNetworkSetRemoveService.unsafe = false
-fn.SCNetworkSetSetCurrent.unsafe = false
-fn.SCNetworkSetSetName.unsafe = false
-fn.SCNetworkSetSetServiceOrder.unsafe = true # CFArray can contain anything
+fn.SCNetworkReachabilityCreateWithAddress.arguments.1.bounds = "unsafe" # sockaddr
+fn.SCNetworkReachabilityCreateWithAddressPair.arguments.1.bounds = "unsafe" # sockaddr
+fn.SCNetworkReachabilityCreateWithAddressPair.arguments.2.bounds = "unsafe" # sockaddr
+fn.SCNetworkReachabilityCreateWithName.arguments.1.bounds = "null-terminated"
+fn.SCNetworkReachabilityGetFlags.arguments.1.bounds = "single"
+fn.SCNetworkReachabilitySetCallback.arguments.2.written = false
+fn.SCNetworkReachabilitySetCallback.arguments.2.bounds = "single"
 
-# SCNetworkConnection
-fn.SCNetworkConnectionCopyServiceID.unsafe = false
-fn.SCNetworkConnectionGetStatus.unsafe = false
-fn.SCNetworkConnectionCopyExtendedStatus.unsafe = false
-fn.SCNetworkConnectionCopyStatistics.unsafe = false
-fn.SCNetworkConnectionStart.unsafe = true # CFDictionary can contain anything
-fn.SCNetworkConnectionStop.unsafe = false
-fn.SCNetworkConnectionCopyUserOptions.unsafe = false
+fn.SCPreferencesSetCallback.arguments.2.written = false
+fn.SCPreferencesSetCallback.arguments.2.bounds = "single"
+
+##
+## Fix generics.
+##
+
+# TODO: Is CFPropertyList correct here?
+
+fn.CNSetSupportedSSIDs.arguments.0.generics = ["CoreFoundation.CFString.CFString"]
+fn.CNCopySupportedInterfaces.return.generics = ["CoreFoundation.CFString.CFString"]
+fn.CNCopyCurrentNetworkInfo.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFPropertyList.CFPropertyList"]
+
+fn.SCDynamicStoreCreateWithOptions.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFPropertyList.CFPropertyList"]
+fn.SCDynamicStoreCopyKeyList.return.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCDynamicStoreCopyMultiple.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFPropertyList.CFPropertyList"]
+fn.SCDynamicStoreCopyMultiple.arguments.1.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCDynamicStoreCopyMultiple.arguments.2.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCDynamicStoreSetMultiple.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFPropertyList.CFPropertyList"]
+fn.SCDynamicStoreSetMultiple.arguments.2.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCDynamicStoreSetMultiple.arguments.3.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCDynamicStoreSetNotificationKeys.arguments.1.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCDynamicStoreSetNotificationKeys.arguments.2.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCDynamicStoreCopyNotifiedKeys.return.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCDynamicStoreCopyProxies.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+# These are tied together, it isn't documented what the keys/values of the dict is.
+fn.SCDynamicStoreCopyDHCPInfo.return.generics = []
+fn.DHCPInfoGetOptionData.arguments.0.generics = []
+fn.DHCPInfoGetLeaseStartTime.arguments.0.generics = []
+fn.DHCPInfoGetLeaseExpirationTime.arguments.0.generics = []
+
+fn.SCNetworkInterfaceCopyAll.return.generics = ["SystemConfiguration.SCNetworkConfiguration.SCNetworkInterface"]
+fn.SCBondInterfaceCopyAll.return.generics = ["SystemConfiguration.SCNetworkConfiguration.SCBondInterface"]
+fn.SCBondInterfaceCopyAvailableMemberInterfaces.return.generics = ["SystemConfiguration.SCNetworkConfiguration.SCBondInterface"]
+fn.SCBondInterfaceGetMemberInterfaces.return.generics = ["SystemConfiguration.SCNetworkConfiguration.SCBondInterface"]
+fn.SCBondInterfaceSetMemberInterfaces.arguments.1.generics = ["SystemConfiguration.SCNetworkConfiguration.SCBondInterface"]
+fn.SCVLANInterfaceCopyAll.return.generics = ["SystemConfiguration.SCNetworkConfiguration.SCVLANInterface"]
+fn.SCVLANInterfaceCopyAvailablePhysicalInterfaces.return.generics = ["SystemConfiguration.SCNetworkConfiguration.SCVLANInterface"]
+fn.SCBondStatusGetMemberInterfaces.return.generics = ["SystemConfiguration.SCNetworkConfiguration.SCBondInterface"]
+fn.SCBondStatusGetInterfaceStatus.return.generics = [] # TODO: Unsure?
+fn.SCNetworkServiceCopyAll.return.generics = ["SystemConfiguration.SCNetworkConfiguration.SCNetworkService"]
+fn.SCNetworkServiceCopyProtocols.return.generics = ["SystemConfiguration.SCNetworkConfiguration.SCNetworkProtocol"]
+fn.SCNetworkSetCopyAll.return.generics = ["SystemConfiguration.SCNetworkConfiguration.SCNetworkSet"]
+fn.SCNetworkSetCopyServices.return.generics = ["SystemConfiguration.SCNetworkConfiguration.SCNetworkService"]
+fn.SCNetworkSetGetServiceOrder.return.generics = ["CoreFoundation.CFString.CFString"] # Service identifiers
+fn.SCNetworkSetSetServiceOrder.arguments.1.generics = ["CoreFoundation.CFString.CFString"] # Service identifiers
+
+# (subtype, options), maybe options is CFString?
+fn.SCNetworkInterfaceGetSupportedInterfaceTypes.return.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCNetworkInterfaceGetSupportedProtocolTypes.return.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCNetworkInterfaceCopyMediaOptions.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.SCNetworkInterfaceCopyMediaOptions.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.SCNetworkInterfaceCopyMediaOptions.arguments.3.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCNetworkInterfaceCopyMediaSubTypes.return.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCNetworkInterfaceCopyMediaSubTypes.arguments.0.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCNetworkInterfaceCopyMediaSubTypeOptions.return.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCNetworkInterfaceCopyMediaSubTypeOptions.arguments.0.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCNetworkInterfaceSetMediaOptions.arguments.2.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCBondInterfaceGetOptions.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.SCBondInterfaceSetOptions.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.SCVLANInterfaceGetOptions.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.SCVLANInterfaceSetOptions.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+# Undocumented what these are
+fn.SCNetworkInterfaceGetConfiguration.return.generics = []
+fn.SCNetworkInterfaceSetConfiguration.arguments.1.generics = []
+fn.SCNetworkInterfaceGetExtendedConfiguration.return.generics = []
+fn.SCNetworkInterfaceSetExtendedConfiguration.arguments.2.generics = []
+fn.SCNetworkProtocolGetConfiguration.return.generics = []
+fn.SCNetworkProtocolSetConfiguration.arguments.1.generics = []
+
+fn.SCNetworkConnectionCopyUserPreferences.arguments.0.generics = [] # Unused pass NULL
+fn.SCNetworkConnectionCopyUserPreferences.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"] # Unsure?
+fn.SCNetworkConnectionCopyExtendedStatus.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"] # Maybe property list?
+fn.SCNetworkConnectionCopyStatistics.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"] # Unsure?
+fn.SCNetworkConnectionStart.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"] # Unsure?
+fn.SCNetworkConnectionCopyUserOptions.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"] # Set above.
+
+fn.SCPreferencesCopyKeyList.return.generics = ["CoreFoundation.CFString.CFString"]
+fn.SCPreferencesPathGetValue.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFPropertyList.CFPropertyList"]
+fn.SCPreferencesPathSetValue.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFPropertyList.CFPropertyList"]
+
+##
+## Safety.
+##
+
+# SAFETY: SystemConfiguration has no memory-safety violating
+# functions (apart from those that take pointers).
+unsafe-default-safety.documentation-is-reviewed = true
+
+# TODO(breaking): Maybe make these unsafe?
 fn.SCNetworkConnectionScheduleWithRunLoop.unsafe = false
 fn.SCNetworkConnectionUnscheduleFromRunLoop.unsafe = false
-
-# SCNetworkReachability
 fn.SCNetworkReachabilityScheduleWithRunLoop.unsafe = false
 fn.SCNetworkReachabilityUnscheduleFromRunLoop.unsafe = false
-
-# SCPreferences
-fn.SCPreferencesCreate.unsafe = false
-fn.SCPreferencesLock.unsafe = false
-fn.SCPreferencesCommitChanges.unsafe = false
-fn.SCPreferencesApplyChanges.unsafe = false
-fn.SCPreferencesUnlock.unsafe = false
-fn.SCPreferencesGetSignature.unsafe = false
-fn.SCPreferencesCopyKeyList.unsafe = false
-fn.SCPreferencesGetValue.unsafe = false
-fn.SCPreferencesAddValue.unsafe = true # CFPropertyList can be anything
-fn.SCPreferencesSetValue.unsafe = true # CFPropertyList can be anything
-fn.SCPreferencesRemoveValue.unsafe = false
 fn.SCPreferencesScheduleWithRunLoop.unsafe = false
 fn.SCPreferencesUnscheduleFromRunLoop.unsafe = false
-fn.SCPreferencesSynchronize.unsafe = false
-
-# SCPreferencesPath
-fn.SCPreferencesPathCreateUniqueChild.unsafe = false
-fn.SCPreferencesPathGetValue.unsafe = false
-fn.SCPreferencesPathGetLink.unsafe = false
-fn.SCPreferencesPathSetValue.unsafe = true # CFDictionary can contain anything
-fn.SCPreferencesPathSetLink.unsafe = false
-fn.SCPreferencesPathRemoveValue.unsafe = false
-
-# SCPreferencesSetSpecific
-fn.SCPreferencesSetComputerName.unsafe = false
-fn.SCPreferencesSetLocalHostName.unsafe = false
+fn.SCDynamicStoreCreateRunLoopSource.unsafe = false

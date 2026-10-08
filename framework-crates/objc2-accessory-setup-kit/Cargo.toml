@@ -18,6 +18,10 @@ workspace = true
 [dependencies]
 bitflags = { workspace = true, optional = true, features = ["std"] }
 block2 = { workspace = true, optional = true, features = ["alloc"] }
+dispatch2 = { workspace = true, optional = true, features = [
+    "alloc",
+    "objc2",
+] }
 objc2 = { workspace = true, features = ["std"] }
 objc2-core-bluetooth = { workspace = true, optional = true, features = ["CBUUID"] }
 objc2-foundation = { workspace = true, features = ["alloc"] }
@@ -43,8 +47,10 @@ default = [
     "ASDiscoveryDescriptor",
     "ASErrors",
     "ASPickerDisplayItem",
+    "ASPickerDisplaySettings",
     "bitflags",
     "block2",
+    "dispatch2",
     "objc2-core-bluetooth",
     "objc2-ui-kit",
 ]
@@ -52,14 +58,18 @@ std = ["alloc"]
 alloc = []
 bitflags = ["dep:bitflags"]
 block2 = ["dep:block2"]
+dispatch2 = ["dep:dispatch2"]
 objc2-core-bluetooth = ["dep:objc2-core-bluetooth"]
 objc2-ui-kit = ["dep:objc2-ui-kit"]
+unstable-darwin-objc = []
 
 ASAccessory = [
     "bitflags",
     "objc2-foundation/NSData",
+    "objc2-foundation/NSDictionary",
     "objc2-foundation/NSString",
     "objc2-foundation/NSUUID",
+    "objc2-foundation/NSValue",
 ]
 ASAccessoryEvent = ["objc2-foundation/NSError"]
 ASAccessorySession = [
@@ -70,7 +80,7 @@ ASAccessorySettings = [
     "objc2-foundation/NSData",
     "objc2-foundation/NSString",
 ]
-ASCommon = []
+ASCommon = ["objc2-foundation/NSString"]
 ASDiscoveryDescriptor = [
     "objc2-foundation/NSData",
     "objc2-foundation/NSString",
@@ -83,4 +93,8 @@ ASPickerDisplayItem = [
     "bitflags",
     "objc2-foundation/NSString",
     "objc2-foundation/NSUUID",
+]
+ASPickerDisplaySettings = [
+    "bitflags",
+    "objc2-foundation/NSDate",
 ]

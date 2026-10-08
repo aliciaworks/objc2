@@ -46,7 +46,9 @@ default = [
     "TKError",
     "TKSmartCard",
     "TKSmartCardATR",
+    "TKSmartCardSlotNFCSession",
     "TKSmartCardToken",
+    "TKSmartCardTokenRegistrationManager",
     "TKTLVRecord",
     "TKToken",
     "TKTokenConfiguration",
@@ -61,6 +63,7 @@ alloc = []
 bitflags = ["dep:bitflags"]
 block2 = ["dep:block2"]
 objc2-security = ["dep:objc2-security"]
+unstable-darwin-objc = []
 
 TKBase = []
 TKError = ["objc2-foundation/NSString"]
@@ -80,10 +83,19 @@ TKSmartCardATR = [
     "objc2-foundation/NSData",
     "objc2-foundation/NSValue",
 ]
+TKSmartCardSlotNFCSession = [
+    "objc2-foundation/NSError",
+    "objc2-foundation/NSString",
+]
 TKSmartCardToken = [
     "objc2-foundation/NSData",
     "objc2-foundation/NSError",
     "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
+TKSmartCardTokenRegistrationManager = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSError",
     "objc2-foundation/NSString",
 ]
 TKTLVRecord = [

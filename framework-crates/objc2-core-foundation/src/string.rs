@@ -38,7 +38,7 @@ impl CFString {
                 None,
                 string.as_ptr(),
                 len,
-                CFStringBuiltInEncodings::EncodingUTF8.0,
+                CFStringBuiltInEncodings::UTF8.0,
                 false,
             )
         };
@@ -73,7 +73,7 @@ impl CFString {
                 None,
                 string.as_ptr(),
                 len,
-                CFStringBuiltInEncodings::EncodingUTF8.0,
+                CFStringBuiltInEncodings::UTF8.0,
                 false,
                 kCFAllocatorNull,
             )
@@ -98,8 +98,8 @@ impl CFString {
     /// internally, and could thus mutate the string inside there.
     #[doc(alias = "CFStringGetCStringPtr")]
     pub unsafe fn as_str_unchecked(&self) -> Option<&str> {
-        // NOTE: The encoding is an 8-bit encoding.
-        let bytes = self.c_string_ptr(CFStringBuiltInEncodings::EncodingASCII.0);
+        // SAFETY: The encoding is an 8-bit encoding.
+        let bytes = unsafe { self.c_string_ptr(CFStringBuiltInEncodings::ASCII.0) };
         NonNull::new(bytes as *mut c_char).map(|bytes| {
             // NOTE: The returned string may contain interior NUL bytes:
             // https://github.com/swiftlang/swift-corelibs-foundation/issues/5200
@@ -154,12 +154,12 @@ impl fmt::Display for CFString {
                         location: location_utf16,
                         length: len_utf16 - location_utf16,
                     },
-                    CFStringBuiltInEncodings::EncodingUTF8.0,
+                    CFStringBuiltInEncodings::UTF8.0,
                     0, // No conversion character
                     false,
                     buf.as_mut_ptr(),
                     buf.len() as _,
-                    &mut read_utf8,
+                    Some(&mut read_utf8),
                 )
             };
             if read_utf16 <= 0 {
@@ -203,7 +203,7 @@ impl Ord for CFString {
     fn cmp(&self, other: &Self) -> Ordering {
         // Request standard lexiographical ordering.
         let flags = CFStringCompareFlags::empty();
-        self.compare(Some(other), flags).into()
+        self.compare(other, flags).into()
     }
 }
 
@@ -224,26 +224,36 @@ mod tests {
 
     #[test]
     fn cstr_conversion() {
-        let table = [
-            (
-                b"abc\xf8xyz\0" as &[u8],
-                CFStringBuiltInEncodings::EncodingISOLatin1,
-                "abcøxyz",
-            ),
-            (
-                b"\x26\x65\0",
-                CFStringBuiltInEncodings::EncodingUTF16BE,
-                "♥",
-            ),
-            (
-                b"\x65\x26\0",
-                CFStringBuiltInEncodings::EncodingUTF16LE,
-                "♥",
-            ),
+        let cstr = CStr::from_bytes_with_nul(b"abc\xf8xyz\0").unwrap();
+        let encoding = CFStringBuiltInEncodings::ISOLatin1;
+        // SAFETY: The encoding is 8-bit and is correct.
+        let s = unsafe { CFString::with_c_string(None, cstr, encoding.0) }.unwrap();
+        assert_eq!(s.to_string(), "abcøxyz");
+    }
+
+    #[test]
+    fn byte_conversion() {
+        let heart_be = b"\x26\x65";
+        let heart_le = b"\x65\x26";
+        let heart_ne = if cfg!(target_endian = "little") {
+            heart_le
+        } else {
+            heart_be
+        };
+        let table: [(&[u8], _, _); _] = [
+            (b"\xf8", CFStringBuiltInEncodings::ISOLatin1, "ø"),
+            (heart_be, CFStringBuiltInEncodings::UTF16BE, "♥"),
+            (heart_le, CFStringBuiltInEncodings::UTF16LE, "♥"),
+            (heart_ne, CFStringBuiltInEncodings::UTF16, "♥"),
         ];
-        for (cstr, encoding, expected) in table {
-            let cstr = CStr::from_bytes_with_nul(cstr).unwrap();
-            let s = unsafe { CFString::with_c_string(None, cstr.as_ptr(), encoding.0) }.unwrap();
+        for (bytes, encoding, expected) in table {
+            // SAFETY:
+            // - The bytes pointer is valid.
+            // - The encoding is correct.
+            let s = unsafe {
+                CFString::with_bytes(None, bytes.as_ptr(), bytes.len() as _, encoding.0, false)
+            }
+            .unwrap();
             assert_eq!(s.to_string(), expected);
         }
     }
@@ -255,7 +265,7 @@ mod tests {
                 None,
                 b"\xd8\x3d\xde".as_ptr(),
                 3,
-                CFStringBuiltInEncodings::EncodingUTF16BE.0,
+                CFStringBuiltInEncodings::UTF16BE.0,
                 false,
             )
             .unwrap()
@@ -269,8 +279,13 @@ mod tests {
         let s = CFString::from_str("a\0b\0c\0d");
         // Works with `CFStringGetBytes`.
         assert_eq!(s.to_string(), "a\0b\0c\0d");
-        // `CFStringGetCStringPtr` does not seem to work on very short strings.
-        assert_eq!(unsafe { s.as_str_unchecked() }, None);
+        // `CFStringGetCStringPtr` does not seem to work here on very short
+        // strings (probably those that are stored inline?).
+        if cfg!(target_pointer_width = "64") {
+            assert_eq!(unsafe { s.as_str_unchecked() }, None);
+        } else {
+            assert_eq!(unsafe { s.as_str_unchecked() }, Some("a\0b\0c\0d"));
+        }
 
         // Test `CFStringGetCString`.
         let mut buf = [0u8; 10];
@@ -278,7 +293,7 @@ mod tests {
             s.c_string(
                 buf.as_mut_ptr().cast(),
                 buf.len() as _,
-                CFStringBuiltInEncodings::EncodingUTF8.0,
+                CFStringBuiltInEncodings::UTF8.0,
             )
         });
         // All the data is copied to the buffer.
@@ -318,7 +333,17 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        not(target_os = "macos"),
+        ignore = "aborts in assertion on iOS/tvOS/watchOS/visionOS"
+    )]
+    #[cfg(feature = "objc2")]
     fn create_with_cstring_broken_on_non_8_bit() {
+        if objc2::available!(macos = 26) {
+            // This also asserts on macOS 26 and above.
+            return;
+        }
+
         // A CFString that is supposed to contain a "♥" (the UTF-8 encoding of
         // that is the vastly different b"\xE2\x99\xA5").
         //
@@ -330,8 +355,8 @@ mod tests {
         let s = unsafe {
             CFString::with_c_string(
                 None,
-                b"\x65\x26\0".as_ptr().cast(),
-                CFStringBuiltInEncodings::EncodingUnicode.0,
+                CStr::from_bytes_with_nul_unchecked(b"\x65\x26\0"),
+                CFStringBuiltInEncodings::Unicode.0,
             )
         }
         .unwrap();
@@ -345,7 +370,7 @@ mod tests {
             s.c_string(
                 buf.as_mut_ptr().cast(),
                 buf.len() as _,
-                CFStringBuiltInEncodings::EncodingUTF8.0,
+                CFStringBuiltInEncodings::UTF8.0,
             )
         });
         let cstr = CStr::from_bytes_until_nul(&buf).unwrap();
@@ -354,7 +379,7 @@ mod tests {
         // `CFStringGetCStringPtr` completely ignores the requested UTF-8 conversion.
         assert_eq!(unsafe { s.as_str_unchecked() }, Some("e"));
         assert_eq!(
-            unsafe { CStr::from_ptr(s.c_string_ptr(CFStringBuiltInEncodings::EncodingUTF8.0,)) },
+            unsafe { CStr::from_ptr(s.c_string_ptr(CFStringBuiltInEncodings::UTF8.0,)) },
             CStr::from_bytes_with_nul(b"e&\0").unwrap()
         );
     }

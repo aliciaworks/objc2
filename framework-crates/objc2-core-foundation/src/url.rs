@@ -204,15 +204,13 @@ impl CFURL {
     /// Construct and inspect a `CFURL`.
     ///
     /// ```
-    /// use objc2_core_foundation::{
-    ///     CFString, CFURL, CFURLCopyHostName, CFURLCopyScheme, CFURLCopyPath,
-    /// };
+    /// use objc2_core_foundation::{CFString, CFURL};
     ///
     /// let url = CFURL::from_string(None, &CFString::from_str("http://example.com/foo"), None).unwrap();
     /// assert_eq!(url.string().to_string(), "http://example.com/foo");
-    /// assert_eq!(CFURLCopyScheme(&url).unwrap().to_string(), "http");
-    /// assert_eq!(CFURLCopyHostName(&url).unwrap().to_string(), "example.com");
-    /// assert_eq!(CFURLCopyPath(&url).unwrap().to_string(), "/foo");
+    /// assert_eq!(url.scheme().unwrap().to_string(), "http");
+    /// assert_eq!(url.host_name().unwrap().to_string(), "example.com");
+    /// assert_eq!(url.path().unwrap().to_string(), "/foo");
     /// ```
     ///
     /// Fail parsing certain strings.
@@ -233,7 +231,7 @@ impl CFURL {
         url_string: &crate::CFString,
         base_url: Option<&CFURL>,
     ) -> Option<CFRetained<Self>> {
-        Self::__from_string(allocator, Some(url_string), base_url)
+        Self::__from_string(allocator, url_string, base_url)
     }
 
     /// Create an URL from a string without checking it for validity.
@@ -258,7 +256,7 @@ impl CFURL {
         debug_assert!(s.len() < CFIndex::MAX as usize);
         let len = s.len() as CFIndex;
 
-        let encoding = crate::CFStringBuiltInEncodings::EncodingUTF8;
+        let encoding = crate::CFStringBuiltInEncodings::UTF8;
         // SAFETY: The pointer and length are valid, and the encoding is a
         // superset of ASCII.
         //
@@ -276,9 +274,7 @@ impl CFURL {
     /// [`from_string`][Self::from_string].
     #[doc(alias = "CFURLGetString")]
     pub fn string(&self) -> CFRetained<crate::CFString> {
-        // URLs contain valid UTF-8, so this should only fail on allocation
-        // error.
-        self.__string().expect("failed getting string from CFURL")
+        self.__string()
     }
 }
 

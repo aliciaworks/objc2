@@ -52,6 +52,7 @@ default = [
     "NSFileProviderModifyItemOptions",
     "NSFileProviderReplicatedExtension",
     "NSFileProviderRequest",
+    "NSFileProviderSearch",
     "NSFileProviderService",
     "NSFileProviderTesting",
     "NSFileProviderThumbnailing",
@@ -65,6 +66,7 @@ bitflags = ["dep:bitflags"]
 block2 = ["dep:block2"]
 objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-uniform-type-identifiers = ["dep:objc2-uniform-type-identifiers"]
+unstable-darwin-objc = []
 
 Extension = [
     "bitflags",
@@ -140,6 +142,14 @@ NSFileProviderReplicatedExtension = [
     "objc2-foundation/NSURL",
 ]
 NSFileProviderRequest = ["objc2-foundation/NSURL"]
+NSFileProviderSearch = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSData",
+    "objc2-foundation/NSDate",
+    "objc2-foundation/NSError",
+    "objc2-foundation/NSString",
+    "objc2-foundation/NSValue",
+]
 NSFileProviderService = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSError",

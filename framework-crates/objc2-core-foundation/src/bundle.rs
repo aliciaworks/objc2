@@ -16,7 +16,7 @@ mod tests {
     fn url_from_str(s: &str, is_dir: bool) -> CFRetained<CFURL> {
         CFURL::with_file_system_path(
             None,
-            Some(&CFString::from_str(s)),
+            &CFString::from_str(s),
             CFURLPathStyle::CFURLPOSIXPathStyle,
             is_dir as _,
         )
@@ -26,8 +26,8 @@ mod tests {
     #[test]
     fn safari_executable_url() {
         let path = url_from_str("/Applications/Safari.app", true);
-        let bundle = CFBundle::new(None, Some(&path)).expect("Safari not present");
-        let executable = CFBundle::executable_url(&bundle).unwrap();
+        let bundle = CFBundle::new(None, &path).expect("Safari not present");
+        let executable = bundle.executable_url().unwrap();
         assert_eq!(
             CFURL::file_system_path(
                 &CFURL::absolute_url(&executable).unwrap(),
@@ -42,15 +42,15 @@ mod tests {
     #[test]
     fn safari_private_frameworks_url() {
         let path = url_from_str("/Applications/Safari.app", true);
-        let bundle = CFBundle::new(None, Some(&path)).expect("Safari not present");
-        let frameworks = CFBundle::private_frameworks_url(&bundle).unwrap();
+        let bundle = CFBundle::new(None, &path).expect("Safari not present");
+        let frameworks = bundle.private_frameworks_url();
         assert_eq!(
-            CFURL::file_system_path(
-                &CFURL::absolute_url(&frameworks).unwrap(),
-                CFURLPathStyle::CFURLPOSIXPathStyle,
-            )
-            .unwrap()
-            .to_string(),
+            frameworks
+                .absolute_url()
+                .unwrap()
+                .file_system_path(CFURLPathStyle::CFURLPOSIXPathStyle,)
+                .unwrap()
+                .to_string(),
             "/Applications/Safari.app/Contents/Frameworks"
         );
     }
@@ -58,6 +58,21 @@ mod tests {
     #[test]
     fn non_existent_bundle() {
         let path = url_from_str("/usr/local/non_existent", true);
-        assert_eq!(CFBundle::new(None, Some(&path)), None);
+        assert_eq!(CFBundle::new(None, &path), None);
+    }
+
+    #[test]
+    fn main() {
+        let bundle = CFBundle::main_bundle();
+
+        assert_eq!(
+            bundle.executable_url().unwrap().to_file_path().unwrap(),
+            std::env::current_exe().unwrap(),
+        );
+
+        assert_eq!(
+            bundle.bundle_url().to_file_path().unwrap(),
+            std::env::current_exe().unwrap().parent().unwrap()
+        );
     }
 }

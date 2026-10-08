@@ -7,9 +7,19 @@ ios = "9.0"
 tvos = "9.0"
 visionos = "1.0"
 
+typedef.MTKTextureLoaderCallback.sendable = true
+typedef.MTKTextureLoaderArrayCallback.sendable = true
+
 # TODO: Re-enable these once the relevant frameworks are present
 class.MTKMeshBufferAllocator.skipped-protocols = ["MDLMeshBufferAllocator"]
 class.MTKMeshBuffer.skipped-protocols = ["MDLMeshBuffer", "MDLNamed"]
 
-# error: unknown error result type
-class.MTKTextureLoader.methods."newTexturesWithContentsOfURLs:options:error:".skipped = true
+###
+### Safety
+###
+
+# SAFETY: MetalKit is mostly glue-code between AppKit/UIKit, QuartzCore and
+# Metal, it doesn't do much interesting stuff on its own.
+unsafe-default-safety.documentation-is-reviewed = true
+# MetalKit doesn't have any bounds-affecting methods.
+unsafe-default-safety.bounds-checked-internally = true

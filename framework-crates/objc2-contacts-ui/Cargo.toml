@@ -58,6 +58,7 @@ std = ["alloc"]
 alloc = []
 objc2-app-kit = ["dep:objc2-app-kit"]
 objc2-contacts = ["dep:objc2-contacts"]
+unstable-darwin-objc = []
 
 CNContactPicker = [
     "objc2-foundation/NSArray",
@@ -68,6 +69,5 @@ CNContactPicker = [
 CNContactPickerDelegate = []
 CNContactViewController = [
     "objc2-foundation/NSBundle",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
 ]

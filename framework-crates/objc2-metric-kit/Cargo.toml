@@ -50,6 +50,7 @@ default = [
     "MXDiagnostic",
     "MXDiagnosticPayload",
     "MXDiskIOMetric",
+    "MXDiskSpaceUsageMetric",
     "MXDiskWriteExceptionDiagnostic",
     "MXDisplayMetric",
     "MXError",
@@ -73,6 +74,7 @@ default = [
 std = ["alloc"]
 alloc = []
 libc = ["dep:libc"]
+unstable-darwin-objc = []
 
 MXAnimationMetric = [
     "objc2-foundation/NSMeasurement",
@@ -101,6 +103,7 @@ MXAppRunTimeMetric = [
 MXAverage = [
     "objc2-foundation/NSMeasurement",
     "objc2-foundation/NSObject",
+    "objc2-foundation/NSUnit",
 ]
 MXCPUExceptionDiagnostic = [
     "objc2-foundation/NSMeasurement",
@@ -151,6 +154,11 @@ MXDiskIOMetric = [
     "objc2-foundation/NSObject",
     "objc2-foundation/NSUnit",
 ]
+MXDiskSpaceUsageMetric = [
+    "objc2-foundation/NSMeasurement",
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSUnit",
+]
 MXDiskWriteExceptionDiagnostic = [
     "objc2-foundation/NSMeasurement",
     "objc2-foundation/NSObject",
@@ -178,6 +186,7 @@ MXHistogram = [
     "objc2-foundation/NSEnumerator",
     "objc2-foundation/NSMeasurement",
     "objc2-foundation/NSObject",
+    "objc2-foundation/NSUnit",
 ]
 MXLocationActivityMetric = [
     "objc2-foundation/NSMeasurement",
@@ -200,7 +209,11 @@ MXMetric = [
     "objc2-foundation/NSDictionary",
     "objc2-foundation/NSObject",
 ]
-MXMetricManager = ["objc2-foundation/NSArray"]
+MXMetricManager = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSError",
+    "objc2-foundation/NSString",
+]
 MXMetricPayload = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSData",

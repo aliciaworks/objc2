@@ -58,6 +58,9 @@ objc2-metal = { workspace = true, optional = true, features = [
     "MTLTexture",
 ] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-open-gl = { workspace = true, optional = true, features = ["CGLTypes"] }
+
 [package.metadata.docs.rs]
 default-target = "aarch64-apple-darwin"
 rustc-args = ["--cfg", "docsrs"] # Fix cross-crate link to objc2::topics
@@ -72,6 +75,7 @@ targets = [
 features = [
     "objc2-core-ml",
     "objc2-io-surface",
+    "objc2-open-gl",
 ]
 
 [features]
@@ -123,6 +127,8 @@ objc2-core-video = ["dep:objc2-core-video"]
 objc2-image-io = ["dep:objc2-image-io"]
 objc2-io-surface = ["dep:objc2-io-surface"]
 objc2-metal = ["dep:objc2-metal"]
+objc2-open-gl = ["dep:objc2-open-gl"]
+unstable-darwin-objc = []
 
 CIBarcodeDescriptor = [
     "objc2-foundation/NSData",
@@ -154,6 +160,7 @@ CIFilter = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSData",
     "objc2-foundation/NSDictionary",
+    "objc2-foundation/NSError",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
     "objc2-foundation/NSURL",
@@ -203,8 +210,11 @@ CIPlugInInterface = []
 CIRAWFilter = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSData",
+    "objc2-foundation/NSDate",
     "objc2-foundation/NSDictionary",
+    "objc2-foundation/NSError",
     "objc2-foundation/NSObject",
+    "objc2-foundation/NSProgress",
     "objc2-foundation/NSString",
     "objc2-foundation/NSURL",
 ]
@@ -218,6 +228,7 @@ CIRAWFilter_Deprecated = [
 CIRenderDestination = [
     "objc2-foundation/NSDate",
     "objc2-foundation/NSError",
+    "objc2-foundation/NSURL",
 ]
 CISampler = [
     "objc2-foundation/NSDictionary",

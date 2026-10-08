@@ -43,6 +43,7 @@ default = [
     "CSPerson",
     "CSSearchQuery",
     "CSSearchableIndex",
+    "CSSearchableIndexDescription",
     "CSSearchableItem",
     "CSSearchableItemAttributeSet",
     "CSSearchableItemAttributeSet_Categories",
@@ -63,6 +64,7 @@ alloc = []
 bitflags = ["dep:bitflags"]
 block2 = ["dep:block2"]
 objc2-uniform-type-identifiers = ["dep:objc2-uniform-type-identifiers"]
+unstable-darwin-objc = []
 
 CSBase = []
 CSImportExtension = [
@@ -92,6 +94,11 @@ CSSearchableIndex = [
     "objc2-foundation/NSString",
     "objc2-foundation/NSURL",
 ]
+CSSearchableIndexDescription = [
+    "objc2-foundation/NSFileManager",
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
 CSSearchableItem = [
     "bitflags",
     "objc2-foundation/NSDate",
@@ -100,7 +107,6 @@ CSSearchableItem = [
     "objc2-foundation/NSString",
 ]
 CSSearchableItemAttributeSet = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSDictionary",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",

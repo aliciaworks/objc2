@@ -60,6 +60,7 @@ std = ["alloc"]
 alloc = []
 block2 = ["dep:block2"]
 objc2-app-kit = ["dep:objc2-app-kit"]
+unstable-darwin-objc = []
 
 MCAdvertiserAssistant = [
     "objc2-foundation/NSDictionary",
@@ -67,7 +68,6 @@ MCAdvertiserAssistant = [
 ]
 MCBrowserViewController = [
     "objc2-foundation/NSBundle",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSDictionary",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",

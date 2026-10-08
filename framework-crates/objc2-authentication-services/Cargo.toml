@@ -127,6 +127,9 @@ default = [
     "ASCredentialServiceIdentifier",
     "ASExtensionErrors",
     "ASFoundation",
+    "ASGeneratePasswordsRequest",
+    "ASGeneratedPassword",
+    "ASGeneratedPasswordKind",
     "ASOneTimeCodeCredential",
     "ASOneTimeCodeCredentialIdentity",
     "ASOneTimeCodeCredentialRequest",
@@ -144,6 +147,7 @@ default = [
     "ASPasswordCredentialRequest",
     "ASPublicKeyCredential",
     "ASPublicKeyCredentialClientData",
+    "ASSavePasswordRequest",
     "ASSettingsHelper",
     "ASWebAuthenticationSession",
     "ASWebAuthenticationSessionCallback",
@@ -162,6 +166,7 @@ block2 = ["dep:block2"]
 objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-local-authentication = ["dep:objc2-local-authentication"]
 objc2-security = ["dep:objc2-security"]
+unstable-darwin-objc = []
 
 ASAccountAuthenticationModificationController = [
     "objc2-app-kit/NSResponder",
@@ -192,7 +197,6 @@ ASAccountAuthenticationModificationViewController = [
     "objc2-app-kit/NSUserInterfaceItemIdentification",
     "objc2-app-kit/NSViewController",
     "objc2-foundation/NSBundle",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSDictionary",
     "objc2-foundation/NSExtensionContext",
     "objc2-foundation/NSObject",
@@ -211,7 +215,6 @@ ASAuthorizationAppleIDButton = [
     "objc2-app-kit/NSResponder",
     "objc2-app-kit/NSUserInterfaceItemIdentification",
     "objc2-app-kit/NSView",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/objc2-core-foundation",
@@ -304,6 +307,8 @@ ASAuthorizationProviderExtensionLoginManager = [
 ASAuthorizationProviderExtensionRegistrationHandler = [
     "bitflags",
     "objc2-foundation/NSArray",
+    "objc2-foundation/NSData",
+    "objc2-foundation/NSDictionary",
     "objc2-foundation/NSString",
     "objc2-foundation/NSValue",
 ]
@@ -432,9 +437,10 @@ ASCredentialProviderViewController = [
     "objc2-app-kit/NSViewController",
     "objc2-foundation/NSArray",
     "objc2-foundation/NSBundle",
-    "objc2-foundation/NSCoder",
+    "objc2-foundation/NSData",
     "objc2-foundation/NSExtensionContext",
     "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
 ]
 ASCredentialRequest = ["objc2-foundation/NSObject"]
 ASCredentialServiceIdentifier = [
@@ -446,6 +452,15 @@ ASExtensionErrors = [
     "objc2-foundation/NSString",
 ]
 ASFoundation = []
+ASGeneratePasswordsRequest = [
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
+ASGeneratedPassword = [
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
+ASGeneratedPasswordKind = ["objc2-foundation/NSString"]
 ASOneTimeCodeCredential = [
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
@@ -502,6 +517,10 @@ ASPublicKeyCredential = [
 ]
 ASPublicKeyCredentialClientData = [
     "objc2-foundation/NSData",
+    "objc2-foundation/NSString",
+]
+ASSavePasswordRequest = [
+    "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
 ASSettingsHelper = ["objc2-foundation/NSError"]

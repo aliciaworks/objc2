@@ -1,6 +1,7 @@
 mod array;
 mod attributed_string;
 mod auto_traits;
+mod bitflags;
 mod bundle;
 mod data;
 mod decimal_number;
@@ -8,6 +9,7 @@ mod dictionary;
 mod error;
 mod exception;
 mod lock;
+mod measurement;
 mod mutable_array;
 mod mutable_data;
 mod mutable_dictionary;

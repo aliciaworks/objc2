@@ -108,6 +108,7 @@ default = [
     "PKObject",
     "PKPass",
     "PKPassLibrary",
+    "PKPassRelevantDate",
     "PKPass_Types",
     "PKPayment",
     "PKPaymentAuthorizationController",
@@ -148,6 +149,7 @@ objc2-app-kit = ["dep:objc2-app-kit"]
 objc2-contacts = ["dep:objc2-contacts"]
 objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-core-graphics = ["dep:objc2-core-graphics"]
+unstable-darwin-objc = []
 
 PKAddCarKeyPassConfiguration = ["objc2-foundation/NSString"]
 PKAddIdentityDocumentConfiguration = [
@@ -226,6 +228,7 @@ PKIdentityButton = []
 PKIdentityDocument = ["objc2-foundation/NSData"]
 PKIdentityDocumentDescriptor = [
     "objc2-foundation/NSArray",
+    "objc2-foundation/NSData",
     "objc2-foundation/NSString",
 ]
 PKIdentityElement = ["objc2-foundation/NSObject"]
@@ -269,6 +272,11 @@ PKPassLibrary = [
     "objc2-foundation/NSError",
     "objc2-foundation/NSSet",
     "objc2-foundation/NSString",
+    "objc2-foundation/NSURL",
+]
+PKPassRelevantDate = [
+    "objc2-foundation/NSDate",
+    "objc2-foundation/NSDateInterval",
 ]
 PKPass_Types = []
 PKPayment = []
@@ -279,7 +287,6 @@ PKPaymentAuthorizationController = [
 PKPaymentAuthorizationViewController = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSBundle",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
@@ -288,7 +295,6 @@ PKPaymentAuthorizationViewControllerDelegate = [
     "objc2-foundation/NSString",
 ]
 PKPaymentButton = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",

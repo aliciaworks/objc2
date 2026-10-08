@@ -66,6 +66,7 @@ alloc = []
 objc2-app-kit = ["dep:objc2-app-kit"]
 objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-osa-kit = ["dep:objc2-osa-kit"]
+unstable-darwin-objc = []
 
 AMAction = [
     "objc2-foundation/NSDictionary",
@@ -104,15 +105,16 @@ AMWorkflow = [
     "objc2-foundation/NSURL",
 ]
 AMWorkflowController = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSError",
     "objc2-foundation/NSObject",
 ]
 AMWorkflowView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/objc2-core-foundation",
 ]
-AMWorkspace = []
+AMWorkspace = [
+    "objc2-foundation/NSError",
+    "objc2-foundation/NSString",
+]
 AutomatorErrors = []

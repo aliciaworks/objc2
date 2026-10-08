@@ -22,7 +22,9 @@ objc2-foundation = { workspace = true, features = [
     "NSDictionary",
     "NSError",
     "NSObject",
+    "NSSet",
     "NSString",
+    "NSURL",
     "alloc",
 ] }
 
@@ -41,3 +43,4 @@ targets = [
 default = ["std"]
 std = ["alloc"]
 alloc = []
+unstable-darwin-objc = []

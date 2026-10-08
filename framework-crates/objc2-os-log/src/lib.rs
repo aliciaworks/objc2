@@ -5,9 +5,10 @@
 //! [apple-doc]: https://developer.apple.com/documentation/oslog/
 //! [framework-crates]: https://docs.rs/objc2/latest/objc2/topics/about_generated/index.html
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(feature = "unstable-darwin-objc", feature(darwin_objc))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 // Update in Cargo.toml as well.
-#![doc(html_root_url = "https://docs.rs/objc2-os-log/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/objc2-os-log/0.3.2")]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -26,4 +27,9 @@ pub(crate) type os_activity_id_t = u64;
 #[allow(dead_code, non_camel_case_types)]
 pub(crate) type os_signpost_id_t = u64;
 
-unsafe impl objc2_foundation::NSCoding for OSLogEntry {}
+use objc2::extern_conformance;
+use objc2_foundation::NSCoding;
+
+extern_conformance!(
+    unsafe impl NSCoding for OSLogEntry {}
+);

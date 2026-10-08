@@ -116,20 +116,24 @@ extern_protocol!(
     /// Implement `NSCopying` for a custom class.
     ///
     /// ```
-    /// use objc2::{define_class, msg_send, AnyThread, DefinedClass};
+    /// use objc2::{define_class, msg_send, AnyThread, Ivars};
     /// use objc2::rc::Retained;
     /// use objc2::runtime::NSZone;
     /// use objc2_foundation::{CopyingHelper, NSCopying, NSObject};
     ///
     /// define_class!(
     ///     #[unsafe(super(NSObject))]
-    ///     struct CustomClass;
+    ///     struct CustomClass {
+    ///         data: Retained<NSObject>,
+    ///     }
     ///
     ///     unsafe impl NSCopying for CustomClass {
-    ///         #[unsafe(method_id(copyWithZone:))]
-    ///         fn copyWithZone(&self, _zone: *const NSZone) -> Retained<Self> {
-    ///             // Create new class, and transfer ivars
-    ///             let new = Self::alloc().set_ivars(self.ivars().clone());
+    ///         #[unsafe(method(copyWithZone:))]
+    ///         fn copyWithZone(&self, _zone: Option<&NSZone>) -> Retained<Self> {
+    ///             // Create new class, and transfer ivars.
+    ///             let new = Self::alloc().set_ivars(Ivars::<Self> {
+    ///                 data: self.data().clone(),
+    ///             });
     ///             unsafe { msg_send![super(new), init] }
     ///         }
     ///     }
@@ -157,14 +161,9 @@ extern_protocol!(
         ///
         /// This is only used when implementing `NSCopying`, call
         /// [`copy`][NSCopying::copy] instead.
-        ///
-        ///
-        /// # Safety
-        ///
-        /// The zone pointer must be valid or NULL.
         #[unsafe(method(copyWithZone:))]
         #[unsafe(method_family = copy)]
-        unsafe fn copyWithZone(&self, zone: *mut NSZone) -> Retained<Self::Result>
+        fn copyWithZone(&self, zone: Option<&NSZone>) -> Retained<Self::Result>
         where
             Self: CopyingHelper;
     }
@@ -227,14 +226,9 @@ extern_protocol!(
         ///
         /// This is only used when implementing `NSMutableCopying`, call
         /// [`mutableCopy`][NSMutableCopying::mutableCopy] instead.
-        ///
-        ///
-        /// # Safety
-        ///
-        /// The zone pointer must be valid or NULL.
         #[unsafe(method(mutableCopyWithZone:))]
         #[unsafe(method_family = mutableCopy)]
-        unsafe fn mutableCopyWithZone(&self, zone: *mut NSZone) -> Retained<Self::Result>
+        fn mutableCopyWithZone(&self, zone: Option<&NSZone>) -> Retained<Self::Result>
         where
             Self: MutableCopyingHelper;
     }

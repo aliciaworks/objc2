@@ -43,6 +43,7 @@ default = [
     "PKPushCredentials",
     "PKPushPayload",
     "PKPushRegistry",
+    "PKVoIPPushMetadata",
     "block2",
     "dispatch2",
 ]
@@ -50,6 +51,7 @@ std = ["alloc"]
 alloc = []
 block2 = ["dep:block2"]
 dispatch2 = ["dep:dispatch2"]
+unstable-darwin-objc = []
 
 PKDefines = ["objc2-foundation/NSString"]
 PKPushCredentials = [
@@ -65,3 +67,4 @@ PKPushRegistry = [
     "objc2-foundation/NSSet",
     "objc2-foundation/NSString",
 ]
+PKVoIPPushMetadata = []

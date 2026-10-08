@@ -5,9 +5,10 @@
 //! [apple-doc]: https://developer.apple.com/documentation/iobluetooth/
 //! [framework-crates]: https://docs.rs/objc2/latest/objc2/topics/about_generated/index.html
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(feature = "unstable-darwin-objc", feature(darwin_objc))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 // Update in Cargo.toml as well.
-#![doc(html_root_url = "https://docs.rs/objc2-io-bluetooth/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/objc2-io-bluetooth/0.3.2")]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -37,6 +38,8 @@ pub(crate) type Boolean = u8;
 #[allow(dead_code)]
 pub(crate) type ByteCount = core::ffi::c_ulong;
 
-#[cfg(feature = "Bluetooth")]
-/// [Apple's documentation](https://developer.apple.com/documentation/iobluetooth/bluetoothdevicename?language=objc)
-pub type BluetoothDeviceName = [u8; kBluetoothDeviceNameMaxLength as usize];
+/// [Apple's documentation](https://developer.apple.com/documentation/iobluetooth/iobluetoothobexsessionopenconnectioncallback?language=objc)
+#[cfg(feature = "OBEXBluetooth")]
+#[cfg(feature = "OBEX")]
+pub type IOBluetoothOBEXSessionOpenConnectionCallback =
+    unsafe extern "C-unwind" fn(*mut OBEXSessionRef, OBEXError, *mut core::ffi::c_void);

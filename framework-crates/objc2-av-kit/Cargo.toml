@@ -79,6 +79,7 @@ default = [
     "AVKitCore",
     "AVKitDefines",
     "AVKitTypes",
+    "AVLegibleMediaOptionsMenuController",
     "AVPictureInPictureController",
     "AVPictureInPictureController_AVSampleBufferDisplayLayerSupport",
     "AVPlaybackSpeed",
@@ -100,9 +101,9 @@ objc2-av-foundation = ["dep:objc2-av-foundation"]
 objc2-av-routing = ["dep:objc2-av-routing"]
 objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-core-media = ["dep:objc2-core-media"]
+unstable-darwin-objc = []
 
 AVCaptureView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/objc2-core-foundation",
@@ -110,6 +111,10 @@ AVCaptureView = [
 AVKitCore = []
 AVKitDefines = []
 AVKitTypes = ["bitflags"]
+AVLegibleMediaOptionsMenuController = [
+    "bitflags",
+    "objc2-foundation/NSString",
+]
 AVPictureInPictureController = ["objc2-foundation/NSError"]
 AVPictureInPictureController_AVSampleBufferDisplayLayerSupport = []
 AVPlaybackSpeed = [
@@ -118,7 +123,6 @@ AVPlaybackSpeed = [
 ]
 AVPlayerView = [
     "objc2-foundation/NSArray",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSError",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
@@ -126,7 +130,6 @@ AVPlayerView = [
     "objc2-foundation/objc2-core-foundation",
 ]
 AVRoutePickerView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/objc2-core-foundation",

@@ -45,9 +45,7 @@ use core::fmt;
 use core::hash;
 use core::marker::{PhantomData, PhantomPinned};
 
-use crate::{
-    CFComparisonResult, CFEqual, CFGetRetainCount, CFGetTypeID, CFHash, CFRange, ConcreteType, Type,
-};
+use crate::{CFComparisonResult, CFRange, ConcreteType, Type};
 
 /// [Apple's documentation](https://developer.apple.com/documentation/corefoundation/cftypeid?language=objc)
 pub type CFTypeID = usize;
@@ -92,7 +90,7 @@ impl CFType {
     // Not #[inline], we call two functions here.
     #[doc(alias = "CFGetTypeID")]
     pub fn downcast_ref<T: ConcreteType>(&self) -> Option<&T> {
-        if CFGetTypeID(Some(self)) == T::type_id() {
+        if self.type_id() == T::type_id() {
             let ptr: *const Self = self;
             let ptr: *const T = ptr.cast();
             // SAFETY: Just checked that the object is a class of type `T`.
@@ -119,7 +117,7 @@ impl CFType {
     pub fn retain_count(&self) -> usize {
         // Cast is fine, if the reference count is `-1` we want to return
         // `usize::MAX` as a sentinel instead.
-        CFGetRetainCount(Some(self)) as _
+        self.__retain_count() as _
     }
 }
 
@@ -139,7 +137,7 @@ impl fmt::Debug for CFType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "CFString")]
         {
-            let desc = crate::CFCopyDescription(Some(self)).expect("must have description");
+            let desc = Self::description(Some(self)).expect("must have description");
             write!(f, "{desc}")
         }
         #[cfg(not(feature = "CFString"))]
@@ -161,7 +159,7 @@ impl PartialEq for CFType {
     #[inline]
     #[doc(alias = "CFEqual")]
     fn eq(&self, other: &Self) -> bool {
-        CFEqual(Some(self), Some(other))
+        self.__equal(other)
     }
 }
 
@@ -178,46 +176,19 @@ impl Eq for CFType {}
 impl hash::Hash for CFType {
     #[doc(alias = "CFHash")]
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        CFHash(Some(self)).hash(state);
+        self.__hash().hash(state);
     }
 }
 
 // SAFETY: CFType is defined as the following in the header:
 // typedef const CF_BRIDGED_TYPE(id) void * CFTypeRef;
 #[cfg(feature = "objc2")]
-unsafe impl objc2::encode::RefEncode for CFType {
-    const ENCODING_REF: objc2::encode::Encoding =
-        objc2::encode::Encoding::Pointer(&objc2::encode::Encoding::Void);
-}
-
-// SAFETY: CF types are message-able in the Objective-C runtime.
-#[cfg(feature = "objc2")]
-unsafe impl objc2::Message for CFType {}
-
-#[cfg(feature = "objc2")]
-impl AsRef<objc2::runtime::AnyObject> for CFType {
-    fn as_ref(&self) -> &objc2::runtime::AnyObject {
-        // SAFETY: CFType is valid to re-interpret as AnyObject.
-        unsafe { core::mem::transmute(self) }
-    }
-}
-
-#[cfg(feature = "objc2")]
-impl core::borrow::Borrow<objc2::runtime::AnyObject> for CFType {
-    fn borrow(&self) -> &objc2::runtime::AnyObject {
-        <Self as AsRef<objc2::runtime::AnyObject>>::as_ref(self)
-    }
-}
+objc2::cf_objc2_type!(
+    unsafe impl RefEncode<void> for CFType {}
+);
 
 // NOTE: impl AsRef<CFType> for AnyObject would probably not be valid, since
 // not all Objective-C objects can be used as CoreFoundation objects (?)
-
-impl Default for CFComparisonResult {
-    #[inline]
-    fn default() -> Self {
-        Self::CompareEqualTo
-    }
-}
 
 impl From<Ordering> for CFComparisonResult {
     #[inline]

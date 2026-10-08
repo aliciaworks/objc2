@@ -5,12 +5,15 @@ use core::panic::{RefUnwindSafe, UnwindSafe};
 use objc2::exception::Exception;
 use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, NSObject, NSObjectProtocol};
-use objc2::{extern_methods, msg_send, sel, ClassType};
+use objc2::{msg_send, sel, ClassType};
 
 use crate::{util, NSException};
 
 // SAFETY: Exception objects are immutable data containers, and documented as
 // thread safe.
+//
+// NOTE: This means that their user info dictionaries also must be
+// thread-safe, which is not explicitly stated, but should generally be true.
 unsafe impl Sync for NSException {}
 unsafe impl Send for NSException {}
 
@@ -18,34 +21,16 @@ impl UnwindSafe for NSException {}
 impl RefUnwindSafe for NSException {}
 
 impl NSException {
-    extern_methods!(
-        #[unsafe(method(raise))]
-        unsafe fn raise_raw(&self);
-    );
-}
-
-impl NSException {
     /// Create a new [`NSException`] object.
-    ///
-    /// Returns `None` if the exception couldn't be created (example: If the
-    /// process is out of memory).
-    #[cfg(all(feature = "NSObjCRuntime", feature = "NSString"))]
-    #[cfg(feature = "NSDictionary")]
-    pub fn new(
-        name: &crate::NSExceptionName,
-        reason: Option<&crate::NSString>,
-        user_info: Option<&crate::NSDictionary>,
-    ) -> Option<Retained<Self>> {
+    #[cfg(all(
+        feature = "NSDictionary",
+        feature = "NSObjCRuntime",
+        feature = "NSString"
+    ))]
+    pub fn new(name: &crate::NSExceptionName, reason: Option<&crate::NSString>) -> Retained<Self> {
         use objc2::AnyThread;
-
-        unsafe {
-            objc2::msg_send![
-                Self::alloc(),
-                initWithName: name,
-                reason: reason,
-                userInfo: user_info,
-            ]
-        }
+        // SAFETY: The dictionary is `NULL`, which is valid (and thread-safe).
+        unsafe { Self::initWithName_reason_userInfo(Self::alloc(), name, reason, None) }
     }
 
     /// Raises the exception, causing program flow to jump to the local
@@ -53,9 +38,7 @@ impl NSException {
     ///
     /// This is equivalent to using `objc2::exception::throw`.
     pub fn raise(&self) -> ! {
-        // SAFETY: `NSException` is immutable, so it is safe to give to
-        // the place where `@catch` receives it.
-        unsafe { self.raise_raw() };
+        self.__raise();
         // SAFETY: `raise` will throw an exception, or abort if something
         // unexpected happened.
         unsafe { unreachable_unchecked() }

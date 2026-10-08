@@ -1,6 +1,9 @@
 framework = "CoreGraphics"
 crate = "objc2-core-graphics"
 required-crates = ["objc2-core-foundation"]
+flags = [
+    "-D__swift__=0",
+]
 custom-lib-rs = true
 macos = "10.8"
 maccatalyst = "13.0"
@@ -30,13 +33,6 @@ fn.CGDisplayIOServicePort.skipped = true
 # Needs core::ffi::VaList, currently unstable
 fn.CGColorConversionInfoCreateFromListWithArguments.skipped = true
 
-# Unknown how to handle the calling convention here?
-fn.CGColorSpaceCreateCalibratedGray.skipped = true
-fn.CGColorSpaceCreateCalibratedRGB.skipped = true
-fn.CGColorSpaceCreateLab.skipped = true
-fn.CGFontCreatePostScriptSubset.skipped = true
-fn.CGFontCreatePostScriptEncoding.skipped = true
-
 # Calculation of these constants overflow, so we must use a larger type.
 static.kCGFontIndexMax.use-value = true
 static.kCGFontIndexInvalid.use-value = true
@@ -44,6 +40,8 @@ static.kCGFontIndexInvalid.use-value = true
 # Dependent on target endianness
 static.kCGBitmapByteOrder16Host.skipped = true
 static.kCGBitmapByteOrder32Host.skipped = true
+const.kCGImageByteOrder16Host.skipped = true
+const.kCGImageByteOrder32Host.skipped = true
 
 # Uses defines from IOKit
 enum.CGEventFlags.use-value = true
@@ -64,9 +62,342 @@ const.kCGAnyInputEventType.skipped = true
 # Complex value.
 const.CG_OS_VERSION_2020.skipped = true
 
-# Rename because it conflicts with `CGColorSpaceCopyName`.
-# TODO(breaking): Simply skip this.
-fn.CGColorSpaceGetName.renamed = "get_name"
+# Skip because it conflicts with `CGColorSpaceCopyName`, and that is more
+# available anyhow.
+fn.CGColorSpaceGetName.skipped = true
 
 # Conflicts with `CGColorSpaceGetBaseColorSpace`.
 fn.CGColorSpaceCopyBaseColorSpace.renamed = "copy_base_color_space"
+
+# Swift-only wrappers.
+fn.__CGBitmapContextCreateWithData.skipped = true
+fn.__CGBitmapContextCreate.skipped = true
+
+# Aliases with typos.
+const.kCGEventSupressionStateSupressionInterval.skipped = true
+const.kCGEventSupressionStateRemoteMouseDrag.skipped = true
+const.kCGNumberOfEventSupressionStates.skipped = true
+
+# Placed on CGEventFilterMask instead of being a separate `const`.
+const.kCGEventFilterMaskPermitAllEvents.skipped = true
+
+# Defined twice (one is a forward declaration)
+typedef.CGPDFMarkedContentItemRef.skipped = true
+typedef.CGPDFStructureElementRef.skipped = true
+
+##
+## Fix bounds information.
+##
+
+fn.CGColorCreate.arguments.1.bounds.counted-by = "space.number_of_components() + 1"
+fn.CGColorCreateWithPattern.arguments.2.bounds.counted-by = "space.number_of_components() + 1"
+fn.CGColorGetComponents.return.bounds.counted-by = "self.number_of_components()" # Or "self.color_space().number_of_components() + 1"
+
+fn.CGColorSpaceCreateCalibratedGray.arguments.0.written = false
+fn.CGColorSpaceCreateCalibratedGray.arguments.1.written = false
+fn.CGColorSpaceCreateCalibratedRGB.arguments.0.written = false
+fn.CGColorSpaceCreateCalibratedRGB.arguments.1.written = false
+fn.CGColorSpaceCreateCalibratedRGB.arguments.2.written = false
+fn.CGColorSpaceCreateCalibratedRGB.arguments.3.written = false
+fn.CGColorSpaceCreateLab.arguments.0.written = false
+fn.CGColorSpaceCreateLab.arguments.1.written = false
+fn.CGColorSpaceCreateLab.arguments.2.written = false
+fn.CGColorSpaceCreateICCBased.arguments.1.bounds.counted-by = "n_components * 2"
+fn.CGColorSpaceCreateIndexed.arguments.2.bounds.counted-by = "base_space.number_of_components() * (last_index + 1)"
+fn.CGColorSpaceGetColorTable.arguments.1.written = false
+fn.CGColorSpaceGetColorTable.arguments.1.bounds.counted-by = "self.color_table_count()"
+
+fn.CGContextSetLineDash.arguments.2.bounds.counted-by = "count"
+fn.CGContextAddRects.arguments.1.bounds.counted-by = "count"
+fn.CGContextAddLines.arguments.1.bounds.counted-by = "count"
+fn.CGContextFillRects.arguments.1.bounds.counted-by = "count"
+fn.CGContextStrokeLineSegments.arguments.1.bounds.counted-by = "count"
+fn.CGContextClipToRects.arguments.1.bounds.counted-by = "count"
+fn.CGContextSetFillColor.arguments.1.bounds = "unsafe" # Num. components in color space
+fn.CGContextSetStrokeColor.arguments.1.bounds = "unsafe" # Num. components in color space
+fn.CGContextSetFillPattern.arguments.2.bounds = "unsafe" # Num. components in (pattern?) color space
+fn.CGContextSetStrokePattern.arguments.2.bounds = "unsafe" # Num. components in (pattern?) color space
+fn.CGContextShowGlyphsAtPositions.arguments.1.bounds.counted-by = "count"
+fn.CGContextShowGlyphsAtPositions.arguments.2.bounds.counted-by = "count"
+fn.CGContextBeginPage.arguments.1.bounds = "single"
+fn.CGContextSelectFont.arguments.1.bounds = "null-terminated"
+fn.CGContextShowText.arguments.1.bounds = "null-terminated"
+fn.CGContextShowTextAtPoint.arguments.3.bounds = "null-terminated"
+fn.CGContextShowGlyphs.arguments.1.bounds.counted-by = "count"
+fn.CGContextShowGlyphsAtPoint.arguments.3.bounds.counted-by = "count"
+fn.CGContextShowGlyphsWithAdvances.arguments.1.bounds.counted-by = "count"
+fn.CGContextShowGlyphsWithAdvances.arguments.2.bounds.counted-by = "count"
+
+fn.CGDataConsumerCreate.arguments.1.bounds = "single"
+
+fn.CGDataProviderCreateSequential.arguments.1.bounds = "single"
+fn.CGDataProviderCreateDirect.arguments.2.bounds = "single"
+fn.CGDataProviderCreateWithFilename.arguments.0.bounds = "null-terminated"
+
+fn.CGGetDisplaysWithPoint.arguments.2.bounds.counted-by = "max_displays"
+fn.CGGetDisplaysWithPoint.arguments.3.bounds = "single"
+fn.CGGetDisplaysWithRect.arguments.2.bounds.counted-by = "max_displays"
+fn.CGGetDisplaysWithRect.arguments.3.bounds = "single"
+fn.CGGetDisplaysWithOpenGLDisplayMask.arguments.2.bounds.counted-by = "max_displays"
+fn.CGGetDisplaysWithOpenGLDisplayMask.arguments.3.bounds = "single"
+fn.CGGetActiveDisplayList.arguments.1.bounds.counted-by = "max_displays"
+fn.CGGetActiveDisplayList.arguments.2.bounds = "single"
+fn.CGGetOnlineDisplayList.arguments.1.bounds.counted-by = "max_displays"
+fn.CGGetOnlineDisplayList.arguments.2.bounds = "single"
+fn.CGGetDisplayTransferByFormula.arguments.1.bounds = "single"
+fn.CGGetDisplayTransferByFormula.arguments.2.bounds = "single"
+fn.CGGetDisplayTransferByFormula.arguments.3.bounds = "single"
+fn.CGGetDisplayTransferByFormula.arguments.4.bounds = "single"
+fn.CGGetDisplayTransferByFormula.arguments.5.bounds = "single"
+fn.CGGetDisplayTransferByFormula.arguments.6.bounds = "single"
+fn.CGGetDisplayTransferByFormula.arguments.7.bounds = "single"
+fn.CGGetDisplayTransferByFormula.arguments.8.bounds = "single"
+fn.CGGetDisplayTransferByFormula.arguments.9.bounds = "single"
+fn.CGSetDisplayTransferByTable.arguments.2.bounds.counted-by = "table_size"
+fn.CGSetDisplayTransferByTable.arguments.3.bounds.counted-by = "table_size"
+fn.CGSetDisplayTransferByTable.arguments.4.bounds.counted-by = "table_size"
+fn.CGGetDisplayTransferByTable.arguments.2.bounds.counted-by = "capacity"
+fn.CGGetDisplayTransferByTable.arguments.3.bounds.counted-by = "capacity"
+fn.CGGetDisplayTransferByTable.arguments.4.bounds.counted-by = "capacity"
+fn.CGGetDisplayTransferByTable.arguments.5.bounds = "single"
+fn.CGSetDisplayTransferByByteTable.arguments.2.bounds.counted-by = "table_size"
+fn.CGSetDisplayTransferByByteTable.arguments.3.bounds.counted-by = "table_size"
+fn.CGSetDisplayTransferByByteTable.arguments.4.bounds.counted-by = "table_size"
+fn.CGGetLastMouseDelta.arguments.0.bounds = "single"
+fn.CGGetLastMouseDelta.arguments.1.bounds = "single"
+fn.CGDisplayBestModeForParameters.arguments.4.bounds = "single"
+fn.CGDisplayBestModeForParametersAndRefreshRate.arguments.5.bounds = "single"
+
+fn.CGBeginDisplayConfiguration.arguments.0.bounds = "single"
+
+fn.CGAcquireDisplayFadeReservation.arguments.1.bounds = "single"
+
+fn.CGDisplayStreamUpdateGetRects.arguments.2.bounds = "single"
+fn.CGDisplayStreamUpdateGetRects.return.bounds.counted-by = "rect_count"
+fn.CGDisplayStreamUpdateGetMovedRectsDelta.arguments.1.bounds = "single"
+fn.CGDisplayStreamUpdateGetMovedRectsDelta.arguments.2.bounds = "single"
+
+fn.CGEventKeyboardGetUnicodeString.arguments.2.bounds = "single"
+fn.CGEventKeyboardGetUnicodeString.arguments.3.bounds.counted-by = "max_string_length"
+fn.CGEventKeyboardSetUnicodeString.arguments.2.bounds.counted-by = "string_length"
+fn.CGGetEventTapList.arguments.1.bounds.counted-by = "max_number_of_taps"
+fn.CGGetEventTapList.arguments.2.bounds = "single"
+
+fn.CGFontGetGlyphAdvances.arguments.1.bounds.counted-by = "count"
+fn.CGFontGetGlyphAdvances.arguments.3.bounds = "single"
+fn.CGFontGetGlyphBBoxes.arguments.1.bounds.counted-by = "count"
+fn.CGFontGetGlyphBBoxes.arguments.3.bounds = "single"
+fn.CGFontCreatePostScriptSubset.arguments.3.bounds.counted-by = "count"
+fn.CGFontCreatePostScriptSubset.arguments.5.written = false
+fn.CGFontCreatePostScriptEncoding.arguments.1.written = false
+
+fn.CGFunctionCreate.arguments.2.bounds.counted-by = "domain_dimension * 2"
+fn.CGFunctionCreate.arguments.4.bounds.counted-by = "range_dimension * 2"
+fn.CGFunctionCreate.arguments.5.bounds = "single"
+
+fn.CGRectDivide.arguments.1.bounds = "single"
+fn.CGRectDivide.arguments.2.bounds = "single"
+fn.CGPointMakeWithDictionaryRepresentation.arguments.1.bounds = "single"
+fn.CGSizeMakeWithDictionaryRepresentation.arguments.1.bounds = "single"
+fn.CGRectMakeWithDictionaryRepresentation.arguments.1.bounds = "single"
+
+fn.CGGradientCreateWithColorComponents.arguments.1.bounds.counted-by = "space.number_of_components() * count"
+fn.CGGradientCreateWithColorComponents.arguments.2.bounds.counted-by = "count"
+fn.CGGradientCreateWithContentHeadroom.arguments.2.bounds.counted-by = "space.number_of_components() * count"
+fn.CGGradientCreateWithContentHeadroom.arguments.3.bounds.counted-by = "count"
+fn.CGGradientCreateWithColors.arguments.2.bounds.counted-by = "colors.count()"
+
+# The `decode` array depends on a lot of things, so mark it `unsafe` for now.
+fn.CGImageCreate.arguments.8.bounds = "unsafe"
+fn.CGImageMaskCreate.arguments.6.bounds = "unsafe"
+fn.CGImageCreateWithJPEGDataProvider.arguments.1.bounds = "unsafe"
+fn.CGImageCreateWithPNGDataProvider.arguments.1.bounds = "unsafe"
+fn.CGImageCreateWithMaskingColors.arguments.1.bounds.counted-by = "self.color_space().number_of_components() * 2"
+fn.CGImageCreateWithContentHeadroom.arguments.9.bounds = "unsafe"
+fn.CGImageGetDecode.return.bounds = "unsafe"
+
+fn.CGPathCreateCopyByTransformingPath.arguments.1.bounds = "single"
+fn.CGPathCreateMutableCopyByTransformingPath.arguments.1.bounds = "single"
+fn.CGPathCreateWithRect.arguments.1.bounds = "single"
+fn.CGPathCreateWithEllipseInRect.arguments.1.bounds = "single"
+fn.CGPathCreateWithRoundedRect.arguments.3.bounds = "single"
+fn.CGPathAddRoundedRect.arguments.1.bounds = "single"
+fn.CGPathCreateCopyByDashingPath.arguments.1.bounds = "single"
+fn.CGPathCreateCopyByDashingPath.arguments.3.bounds.counted-by = "count"
+fn.CGPathCreateCopyByStrokingPath.arguments.1.bounds = "single"
+fn.CGPathMoveToPoint.arguments.1.bounds = "single"
+fn.CGPathAddLineToPoint.arguments.1.bounds = "single"
+fn.CGPathAddQuadCurveToPoint.arguments.1.bounds = "single"
+fn.CGPathAddCurveToPoint.arguments.1.bounds = "single"
+fn.CGPathAddRect.arguments.1.bounds = "single"
+fn.CGPathAddRects.arguments.1.bounds = "single"
+fn.CGPathAddRects.arguments.2.bounds.counted-by = "count"
+fn.CGPathAddLines.arguments.1.bounds = "single"
+fn.CGPathAddLines.arguments.2.bounds.counted-by = "count"
+fn.CGPathAddEllipseInRect.arguments.1.bounds = "single"
+fn.CGPathAddRelativeArc.arguments.1.bounds = "single"
+fn.CGPathAddArc.arguments.1.bounds = "single"
+fn.CGPathAddArcToPoint.arguments.1.bounds = "single"
+fn.CGPathAddPath.arguments.1.bounds = "single"
+fn.CGPathIsRect.arguments.1.bounds = "single"
+fn.CGPathContainsPoint.arguments.1.bounds = "single"
+
+fn.CGPatternCreate.arguments.7.bounds = "single"
+
+fn.CGPDFArrayGetObject.arguments.2.bounds = "single"
+fn.CGPDFArrayGetBoolean.arguments.2.bounds = "single"
+fn.CGPDFArrayGetInteger.arguments.2.bounds = "single"
+fn.CGPDFArrayGetNumber.arguments.2.bounds = "single"
+fn.CGPDFArrayGetName.arguments.2.bounds = "single"
+fn.CGPDFArrayGetString.arguments.2.bounds = "single"
+fn.CGPDFArrayGetArray.arguments.2.bounds = "single"
+fn.CGPDFArrayGetDictionary.arguments.2.bounds = "single"
+fn.CGPDFArrayGetStream.arguments.2.bounds = "single"
+
+fn.CGPDFContentStreamGetResource.arguments.1.bounds = "null-terminated"
+fn.CGPDFContentStreamGetResource.arguments.2.bounds = "null-terminated"
+
+fn.CGPDFContextCreate.arguments.1.bounds = "single"
+fn.CGPDFContextCreateWithURL.arguments.1.bounds = "single"
+# fn.CGPDFTagTypeGetName.return.bounds = "null-terminated" # TODO: static lifetime
+
+fn.CGPDFDictionaryGetObject.arguments.1.bounds = "null-terminated"
+fn.CGPDFDictionaryGetObject.arguments.2.bounds = "single"
+fn.CGPDFDictionaryGetBoolean.arguments.1.bounds = "null-terminated"
+fn.CGPDFDictionaryGetBoolean.arguments.2.bounds = "single"
+fn.CGPDFDictionaryGetInteger.arguments.1.bounds = "null-terminated"
+fn.CGPDFDictionaryGetInteger.arguments.2.bounds = "single"
+fn.CGPDFDictionaryGetNumber.arguments.1.bounds = "null-terminated"
+fn.CGPDFDictionaryGetNumber.arguments.2.bounds = "single"
+fn.CGPDFDictionaryGetName.arguments.1.bounds = "null-terminated"
+fn.CGPDFDictionaryGetName.arguments.2.bounds = "single"
+fn.CGPDFDictionaryGetString.arguments.1.bounds = "null-terminated"
+fn.CGPDFDictionaryGetString.arguments.2.bounds = "single"
+fn.CGPDFDictionaryGetArray.arguments.1.bounds = "null-terminated"
+fn.CGPDFDictionaryGetArray.arguments.2.bounds = "single"
+fn.CGPDFDictionaryGetDictionary.arguments.1.bounds = "null-terminated"
+fn.CGPDFDictionaryGetDictionary.arguments.2.bounds = "single"
+fn.CGPDFDictionaryGetStream.arguments.1.bounds = "null-terminated"
+fn.CGPDFDictionaryGetStream.arguments.2.bounds = "single"
+
+fn.CGPDFDocumentGetVersion.arguments.1.bounds = "single"
+fn.CGPDFDocumentGetVersion.arguments.2.bounds = "single"
+fn.CGPDFDocumentUnlockWithPassword.arguments.1.bounds = "null-terminated"
+
+fn.CGPDFOperatorTableSetCallback.arguments.1.bounds = "null-terminated"
+
+fn.CGPDFScannerPopObject.arguments.1.bounds = "single"
+fn.CGPDFScannerPopBoolean.arguments.1.bounds = "single"
+fn.CGPDFScannerPopInteger.arguments.1.bounds = "single"
+fn.CGPDFScannerPopNumber.arguments.1.bounds = "single"
+fn.CGPDFScannerPopName.arguments.1.bounds = "single"
+fn.CGPDFScannerPopString.arguments.1.bounds = "single"
+fn.CGPDFScannerPopArray.arguments.1.bounds = "single"
+fn.CGPDFScannerPopDictionary.arguments.1.bounds = "single"
+fn.CGPDFScannerPopStream.arguments.1.bounds = "single"
+
+fn.CGPDFStreamCopyData.arguments.1.bounds = "single"
+fn.CGPDFStringGetBytePtr.return.bounds.counted-by = "string.length()"
+
+fn.CGPSConverterCreate.arguments.1.bounds = "single"
+
+fn.CGWaitForScreenRefreshRects.arguments.0.bounds = "single" # Though inner is counted by `count`
+fn.CGWaitForScreenRefreshRects.arguments.1.bounds = "single"
+fn.CGWaitForScreenUpdateRects.arguments.1.bounds = "single"
+fn.CGWaitForScreenUpdateRects.arguments.2.bounds = "single" # Though inner is counted by `rect_count`
+fn.CGWaitForScreenUpdateRects.arguments.3.bounds = "single"
+fn.CGWaitForScreenUpdateRects.arguments.4.bounds = "single"
+fn.CGReleaseScreenRefreshRects.arguments.0.bounds = "unsafe"
+
+##
+## Fixing generics.
+##
+
+# Undocumented what the representation is.
+fn.CGPointCreateDictionaryRepresentation.return.generics = []
+fn.CGPointMakeWithDictionaryRepresentation.arguments.0.generics = []
+fn.CGSizeCreateDictionaryRepresentation.return.generics = []
+fn.CGSizeMakeWithDictionaryRepresentation.arguments.0.generics = []
+fn.CGRectCreateDictionaryRepresentation.return.generics = []
+fn.CGRectMakeWithDictionaryRepresentation.arguments.0.generics = []
+
+# Variation axes are specified to be `CFDictionary<CFString, CFNumber>`.
+fn.CGFontCreateCopyWithVariations.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFNumber.CFNumber"]
+fn.CGFontCopyVariationAxes.return.generics = ["CoreFoundation.CFDictionary.CFDictionary<CoreFoundation.CFString.CFString, CoreFoundation.CFNumber.CFNumber>"]
+fn.CGFontCopyVariations.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFNumber.CFNumber"]
+fn.CGFontCopyTableTags.return.generics = [] # uint32_t
+
+fn.CGGradientCreateWithColors.arguments.1.generics = ["CoreGraphics.CGColor.CGColor"]
+
+fn.CGPDFContentStreamGetStreams.return.generics = ["CoreGraphics.CGPDFContentStream.CGPDFContentStream"]
+fn.CGPDFContextCreate.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.CGPDFContextCreateWithURL.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.CGPDFContextBeginPage.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+fn.CGWindowListCopyWindowInfo.return.generics = ["CoreFoundation.CFDictionary.CFDictionary"] # Unsure of dictionary keys/values
+fn.CGWindowListCreate.return.generics = [] # CGWindowID (u32)
+fn.CGWindowListCreateDescriptionFromArray.arguments.0.generics = [] # CGWindowID (u32)
+fn.CGWindowListCreateDescriptionFromArray.return.generics = ["CoreFoundation.CFDictionary.CFDictionary"] # Unsure of dictionary keys/values
+fn.CGWindowListCreateImageFromArray.arguments.1.generics = [] # CGWindowID (u32)
+
+fn.CGDisplayCopyAllDisplayModes.return.generics = ["CoreGraphics.CGDirectDisplay.CGDisplayMode"]
+fn.CGDisplayAvailableModes.return.generics = ["CoreFoundation.CFDictionary.CFDictionary<CoreFoundation.CFString.CFString, CoreFoundation.CFType>"]
+fn.CGDisplayBestModeForParameters.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.CGDisplayBestModeForParametersAndRefreshRate.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.CGDisplayCurrentMode.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.CGDisplaySwitchToMode.arguments.1.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.CGConfigureDisplayMode.arguments.2.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.CGDisplayStreamCreate.arguments.4.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+fn.CGDisplayStreamCreateWithDispatchQueue.arguments.4.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+fn.CGSessionCopyCurrentDictionary.return.generics = ["CoreFoundation.CFString.CFString", "CoreFoundation.CFType"]
+
+# Unsure, docs just say "additional information or NULL".
+fn.CGContextBeginTransparencyLayer.arguments.1.generics = []
+fn.CGContextBeginTransparencyLayerWithRect.arguments.2.generics = []
+
+# Reserved, pass NULL.
+fn.CGColorCreateCopyByMatchingToColorSpace.arguments.3.generics = []
+fn.CGPSConverterCreate.arguments.2.generics = []
+fn.CGPSConverterConvert.arguments.3.generics = []
+fn.CGLayerCreateWithContext.arguments.2.generics = []
+fn.CGDisplayCopyAllDisplayModes.arguments.1.generics = []
+fn.CGDisplaySetDisplayMode.arguments.2.generics = []
+fn.CGConfigureDisplayWithDisplayMode.arguments.3.generics = []
+
+# No documentation.
+fn.CGBitmapContextCreateAdaptive.arguments.2.generics = []
+fn.CGColorConversionInfoConvertData.arguments.7.generics = []
+fn.CGColorConversionInfoCreateForToneMapping.arguments.5.generics = []
+fn.CGColorConversionInfoCreateWithOptions.arguments.2.generics = []
+fn.CGContextDrawImageApplyingToneMapping.arguments.4.generics = []
+fn.CGConvertColorDataWithFormat.arguments.6.generics = []
+fn.CGEXRToneMappingGammaGetDefaultOptions.return.generics = []
+fn.CGPathCreateSeparateComponents.return.generics = []
+fn.CGPDFContextBeginTag.arguments.2.generics = []
+fn.CGPDFContextSetOutline.arguments.1.generics = []
+fn.CGPDFContextSetPageTagStructureTree.arguments.1.generics = []
+fn.CGPDFDocumentGetOutline.return.generics = []
+
+##
+## Safety
+##
+
+# SAFETY: CoreGraphics is well-behaved when it comes to memory safety.
+unsafe-default-safety.documentation-is-reviewed = true
+# TODO: Things like `CGPDFArrayGetNull` are maybe not bounds-checked?
+unsafe-default-safety.bounds-checked-internally = true
+
+# TODO: Unsure if the run loop source must be sendable?
+# https://github.com/madsmtm/objc2/issues/696
+fn.CGDisplayStreamGetRunLoopSource.unsafe = true
+
+# Unclear if these can be used correctly if the dictionary is owned by the
+# system (and hence might be released on another thread just before we retain
+# the return value?)
+fn.CGDisplayAvailableModes.unsafe = true
+fn.CGDisplayBestModeForParameters.unsafe = true
+fn.CGDisplayBestModeForParametersAndRefreshRate.unsafe = true
+fn.CGDisplayCurrentMode.unsafe = true
+fn.CGDisplaySwitchToMode.unsafe = true
+fn.CGDisplaySetDisplayMode.unsafe = true

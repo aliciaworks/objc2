@@ -41,6 +41,7 @@ objc2-audio-toolbox = { workspace = true, optional = true, features = [
     "AudioUnitProperties",
     "MusicPlayer",
     "block2",
+    "objc2",
 ] }
 
 [package.metadata.docs.rs]
@@ -120,6 +121,7 @@ objc2-audio-toolbox = ["dep:objc2-audio-toolbox"]
 objc2-core-audio-types = ["dep:objc2-core-audio-types"]
 objc2-core-media = ["dep:objc2-core-media"]
 objc2-core-midi = ["dep:objc2-core-midi"]
+unstable-darwin-objc = []
 
 AVAudioApplication = [
     "objc2-foundation/NSError",
@@ -166,6 +168,7 @@ AVAudioMixerNode = []
 AVAudioMixing = []
 AVAudioNode = [
     "objc2-foundation/NSDate",
+    "objc2-foundation/NSError",
     "objc2-foundation/NSString",
 ]
 AVAudioPlayer = [
@@ -177,7 +180,10 @@ AVAudioPlayer = [
     "objc2-foundation/NSString",
     "objc2-foundation/NSURL",
 ]
-AVAudioPlayerNode = ["bitflags"]
+AVAudioPlayerNode = [
+    "bitflags",
+    "objc2-foundation/NSError",
+]
 AVAudioRecorder = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSDate",
@@ -201,7 +207,6 @@ AVAudioSession = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSDate",
     "objc2-foundation/NSError",
-    "objc2-foundation/NSNotification",
     "objc2-foundation/NSString",
 ]
 AVAudioSessionDeprecated = ["objc2-foundation/NSError"]
@@ -213,6 +218,7 @@ AVAudioSessionRoute = [
 ]
 AVAudioSessionTypes = [
     "bitflags",
+    "objc2-foundation/NSNotification",
     "objc2-foundation/NSString",
 ]
 AVAudioSettings = ["objc2-foundation/NSString"]

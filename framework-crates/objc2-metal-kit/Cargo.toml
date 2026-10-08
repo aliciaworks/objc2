@@ -89,6 +89,7 @@ objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-core-graphics = ["dep:objc2-core-graphics"]
 objc2-model-io = ["dep:objc2-model-io"]
 objc2-quartz-core = ["dep:objc2-quartz-core"]
+unstable-darwin-objc = []
 
 MTKDefines = []
 MTKModel = [
@@ -97,11 +98,11 @@ MTKModel = [
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
     "objc2-metal/MTLAllocation",
+    "objc2-metal/MTLArgument",
     "objc2-metal/MTLBuffer",
     "objc2-metal/MTLDevice",
     "objc2-metal/MTLRenderCommandEncoder",
     "objc2-metal/MTLResource",
-    "objc2-metal/MTLStageInputOutputDescriptor",
     "objc2-metal/MTLVertexDescriptor",
 ]
 MTKTextureLoader = [
@@ -118,14 +119,15 @@ MTKTextureLoader = [
     "objc2-metal/MTLTexture",
 ]
 MTKView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/objc2-core-foundation",
+    "objc2-metal/MTL4RenderPass",
     "objc2-metal/MTLAllocation",
     "objc2-metal/MTLDevice",
     "objc2-metal/MTLPixelFormat",
     "objc2-metal/MTLRenderPass",
+    "objc2-metal/MTLResidencySet",
     "objc2-metal/MTLResource",
     "objc2-metal/MTLTexture",
 ]

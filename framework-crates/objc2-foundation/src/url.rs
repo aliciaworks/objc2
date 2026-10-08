@@ -15,7 +15,7 @@ const PATH_MAX: usize = 1024;
 
 /// [`Path`] conversion.
 impl NSURL {
-    pub fn from_path(
+    fn from_path(
         path: &Path,
         is_directory: bool,
         // TODO: Expose this?
@@ -24,27 +24,15 @@ impl NSURL {
         // See comments in `CFURL::from_path`.
         let bytes = path.as_os_str().as_bytes();
 
-        if bytes.is_empty() {
-            // `initFileURLWithFileSystemRepresentation:isDirectory:relativeToURL:`,
-            // checks this, but that's marked as non-null, so we'd get a panic
-            // if we didn't implement the check manually ourselves.
-            return None;
-        }
-
         // TODO: Should we strip trailing \0 to fully match CoreFoundation?
         let cstr = CString::new(bytes).ok()?;
-        let ptr = NonNull::new(cstr.as_ptr().cast_mut()).unwrap();
 
-        // SAFETY: The pointer is a C string, and valid for the duration of
-        // the call.
-        Some(unsafe {
-            Self::initFileURLWithFileSystemRepresentation_isDirectory_relativeToURL(
-                Self::alloc(),
-                ptr,
-                is_directory,
-                base_url,
-            )
-        })
+        Self::initFileURLWithFileSystemRepresentation_isDirectory_relativeToURL(
+            Self::alloc(),
+            &cstr,
+            is_directory,
+            base_url,
+        )
     }
 
     /// Create a file url from a [`Path`].
@@ -196,7 +184,7 @@ impl NSURL {
 #[cfg(test)]
 #[cfg(unix)]
 mod tests {
-    use std::{fs, os::unix::ffi::OsStrExt};
+    use std::os::unix::ffi::OsStrExt;
 
     use super::*;
 
@@ -228,19 +216,16 @@ mod tests {
     fn special_paths() {
         use crate::{NSData, NSFileManager};
 
-        let manager = unsafe { NSFileManager::defaultManager() };
+        let manager = NSFileManager::defaultManager();
 
         let path = Path::new(OsStr::from_bytes(b"\xf8"));
         // Foundation is broken, needs a different encoding to work.
         let url = NSURL::from_file_path("%F8").unwrap();
 
         // Create, read and remove file, using different APIs.
-        fs::write(path, "").unwrap();
-        assert_eq!(
-            unsafe { NSData::dataWithContentsOfURL(&url) },
-            Some(NSData::new())
-        );
-        unsafe { manager.removeItemAtURL_error(&url).unwrap() };
+        std::fs::write(path, "").unwrap();
+        assert_eq!(NSData::dataWithContentsOfURL(&url), Some(NSData::new()));
+        manager.removeItemAtURL_error(&url).unwrap();
     }
 
     // Useful when testing HFS+ and non-UTF-8:

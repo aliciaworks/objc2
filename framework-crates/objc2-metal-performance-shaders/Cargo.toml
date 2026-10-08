@@ -69,7 +69,11 @@ default = [
     "MPSCommandBuffer",
     "MPSCore",
     "MPSCoreTypes",
+    "MPSFColorConversion",
+    "MPSFunction",
     "MPSFunctionConstantIndices",
+    "MPSFunctionTypes",
+    "MPSFunctions",
     "MPSImage",
     "MPSImageConversion",
     "MPSImageConvolution",
@@ -148,6 +152,7 @@ alloc = []
 block2 = ["dep:block2"]
 objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-core-graphics = ["dep:objc2-core-graphics"]
+unstable-darwin-objc = []
 
 MPSAccelerationStructure = [
     "objc2-foundation/NSCoder",
@@ -207,7 +212,6 @@ MPSCNNGroupNormalization = [
     "objc2-metal/MTLCommandBuffer",
     "objc2-metal/MTLDevice",
     "objc2-metal/MTLResource",
-    "objc2-metal/MTLTexture",
 ]
 MPSCNNInstanceNormalization = [
     "objc2-foundation/NSArray",
@@ -220,7 +224,6 @@ MPSCNNInstanceNormalization = [
     "objc2-metal/MTLCommandBuffer",
     "objc2-metal/MTLDevice",
     "objc2-metal/MTLResource",
-    "objc2-metal/MTLTexture",
 ]
 MPSCNNKernel = [
     "objc2-foundation/NSArray",
@@ -306,13 +309,28 @@ MPSCoreTypes = [
     "objc2-metal/MTLDevice",
     "objc2-metal/MTLTypes",
 ]
+MPSFColorConversion = [
+    "objc2-foundation/NSObject",
+    "objc2-metal/MTLAllocation",
+    "objc2-metal/MTLResource",
+    "objc2-metal/MTLTexture",
+]
+MPSFunction = [
+    "objc2-foundation/NSError",
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+    "objc2-foundation/NSZone",
+    "objc2-metal/MTLDevice",
+    "objc2-metal/MTLLibrary",
+]
 MPSFunctionConstantIndices = []
+MPSFunctionTypes = []
+MPSFunctions = []
 MPSImage = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSRange",
     "objc2-foundation/NSString",
-    "objc2-foundation/NSZone",
     "objc2-metal/MTLAllocation",
     "objc2-metal/MTLCommandBuffer",
     "objc2-metal/MTLDevice",
@@ -600,6 +618,8 @@ MPSNDArrayIdentity = [
     "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSValue",
+    "objc2-metal/MTL4CommandEncoder",
+    "objc2-metal/MTL4ComputeCommandEncoder",
     "objc2-metal/MTLCommandBuffer",
     "objc2-metal/MTLCommandEncoder",
     "objc2-metal/MTLComputeCommandEncoder",
@@ -610,6 +630,8 @@ MPSNDArrayKernel = [
     "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSZone",
+    "objc2-metal/MTL4CommandEncoder",
+    "objc2-metal/MTL4ComputeCommandEncoder",
     "objc2-metal/MTLCommandBuffer",
     "objc2-metal/MTLCommandEncoder",
     "objc2-metal/MTLComputeCommandEncoder",
@@ -707,7 +729,6 @@ MPSPolygonAccelerationStructure = [
     "objc2-metal/MTLResource",
 ]
 MPSPolygonBuffer = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSZone",
     "objc2-metal/MTLAllocation",

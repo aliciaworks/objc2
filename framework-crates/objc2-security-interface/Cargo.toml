@@ -57,6 +57,7 @@ std = ["alloc"]
 alloc = []
 objc2-security = ["dep:objc2-security"]
 objc2-security-foundation = ["dep:objc2-security-foundation"]
+unstable-darwin-objc = []
 
 SFAuthorizationPluginView = [
     "objc2-app-kit/NSResponder",
@@ -73,7 +74,6 @@ SFAuthorizationView = [
     "objc2-app-kit/NSResponder",
     "objc2-app-kit/NSUserInterfaceItemIdentification",
     "objc2-app-kit/NSView",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSDate",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
@@ -95,7 +95,6 @@ SFCertificatePanel = [
     "objc2-app-kit/NSVisualEffectView",
     "objc2-app-kit/NSWindow",
     "objc2-foundation/NSArray",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
@@ -114,7 +113,6 @@ SFCertificateTrustPanel = [
     "objc2-app-kit/NSUserInterfaceValidation",
     "objc2-app-kit/NSViewController",
     "objc2-app-kit/NSWindow",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
@@ -130,7 +128,6 @@ SFCertificateView = [
     "objc2-app-kit/NSView",
     "objc2-app-kit/NSVisualEffectView",
     "objc2-foundation/NSArray",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
@@ -150,7 +147,6 @@ SFChooseIdentityPanel = [
     "objc2-app-kit/NSViewController",
     "objc2-app-kit/NSWindow",
     "objc2-foundation/NSArray",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
@@ -167,7 +163,6 @@ SFChooseIdentityTableCellView = [
     "objc2-app-kit/NSTextField",
     "objc2-app-kit/NSUserInterfaceItemIdentification",
     "objc2-app-kit/NSView",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/objc2-core-foundation",
@@ -186,7 +181,6 @@ SFKeychainSavePanel = [
     "objc2-app-kit/NSUserInterfaceValidation",
     "objc2-app-kit/NSViewController",
     "objc2-app-kit/NSWindow",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSError",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
@@ -206,7 +200,6 @@ SFKeychainSettingsPanel = [
     "objc2-app-kit/NSUserInterfaceValidation",
     "objc2-app-kit/NSViewController",
     "objc2-app-kit/NSWindow",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/objc2-core-foundation",

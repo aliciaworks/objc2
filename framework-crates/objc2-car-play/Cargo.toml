@@ -28,6 +28,11 @@ objc2-core-foundation = { workspace = true, optional = true, features = [
     "CFCGTypes",
     "objc2",
 ] }
+objc2-core-location = { workspace = true, optional = true, features = ["CLLocation"] }
+objc2-core-media = { workspace = true, optional = true, features = [
+    "CMTime",
+    "objc2",
+] }
 objc2-foundation = { workspace = true, features = ["alloc"] }
 objc2-map-kit = { workspace = true, optional = true, features = [
     "MKGeometry",
@@ -74,12 +79,14 @@ default = [
     "CPBarButton",
     "CPBarButtonProviding",
     "CPButton",
+    "CPChargingStationConnection",
     "CPContact",
     "CPContactTemplate",
     "CPDashboardButton",
     "CPDashboardController",
     "CPGridButton",
     "CPGridTemplate",
+    "CPImageOverlay",
     "CPImageSet",
     "CPInformationItem",
     "CPInformationRatingItem",
@@ -89,31 +96,57 @@ default = [
     "CPLane",
     "CPLaneGuidance",
     "CPListImageRowItem",
+    "CPListImageRowItemCardElement",
+    "CPListImageRowItemCondensedElement",
+    "CPListImageRowItemElement",
+    "CPListImageRowItemGridElement",
+    "CPListImageRowItemImageGridElement",
+    "CPListImageRowItemRowElement",
     "CPListItem",
     "CPListItemTypes",
     "CPListSection",
     "CPListTemplate",
+    "CPListTemplateDetailsHeader",
+    "CPLocation",
     "CPManeuver",
     "CPMapButton",
+    "CPMapPanel",
+    "CPMapPanelButtonConfiguration",
+    "CPMapPanelItem",
+    "CPMapPanelSection",
     "CPMapTemplate",
+    "CPMapTemplateWaypoint",
     "CPMessageComposeBarButton",
     "CPMessageListItem",
+    "CPMultiStopCardConfiguration",
     "CPNavigationAlert",
+    "CPNavigationEnum",
     "CPNavigationSession",
+    "CPNavigationWaypoint",
     "CPNowPlayingButton",
     "CPNowPlayingMode",
     "CPNowPlayingTemplate",
+    "CPPanel",
+    "CPPanelButtonConfiguration",
+    "CPPanelItem",
+    "CPPlaybackConfiguration",
     "CPPointOfInterest",
     "CPPointOfInterestTemplate",
+    "CPRerouteReason",
+    "CPRouteDetail",
     "CPRouteInformation",
+    "CPRouteSegment",
+    "CPRouteSource",
     "CPSearchTemplate",
     "CPSessionConfiguration",
+    "CPSportsOverlay",
     "CPTabBarTemplate",
     "CPTemplate",
     "CPTemplateApplicationDashboardScene",
     "CPTemplateApplicationInstrumentClusterScene",
     "CPTemplateApplicationScene",
     "CPTextButton",
+    "CPThumbnailImage",
     "CPTravelEstimates",
     "CPTrip",
     "CPTripPreviewTextConfiguration",
@@ -123,6 +156,8 @@ default = [
     "block2",
     "dispatch2",
     "objc2-core-foundation",
+    "objc2-core-location",
+    "objc2-core-media",
     "objc2-map-kit",
     "objc2-quartz-core",
     "objc2-ui-kit",
@@ -133,9 +168,12 @@ bitflags = ["dep:bitflags"]
 block2 = ["dep:block2"]
 dispatch2 = ["dep:dispatch2"]
 objc2-core-foundation = ["dep:objc2-core-foundation"]
+objc2-core-location = ["dep:objc2-core-location"]
+objc2-core-media = ["dep:objc2-core-media"]
 objc2-map-kit = ["dep:objc2-map-kit"]
 objc2-quartz-core = ["dep:objc2-quartz-core"]
 objc2-ui-kit = ["dep:objc2-ui-kit"]
+unstable-darwin-objc = []
 
 CPActionSheetTemplate = [
     "objc2-foundation/NSArray",
@@ -157,6 +195,11 @@ CPBarButton = [
 ]
 CPBarButtonProviding = ["objc2-foundation/NSArray"]
 CPButton = ["objc2-foundation/NSString"]
+CPChargingStationConnection = [
+    "objc2-foundation/NSMeasurement",
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSUnit",
+]
 CPContact = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSObject",
@@ -176,6 +219,10 @@ CPGridButton = [
 ]
 CPGridTemplate = [
     "objc2-foundation/NSArray",
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
+CPImageOverlay = [
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
@@ -219,6 +266,15 @@ CPListImageRowItem = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSString",
 ]
+CPListImageRowItemCardElement = [
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
+CPListImageRowItemCondensedElement = ["objc2-foundation/NSString"]
+CPListImageRowItemElement = ["objc2-foundation/NSString"]
+CPListImageRowItemGridElement = []
+CPListImageRowItemImageGridElement = ["objc2-foundation/NSString"]
+CPListImageRowItemRowElement = ["objc2-foundation/NSString"]
 CPListItem = ["objc2-foundation/NSString"]
 CPListItemTypes = ["objc2-foundation/NSString"]
 CPListSection = [
@@ -232,6 +288,13 @@ CPListTemplate = [
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
+CPListTemplateDetailsHeader = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSAttributedString",
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
+CPLocation = []
 CPManeuver = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSAttributedString",
@@ -242,25 +305,53 @@ CPManeuver = [
     "objc2-foundation/NSUnit",
 ]
 CPMapButton = ["objc2-foundation/NSObject"]
-CPMapTemplate = [
-    "bitflags",
+CPMapPanel = [
     "objc2-foundation/NSArray",
-    "objc2-foundation/NSObject",
-]
-CPMessageComposeBarButton = [
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
+CPMapPanelButtonConfiguration = ["objc2-foundation/NSObject"]
+CPMapPanelItem = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSObject",
+]
+CPMapPanelSection = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
+CPMapTemplate = [
+    "bitflags",
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSError",
+    "objc2-foundation/NSObject",
+]
+CPMapTemplateWaypoint = ["objc2-foundation/NSObject"]
+CPMessageComposeBarButton = ["objc2-foundation/NSObject"]
 CPMessageListItem = ["objc2-foundation/NSString"]
+CPMultiStopCardConfiguration = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
 CPNavigationAlert = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSDate",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
+CPNavigationEnum = ["objc2-foundation/NSString"]
 CPNavigationSession = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSString",
+]
+CPNavigationWaypoint = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSMeasurement",
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+    "objc2-foundation/NSTimeZone",
+    "objc2-foundation/NSUnit",
 ]
 CPNowPlayingButton = ["objc2-foundation/NSObject"]
 CPNowPlayingMode = [
@@ -274,6 +365,13 @@ CPNowPlayingTemplate = [
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
+CPPanel = ["objc2-foundation/NSObject"]
+CPPanelButtonConfiguration = ["objc2-foundation/NSObject"]
+CPPanelItem = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSObject",
+]
+CPPlaybackConfiguration = ["objc2-foundation/NSObject"]
 CPPointOfInterest = [
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
@@ -283,13 +381,28 @@ CPPointOfInterestTemplate = [
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
+CPRerouteReason = []
+CPRouteDetail = [
+    "objc2-foundation/NSLocale",
+    "objc2-foundation/NSMeasurement",
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+    "objc2-foundation/NSUnit",
+]
 CPRouteInformation = ["objc2-foundation/NSArray"]
+CPRouteSegment = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSUUID",
+]
+CPRouteSource = []
 CPSearchTemplate = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
 CPSessionConfiguration = ["bitflags"]
+CPSportsOverlay = ["objc2-foundation/NSObject"]
 CPTabBarTemplate = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSObject",
@@ -302,7 +415,9 @@ CPTemplateApplicationDashboardScene = []
 CPTemplateApplicationInstrumentClusterScene = []
 CPTemplateApplicationScene = []
 CPTextButton = ["objc2-foundation/NSString"]
+CPThumbnailImage = ["objc2-foundation/NSObject"]
 CPTravelEstimates = [
+    "objc2-foundation/NSArray",
     "objc2-foundation/NSDate",
     "objc2-foundation/NSMeasurement",
     "objc2-foundation/NSObject",
@@ -322,7 +437,4 @@ CPVoiceControlTemplate = [
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
-CPWindow = [
-    "objc2-foundation/NSCoder",
-    "objc2-foundation/NSObject",
-]
+CPWindow = ["objc2-foundation/NSObject"]

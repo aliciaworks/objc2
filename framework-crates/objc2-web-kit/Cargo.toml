@@ -30,6 +30,7 @@ objc2-javascript-core = { workspace = true, optional = true, features = [
     "JSValue",
     "objc2",
 ] }
+objc2-network = { workspace = true, optional = true, features = ["objc2"] }
 objc2-security = { workspace = true, optional = true, features = [
     "SecTrust",
     "objc2",
@@ -51,7 +52,6 @@ objc2-app-kit = { workspace = true, optional = true, features = [
     "NSPrintInfo",
     "NSPrintOperation",
     "NSResponder",
-    "NSTextCheckingClient",
     "NSTextFinder",
     "NSTextView",
     "NSUserInterfaceItemIdentification",
@@ -70,6 +70,7 @@ targets = [
     "aarch64-apple-ios-macabi",
     "aarch64-apple-visionos",
 ]
+features = ["objc2-network"]
 
 [features]
 default = [
@@ -210,16 +211,22 @@ default = [
     "WKContentRuleList",
     "WKContentRuleListStore",
     "WKContentWorld",
+    "WKContentWorldConfiguration",
     "WKContextMenuElementInfo",
+    "WKDOMNodeSnapshot",
     "WKDataDetectorTypes",
     "WKDownload",
     "WKDownloadDelegate",
     "WKError",
     "WKFindConfiguration",
     "WKFindResult",
+    "WKFormInfo",
     "WKFoundation",
     "WKFrameInfo",
     "WKHTTPCookieStore",
+    "WKImmersiveEnvironment",
+    "WKImmersiveEnvironmentDelegate",
+    "WKJSHandle",
     "WKNavigation",
     "WKNavigationAction",
     "WKNavigationDelegate",
@@ -302,7 +309,9 @@ block2 = ["dep:block2"]
 objc2-app-kit = ["dep:objc2-app-kit"]
 objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-javascript-core = ["dep:objc2-javascript-core"]
+objc2-network = ["dep:objc2-network"]
 objc2-security = ["dep:objc2-security"]
+unstable-darwin-objc = []
 
 DOM = []
 DOMAbstractView = ["objc2-foundation/NSObject"]
@@ -720,7 +729,9 @@ WKContentRuleListStore = [
     "objc2-foundation/NSURL",
 ]
 WKContentWorld = ["objc2-foundation/NSString"]
+WKContentWorldConfiguration = ["objc2-foundation/NSObject"]
 WKContextMenuElementInfo = []
+WKDOMNodeSnapshot = []
 WKDataDetectorTypes = []
 WKDownload = [
     "objc2-foundation/NSData",
@@ -741,6 +752,11 @@ WKDownloadDelegate = [
 WKError = ["objc2-foundation/NSString"]
 WKFindConfiguration = ["objc2-foundation/NSObject"]
 WKFindResult = ["objc2-foundation/NSObject"]
+WKFormInfo = [
+    "objc2-foundation/NSDictionary",
+    "objc2-foundation/NSString",
+    "objc2-foundation/NSURL",
+]
 WKFoundation = []
 WKFrameInfo = [
     "objc2-foundation/NSObject",
@@ -749,7 +765,11 @@ WKFrameInfo = [
 WKHTTPCookieStore = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSHTTPCookie",
+    "objc2-foundation/NSURL",
 ]
+WKImmersiveEnvironment = []
+WKImmersiveEnvironmentDelegate = ["objc2-foundation/NSError"]
+WKJSHandle = ["objc2-foundation/NSObject"]
 WKNavigation = []
 WKNavigationAction = ["objc2-foundation/NSURLRequest"]
 WKNavigationDelegate = [
@@ -788,6 +808,7 @@ WKURLSchemeTask = [
 ]
 WKUserContentController = [
     "objc2-foundation/NSArray",
+    "objc2-foundation/NSData",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
@@ -875,8 +896,8 @@ WKWebExtensionWindowConfiguration = [
     "objc2-foundation/NSURL",
 ]
 WKWebView = [
+    "bitflags",
     "objc2-foundation/NSArray",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSData",
     "objc2-foundation/NSDictionary",
     "objc2-foundation/NSError",
@@ -893,13 +914,17 @@ WKWebViewConfiguration = [
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
-WKWebpagePreferences = []
+WKWebpagePreferences = [
+    "objc2-foundation/NSString",
+    "objc2-foundation/NSURLRequest",
+]
 WKWebsiteDataRecord = [
     "objc2-foundation/NSSet",
     "objc2-foundation/NSString",
 ]
 WKWebsiteDataStore = [
     "objc2-foundation/NSArray",
+    "objc2-foundation/NSData",
     "objc2-foundation/NSDate",
     "objc2-foundation/NSError",
     "objc2-foundation/NSObject",
@@ -958,7 +983,6 @@ WebFrameLoadDelegate = [
     "objc2-foundation/NSURL",
 ]
 WebFrameView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/objc2-core-foundation",
@@ -967,6 +991,7 @@ WebHistory = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSCalendarDate",
     "objc2-foundation/NSDate",
+    "objc2-foundation/NSError",
     "objc2-foundation/NSString",
     "objc2-foundation/NSURL",
 ]
@@ -1030,7 +1055,6 @@ WebUIDelegate = [
 ]
 WebView = [
     "objc2-foundation/NSArray",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSDictionary",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",

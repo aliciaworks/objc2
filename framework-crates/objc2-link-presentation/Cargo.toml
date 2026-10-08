@@ -58,6 +58,7 @@ std = ["alloc"]
 alloc = []
 block2 = ["dep:block2"]
 objc2-app-kit = ["dep:objc2-app-kit"]
+unstable-darwin-objc = []
 
 LPError = [
     "objc2-foundation/NSError",
@@ -71,7 +72,6 @@ LPLinkMetadata = [
     "objc2-foundation/NSURL",
 ]
 LPLinkView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSURL",

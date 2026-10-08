@@ -37,8 +37,11 @@ default = [
     "CTCallCenter",
     "CTCarrier",
     "CTCellularData",
+    "CTCellularPlanProperties",
     "CTCellularPlanProvisioning",
     "CTCellularPlanProvisioningRequest",
+    "CTCellularPlanStatus",
+    "CTQuickSwitch",
     "CTSubscriber",
     "CTSubscriberInfo",
     "CTTelephonyNetworkInfo",
@@ -48,14 +51,29 @@ default = [
 std = ["alloc"]
 alloc = []
 block2 = ["dep:block2"]
+unstable-darwin-objc = []
 
 CTCall = ["objc2-foundation/NSString"]
 CTCallCenter = ["objc2-foundation/NSSet"]
 CTCarrier = ["objc2-foundation/NSString"]
 CTCellularData = []
-CTCellularPlanProvisioning = []
+CTCellularPlanProperties = [
+    "objc2-foundation/NSArray",
+    "objc2-foundation/NSCalendar",
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
+CTCellularPlanProvisioning = ["objc2-foundation/NSError"]
 CTCellularPlanProvisioningRequest = [
     "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
+CTCellularPlanStatus = [
+    "objc2-foundation/NSError",
+    "objc2-foundation/NSString",
+]
+CTQuickSwitch = [
+    "objc2-foundation/NSError",
     "objc2-foundation/NSString",
 ]
 CTSubscriber = [

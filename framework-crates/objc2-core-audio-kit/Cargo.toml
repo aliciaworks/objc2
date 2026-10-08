@@ -23,6 +23,7 @@ objc2-audio-toolbox = { workspace = true, optional = true, features = [
     "AUAudioUnit",
     "AUComponent",
     "AudioComponent",
+    "objc2",
 ] }
 objc2-core-foundation = { workspace = true, optional = true, features = [
     "CFCGTypes",
@@ -83,6 +84,7 @@ block2 = ["dep:block2"]
 objc2-app-kit = ["dep:objc2-app-kit"]
 objc2-audio-toolbox = ["dep:objc2-audio-toolbox"]
 objc2-core-foundation = ["dep:objc2-core-foundation"]
+unstable-darwin-objc = []
 
 AUCustomViewPersistentData = [
     "objc2-foundation/NSDictionary",
@@ -90,18 +92,15 @@ AUCustomViewPersistentData = [
 ]
 AUGenericView = [
     "bitflags",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/objc2-core-foundation",
 ]
 AUGenericViewController = [
     "objc2-foundation/NSBundle",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
 ]
 AUPannerView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/objc2-core-foundation",
@@ -109,23 +108,19 @@ AUPannerView = [
 AUViewController = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSBundle",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSExtensionRequestHandling",
     "objc2-foundation/NSIndexSet",
     "objc2-foundation/NSObject",
 ]
 CABTLEMIDIWindowController = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
 CAInterDeviceAudioViewController = [
     "objc2-foundation/NSBundle",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
 ]
 CANetworkBrowserWindowController = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]

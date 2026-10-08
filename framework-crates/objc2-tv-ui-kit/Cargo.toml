@@ -57,9 +57,9 @@ alloc = []
 block2 = ["dep:block2"]
 objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-quartz-core = ["dep:objc2-quartz-core"]
+unstable-darwin-objc = []
 
 TVCaptionButtonView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
     "objc2-ui-kit/UIAction",
@@ -74,7 +74,6 @@ TVCaptionButtonView = [
     "objc2-ui-kit/UIView",
 ]
 TVCardView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-ui-kit/UIAction",
     "objc2-ui-kit/UIAppearance",
@@ -88,7 +87,6 @@ TVCardView = [
     "objc2-ui-kit/UIView",
 ]
 TVCollectionViewFullScreenCell = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-ui-kit/UIAppearance",
     "objc2-ui-kit/UICollectionViewCell",
@@ -101,7 +99,6 @@ TVCollectionViewFullScreenCell = [
     "objc2-ui-kit/objc2-core-foundation",
 ]
 TVCollectionViewFullScreenLayout = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSIndexPath",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
@@ -116,7 +113,6 @@ TVCollectionViewFullScreenLayout = [
 ]
 TVDigitEntryViewController = [
     "objc2-foundation/NSBundle",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
     "objc2-ui-kit/UIAppearance",
@@ -126,7 +122,6 @@ TVDigitEntryViewController = [
     "objc2-ui-kit/UIViewController",
 ]
 TVLockupHeaderFooterView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-ui-kit/UIAppearance",
     "objc2-ui-kit/UIDynamicBehavior",
@@ -137,7 +132,6 @@ TVLockupHeaderFooterView = [
     "objc2-ui-kit/UIView",
 ]
 TVLockupView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-ui-kit/UIAction",
     "objc2-ui-kit/UIAppearance",
@@ -152,7 +146,6 @@ TVLockupView = [
     "objc2-ui-kit/objc2-core-foundation",
 ]
 TVMediaItemContentConfiguration = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
     "objc2-ui-kit/UIAppearance",
@@ -169,7 +162,6 @@ TVMediaItemContentConfiguration = [
     "objc2-ui-kit/UIView",
 ]
 TVMonogramContentConfiguration = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSPersonNameComponents",
     "objc2-foundation/NSString",
@@ -186,7 +178,6 @@ TVMonogramContentConfiguration = [
     "objc2-ui-kit/UIView",
 ]
 TVMonogramView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSPersonNameComponents",
     "objc2-foundation/NSString",
@@ -202,7 +193,6 @@ TVMonogramView = [
     "objc2-ui-kit/UIView",
 ]
 TVPosterView = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
     "objc2-ui-kit/UIAction",

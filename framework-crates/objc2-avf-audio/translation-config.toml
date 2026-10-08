@@ -17,6 +17,10 @@ tvos = "9.0"
 watchos = "3.0"
 visionos = "1.0"
 
+typedef.AVAudioNodeCompletionHandler.sendable = true
+typedef.AVAudioPlayerNodeCompletionHandler.sendable = true
+typedef.AVMIDIPlayerCompletionHandler.sendable = true
+
 # AUMIDIEventListBlock not currently exported by AudioToolbox
 class.AVAudioEngine.methods."connectMIDI:to:format:eventListBlock:".skipped = true
 class.AVAudioEngine.methods."connectMIDI:toNodes:format:eventListBlock:".skipped = true
@@ -30,12 +34,37 @@ class.AVAudioSequencer.methods."hostTimeForBeats:error:".skipped = true
 class.AVAudioSequencer.methods."beatsForHostTime:error:".skipped = true
 class.AVAudioEngine.methods."renderOffline:toBuffer:error:".skipped = true
 
-# Non-null error return
-class.AVAudioSequencer.methods."dataWithSMPTEResolution:error:".skipped = true
-
 # Needs AppKit or UIKit
 class.AVAudioUnitComponent.methods.icon.skipped = true
+
+# Needs CASpatialAudioExperience, which is not available on macOS (where header-translator runs).
+class.AVAudioOutputNode.methods.intendedSpatialExperience.skipped = true
+class.AVAudioOutputNode.methods."setIntendedSpatialExperience:".skipped = true
+class.AVAudioPlayer.methods.intendedSpatialExperience.skipped = true
+class.AVAudioPlayer.methods."setIntendedSpatialExperience:".skipped = true
 
 class.AVAudioBuffer.skipped-protocols = ["NSMutableCopying"]
 class.AVAudioPCMBuffer.skipped-protocols = ["NSMutableCopying"]
 class.AVAudioCompressedBuffer.skipped-protocols = ["NSMutableCopying"]
+
+##
+## Pointer bounds
+##
+
+class.AVAudioBuffer.methods.audioBufferList.return.bounds = "single"
+class.AVAudioBuffer.methods.mutableAudioBufferList.return.bounds = "single"
+class.AVAudioPCMBuffer.methods."initWithPCMFormat:bufferListNoCopy:deallocator:".arguments.1.bounds = "single"
+class.AVAudioPCMBuffer.methods.floatChannelData.return.bounds.counted-by = "self.format().channelCount()"
+class.AVAudioPCMBuffer.methods.int16ChannelData.return.bounds.counted-by = "self.format().channelCount()"
+class.AVAudioPCMBuffer.methods.int32ChannelData.return.bounds.counted-by = "self.format().channelCount()"
+class.AVAudioCompressedBuffer.methods.packetDescriptions.return.bounds = "unsafe" # Probably self.packetCount(), though unsure
+class.AVAudioCompressedBuffer.methods.packetDependencies.return.bounds = "unsafe" # Probably self.packetCount(), though unsure
+class.AVAudioChannelLayout.methods."initWithLayout:".arguments.0.bounds = "single"
+class.AVAudioChannelLayout.methods."layoutWithLayout:".arguments.0.bounds = "single"
+class.AVAudioChannelLayout.methods.layout.return.bounds = "single"
+class.AVAudioFormat.methods."initWithStreamDescription:".arguments.0.bounds = "single"
+class.AVAudioFormat.methods."initWithStreamDescription:channelLayout:".arguments.0.bounds = "single"
+class.AVAudioFormat.methods.streamDescription.return.bounds = "single"
+class.AVAudioTime.methods."initWithAudioTimeStamp:sampleRate:".arguments.0.bounds = "single"
+class.AVAudioTime.methods."timeWithAudioTimeStamp:sampleRate:".arguments.0.bounds = "single"
+class.AVAudioUnitMIDIInstrument.methods."sendMIDIEventList:".arguments.0.bounds = "single"

@@ -77,16 +77,19 @@ default = [
     "CGPDFContext",
     "CGPDFDictionary",
     "CGPDFDocument",
+    "CGPDFMarkedContentItem",
     "CGPDFObject",
     "CGPDFOperatorTable",
     "CGPDFPage",
     "CGPDFScanner",
     "CGPDFStream",
     "CGPDFString",
+    "CGPDFStructureElement",
     "CGPSConverter",
     "CGPath",
     "CGPattern",
     "CGRemoteOperation",
+    "CGRenderingBufferProvider",
     "CGSession",
     "CGShading",
     "CGToneMapping",
@@ -113,10 +116,16 @@ objc2 = [
 ]
 objc2-io-surface = ["dep:objc2-io-surface"]
 objc2-metal = ["dep:objc2-metal"]
+unstable-darwin-objc = []
 
 CGAffineTransform = ["objc2-core-foundation/CFCGTypes"]
 CGBase = []
-CGBitmapContext = []
+CGBitmapContext = [
+    "bitflags",
+    "objc2-core-foundation/CFByteOrder",
+    "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFError",
+]
 CGColor = [
     "objc2-core-foundation/CFCGTypes",
     "objc2-core-foundation/CFDictionary",
@@ -150,6 +159,7 @@ CGDirectDisplay = [
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFCGTypes",
     "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFString",
 ]
 CGDirectDisplayMetal = []
 CGDirectPalette = []
@@ -157,14 +167,16 @@ CGDisplayConfiguration = [
     "bitflags",
     "objc2-core-foundation/CFCGTypes",
     "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFString",
 ]
 CGDisplayFade = []
 CGDisplayStream = [
     "objc2-core-foundation/CFCGTypes",
     "objc2-core-foundation/CFDictionary",
     "objc2-core-foundation/CFRunLoop",
+    "objc2-core-foundation/CFString",
 ]
-CGEXRToneMappingGamma = []
+CGEXRToneMappingGamma = ["objc2-core-foundation/CFDictionary"]
 CGError = []
 CGEvent = [
     "objc2-core-foundation/CFCGTypes",
@@ -178,6 +190,8 @@ CGFont = [
     "objc2-core-foundation/CFCGTypes",
     "objc2-core-foundation/CFData",
     "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFNumber",
+    "objc2-core-foundation/CFString",
 ]
 CGFunction = ["objc2-core-foundation/CFCGTypes"]
 CGGeometry = [
@@ -204,6 +218,7 @@ CGPDFContext = [
     "objc2-core-foundation/CFCGTypes",
     "objc2-core-foundation/CFData",
     "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFURL",
 ]
 CGPDFDictionary = ["objc2-core-foundation/CFCGTypes"]
@@ -213,12 +228,14 @@ CGPDFDocument = [
     "objc2-core-foundation/CFDictionary",
     "objc2-core-foundation/CFURL",
 ]
+CGPDFMarkedContentItem = []
 CGPDFObject = ["objc2-core-foundation/CFCGTypes"]
 CGPDFOperatorTable = []
 CGPDFPage = ["objc2-core-foundation/CFCGTypes"]
 CGPDFScanner = ["objc2-core-foundation/CFCGTypes"]
 CGPDFStream = ["objc2-core-foundation/CFData"]
 CGPDFString = ["objc2-core-foundation/CFDate"]
+CGPDFStructureElement = []
 CGPSConverter = ["objc2-core-foundation/CFDictionary"]
 CGPath = [
     "objc2-core-foundation/CFArray",
@@ -231,12 +248,17 @@ CGRemoteOperation = [
     "objc2-core-foundation/CFDate",
     "objc2-core-foundation/CFMachPort",
 ]
-CGSession = ["objc2-core-foundation/CFDictionary"]
+CGRenderingBufferProvider = ["objc2-core-foundation/CFData"]
+CGSession = [
+    "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFString",
+]
 CGShading = ["objc2-core-foundation/CFCGTypes"]
-CGToneMapping = []
+CGToneMapping = ["objc2-core-foundation/CFDictionary"]
 CGWindow = [
     "bitflags",
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFCGTypes",
+    "objc2-core-foundation/CFDictionary",
 ]
 CGWindowLevel = []

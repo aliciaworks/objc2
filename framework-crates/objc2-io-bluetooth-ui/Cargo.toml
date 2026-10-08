@@ -57,6 +57,7 @@ alloc = []
 objc2 = []
 objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-io-bluetooth = ["dep:objc2-io-bluetooth"]
+unstable-darwin-objc = []
 
 IOBluetoothDeviceSelectorController = [
     "objc2-app-kit/NSNib",
@@ -65,7 +66,6 @@ IOBluetoothDeviceSelectorController = [
     "objc2-app-kit/NSWindow",
     "objc2-app-kit/NSWindowController",
     "objc2-foundation/NSArray",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
@@ -77,7 +77,6 @@ IOBluetoothObjectPushUIController = [
     "objc2-app-kit/NSWindow",
     "objc2-app-kit/NSWindowController",
     "objc2-foundation/NSArray",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
@@ -88,7 +87,6 @@ IOBluetoothPairingController = [
     "objc2-app-kit/NSWindow",
     "objc2-app-kit/NSWindowController",
     "objc2-foundation/NSArray",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]
@@ -106,7 +104,6 @@ IOBluetoothPasskeyDisplay = [
     "objc2-app-kit/NSTextFieldCell",
     "objc2-app-kit/NSUserInterfaceItemIdentification",
     "objc2-app-kit/NSView",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSGeometry",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
@@ -119,7 +116,6 @@ IOBluetoothServiceBrowserController = [
     "objc2-app-kit/NSWindow",
     "objc2-app-kit/NSWindowController",
     "objc2-foundation/NSArray",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",
 ]

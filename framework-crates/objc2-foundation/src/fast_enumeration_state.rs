@@ -12,6 +12,19 @@ pub struct NSFastEnumerationState {
     pub extra: [c_ulong; 5],
 }
 
+// TODO: Derive this once MSRV reaches 1.88.
+impl Default for NSFastEnumerationState {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            state: Default::default(),
+            itemsPtr: core::ptr::null_mut(),
+            mutationsPtr: core::ptr::null_mut(),
+            extra: Default::default(),
+        }
+    }
+}
+
 unsafe impl Encode for NSFastEnumerationState {
     const ENCODING: Encoding = Encoding::Struct(
         "?",

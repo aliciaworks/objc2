@@ -16,50 +16,97 @@ external.CIBarcodeDescriptor.module = "CoreImage.CIBarcodeDescriptor"
 # Only available on iOS
 class.AVAsset.methods.preferredDisplayCriteria.skipped = true
 
-# CG*Ref as error return is not yet supported
-class.AVAssetImageGenerator.methods."copyCGImageAtTime:actualTime:error:".skipped = true
-protocol.AVCapturePhotoCaptureDelegate.methods."captureOutput:didFinishProcessingPhotoSampleBuffer:previewPhotoSampleBuffer:resolvedSettings:bracketSettings:error:".skipped = true
-protocol.AVCapturePhotoCaptureDelegate.methods."captureOutput:didFinishProcessingRawPhotoSampleBuffer:previewPhotoSampleBuffer:resolvedSettings:bracketSettings:error:".skipped = true
-class.AVSampleBufferGenerator.methods."createSampleBufferForRequest:error:".skipped = true
-class.AVSampleBufferGenerator.methods."createSampleBufferForRequest:addingToBatch:error:".skipped = true
+# Needs CASpatialAudioExperience, which is not available on macOS (where header-translator runs).
+class.AVPlayer.methods.intendedSpatialAudioExperience.skipped = true
+class.AVPlayer.methods."setIntendedSpatialAudioExperience:".skipped = true
+class.AVSampleBufferRenderSynchronizer.methods.intendedSpatialAudioExperience.skipped = true
+class.AVSampleBufferRenderSynchronizer.methods."setIntendedSpatialAudioExperience:".skipped = true
 
 # Unclear error return
 protocol.AVAsynchronousKeyValueLoading.methods."statusOfValueForKey:error:".skipped = true
 class.AVMetadataItem.methods."statusOfValueForKey:error:".skipped = true
 
 # Counterparts
-class.AVAssetDownloadStorageManagementPolicy.counterpart = "MutableSubclass(AVFoundation.AVAssetDownloadStorageManager.AVMutableAssetDownloadStorageManagementPolicy)"
-class.AVMutableAssetDownloadStorageManagementPolicy.counterpart = "ImmutableSuperclass(AVFoundation.AVAssetDownloadStorageManager.AVAssetDownloadStorageManagementPolicy)"
-class.AVAudioMix.counterpart = "MutableSubclass(AVFoundation.AVAudioMix.AVMutableAudioMix)"
-class.AVMutableAudioMix.counterpart = "ImmutableSuperclass(AVFoundation.AVAudioMix.AVAudioMix)"
-class.AVAudioMixInputParameters.counterpart = "MutableSubclass(AVFoundation.AVAudioMix.AVMutableAudioMixInputParameters)"
-class.AVMutableAudioMixInputParameters.counterpart = "ImmutableSuperclass(AVFoundation.AVAudioMix.AVAudioMixInputParameters)"
-class.AVMediaSelection.counterpart = "MutableSubclass(AVFoundation.AVMediaSelection.AVMutableMediaSelection)"
-class.AVMutableMediaSelection.counterpart = "ImmutableSuperclass(AVFoundation.AVMediaSelection.AVMediaSelection)"
-class.AVMetadataItem.counterpart = "MutableSubclass(AVFoundation.AVMetadataItem.AVMutableMetadataItem)"
-class.AVMutableMetadataItem.counterpart = "ImmutableSuperclass(AVFoundation.AVMetadataItem.AVMetadataItem)"
-class.AVMovie.counterpart = "MutableSubclass(AVFoundation.AVMovie.AVMutableMovie)"
-class.AVMutableMovie.counterpart = "ImmutableSuperclass(AVFoundation.AVMovie.AVMovie)"
+class.AVAssetDownloadStorageManagementPolicy.counterpart.mutable-subclass = "AVFoundation.AVAssetDownloadStorageManager.AVMutableAssetDownloadStorageManagementPolicy"
+class.AVMutableAssetDownloadStorageManagementPolicy.counterpart.immutable-superclass = "AVFoundation.AVAssetDownloadStorageManager.AVAssetDownloadStorageManagementPolicy"
+class.AVAudioMix.counterpart.mutable-subclass = "AVFoundation.AVAudioMix.AVMutableAudioMix"
+class.AVMutableAudioMix.counterpart.immutable-superclass = "AVFoundation.AVAudioMix.AVAudioMix"
+class.AVAudioMixInputParameters.counterpart.mutable-subclass = "AVFoundation.AVAudioMix.AVMutableAudioMixInputParameters"
+class.AVMutableAudioMixInputParameters.counterpart.immutable-superclass = "AVFoundation.AVAudioMix.AVAudioMixInputParameters"
+class.AVMediaSelection.counterpart.mutable-subclass = "AVFoundation.AVMediaSelection.AVMutableMediaSelection"
+class.AVMutableMediaSelection.counterpart.immutable-superclass = "AVFoundation.AVMediaSelection.AVMediaSelection"
+class.AVMetadataItem.counterpart.mutable-subclass = "AVFoundation.AVMetadataItem.AVMutableMetadataItem"
+class.AVMutableMetadataItem.counterpart.immutable-superclass = "AVFoundation.AVMetadataItem.AVMetadataItem"
+class.AVMovie.counterpart.mutable-subclass = "AVFoundation.AVMovie.AVMutableMovie"
+class.AVMutableMovie.counterpart.immutable-superclass = "AVFoundation.AVMovie.AVMovie"
 class.AVFragmentedMovie.skipped-protocols = ["NSCopying", "NSMutableCopying"] # Unclear what type these return
-class.AVTimedMetadataGroup.counterpart = "MutableSubclass(AVFoundation.AVTimedMetadataGroup.AVMutableTimedMetadataGroup)"
-class.AVMutableTimedMetadataGroup.counterpart = "ImmutableSuperclass(AVFoundation.AVTimedMetadataGroup.AVTimedMetadataGroup)"
-class.AVDateRangeMetadataGroup.counterpart = "MutableSubclass(AVFoundation.AVTimedMetadataGroup.AVMutableDateRangeMetadataGroup)"
-class.AVMutableDateRangeMetadataGroup.counterpart = "ImmutableSuperclass(AVFoundation.AVTimedMetadataGroup.AVDateRangeMetadataGroup)"
-class.AVVideoComposition.counterpart = "MutableSubclass(AVFoundation.AVVideoComposition.AVMutableVideoComposition)"
-class.AVMutableVideoComposition.counterpart = "ImmutableSuperclass(AVFoundation.AVVideoComposition.AVVideoComposition)"
-class.AVVideoCompositionInstruction.counterpart = "MutableSubclass(AVFoundation.AVVideoComposition.AVMutableVideoCompositionInstruction)"
-class.AVMutableVideoCompositionInstruction.counterpart = "ImmutableSuperclass(AVFoundation.AVVideoComposition.AVVideoCompositionInstruction)"
-class.AVVideoCompositionLayerInstruction.counterpart = "MutableSubclass(AVFoundation.AVVideoComposition.AVMutableVideoCompositionLayerInstruction)"
-class.AVMutableVideoCompositionLayerInstruction.counterpart = "ImmutableSuperclass(AVFoundation.AVVideoComposition.AVVideoCompositionInstruction)"
-class.AVCaption.counterpart = "MutableSubclass(AVFoundation.AVCaption.AVMutableCaption)"
-class.AVMutableCaption.counterpart = "ImmutableSuperclass(AVFoundation.AVCaption.AVCaption)"
-class.AVCaptionRegion.counterpart = "MutableSubclass(AVFoundation.AVCaption.AVMutableCaptionRegion)"
-class.AVMutableCaptionRegion.counterpart = "ImmutableSuperclass(AVFoundation.AVCaption.AVCaptionRegion)"
-class.AVComposition.counterpart = "MutableSubclass(AVFoundation.AVComposition.AVMutableComposition)"
-class.AVMutableComposition.counterpart = "ImmutableSuperclass(AVFoundation.AVComposition.AVComposition)"
+class.AVTimedMetadataGroup.counterpart.mutable-subclass = "AVFoundation.AVTimedMetadataGroup.AVMutableTimedMetadataGroup"
+class.AVMutableTimedMetadataGroup.counterpart.immutable-superclass = "AVFoundation.AVTimedMetadataGroup.AVTimedMetadataGroup"
+class.AVDateRangeMetadataGroup.counterpart.mutable-subclass = "AVFoundation.AVTimedMetadataGroup.AVMutableDateRangeMetadataGroup"
+class.AVMutableDateRangeMetadataGroup.counterpart.immutable-superclass = "AVFoundation.AVTimedMetadataGroup.AVDateRangeMetadataGroup"
+class.AVVideoComposition.counterpart.mutable-subclass = "AVFoundation.AVVideoComposition.AVMutableVideoComposition"
+class.AVMutableVideoComposition.counterpart.immutable-superclass = "AVFoundation.AVVideoComposition.AVVideoComposition"
+class.AVVideoCompositionInstruction.counterpart.mutable-subclass = "AVFoundation.AVVideoComposition.AVMutableVideoCompositionInstruction"
+class.AVMutableVideoCompositionInstruction.counterpart.immutable-superclass = "AVFoundation.AVVideoComposition.AVVideoCompositionInstruction"
+class.AVVideoCompositionLayerInstruction.counterpart.mutable-subclass = "AVFoundation.AVVideoComposition.AVMutableVideoCompositionLayerInstruction"
+class.AVMutableVideoCompositionLayerInstruction.counterpart.immutable-superclass = "AVFoundation.AVVideoComposition.AVVideoCompositionInstruction"
+class.AVCaption.counterpart.mutable-subclass = "AVFoundation.AVCaption.AVMutableCaption"
+class.AVMutableCaption.counterpart.immutable-superclass = "AVFoundation.AVCaption.AVCaption"
+class.AVCaptionRegion.counterpart.mutable-subclass = "AVFoundation.AVCaption.AVMutableCaptionRegion"
+class.AVMutableCaptionRegion.counterpart.immutable-superclass = "AVFoundation.AVCaption.AVCaptionRegion"
+class.AVComposition.counterpart.mutable-subclass = "AVFoundation.AVComposition.AVMutableComposition"
+class.AVMutableComposition.counterpart.immutable-superclass = "AVFoundation.AVComposition.AVComposition"
 
 # Both protocols and classes
 protocol.AVVideoCompositionInstruction.renamed = "AVVideoCompositionInstructionProtocol"
 
 # Property declared twice in MutableEvents
 class.AVPlayerInterstitialEvent.categories.MutableEvents.skipped = true
+
+##
+## Safety
+##
+
+# Breaks type-safety, you must check encodings before accessing a value.
+class.NSValue.unsafe = true
+
+# Must be unsafe, non-block parameters have `NS_SWIFT_SENDABLE` which we don't
+# know how to handle.
+class.AVContentKeySession.methods."processContentKeyRequestWithIdentifier:initializationData:options:".unsafe = true
+
+# We don't really care about this being nonisolated.
+class.AVPlayerItem.methods."copyWithZone:".skipped = true
+# Ignore the extra docs on when this throws.
+class.AVCaptionRegion.methods."mutableCopyWithZone:".skipped = true
+
+##
+## Pointer bounds
+##
+
+class.AVAssetImageGenerator.methods."copyCGImageAtTime:actualTime:error:".arguments.1.bounds = "single"
+class.AVVideoCompositionLayerInstruction.methods."getTransformRampForTime:startTransform:endTransform:timeRange:".arguments.1.bounds = "single"
+class.AVVideoCompositionLayerInstruction.methods."getTransformRampForTime:startTransform:endTransform:timeRange:".arguments.2.bounds = "single"
+class.AVVideoCompositionLayerInstruction.methods."getTransformRampForTime:startTransform:endTransform:timeRange:".arguments.3.bounds = "single"
+class.AVVideoCompositionLayerInstruction.methods."getOpacityRampForTime:startOpacity:endOpacity:timeRange:".arguments.1.bounds = "single"
+class.AVVideoCompositionLayerInstruction.methods."getOpacityRampForTime:startOpacity:endOpacity:timeRange:".arguments.2.bounds = "single"
+class.AVVideoCompositionLayerInstruction.methods."getOpacityRampForTime:startOpacity:endOpacity:timeRange:".arguments.3.bounds = "single"
+class.AVVideoCompositionLayerInstruction.methods."getCropRectangleRampForTime:startCropRectangle:endCropRectangle:timeRange:".arguments.1.bounds = "single"
+class.AVVideoCompositionLayerInstruction.methods."getCropRectangleRampForTime:startCropRectangle:endCropRectangle:timeRange:".arguments.2.bounds = "single"
+class.AVVideoCompositionLayerInstruction.methods."getCropRectangleRampForTime:startCropRectangle:endCropRectangle:timeRange:".arguments.3.bounds = "single"
+class.AVAudioMixInputParameters.methods."getVolumeRampForTime:startVolume:endVolume:timeRange:".arguments.1.bounds = "single"
+class.AVAudioMixInputParameters.methods."getVolumeRampForTime:startVolume:endVolume:timeRange:".arguments.2.bounds = "single"
+class.AVAudioMixInputParameters.methods."getVolumeRampForTime:startVolume:endVolume:timeRange:".arguments.3.bounds = "single"
+class.AVCaption.methods."textColorAtIndex:range:".arguments.1.bounds = "single"
+class.AVCaption.methods."backgroundColorAtIndex:range:".arguments.1.bounds = "single"
+class.AVCaption.methods."fontWeightAtIndex:range:".arguments.1.bounds = "single"
+class.AVCaption.methods."fontStyleAtIndex:range:".arguments.1.bounds = "single"
+class.AVCaption.methods."decorationAtIndex:range:".arguments.1.bounds = "single"
+class.AVCaption.methods."textCombineAtIndex:range:".arguments.1.bounds = "single"
+class.AVCaption.methods."rubyAtIndex:range:".arguments.1.bounds = "single"
+class.AVMutableMovieTrack.methods."appendSampleBuffer:decodeTime:presentationTime:error:".arguments.1.bounds = "single"
+class.AVMutableMovieTrack.methods."appendSampleBuffer:decodeTime:presentationTime:error:".arguments.2.bounds = "single"
+class.AVPlayerVideoOutput.methods."copyTaggedBufferGroupForHostTime:presentationTimeStamp:activeConfiguration:".arguments.1.bounds = "single"
+class.AVPlayerItemVideoOutput.methods."copyPixelBufferForItemTime:itemTimeForDisplay:".arguments.1.bounds = "single"
+class.AVPlayerItemIntegratedTimelineSnapshot.methods."mapTime:toSegment:atSegmentOffset:".arguments.2.bounds = "single"
+class.AVSampleCursor.methods."stepByDecodeTime:wasPinned:".arguments.1.bounds = "single"
+class.AVSampleCursor.methods."stepByPresentationTime:wasPinned:".arguments.1.bounds = "single"

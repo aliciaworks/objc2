@@ -25,6 +25,7 @@ dispatch2 = { workspace = true, optional = true, features = [
 objc2 = { workspace = true, features = ["std"] }
 objc2-core-foundation = { workspace = true, optional = true, features = [
     "CFDictionary",
+    "CFString",
     "objc2",
 ] }
 objc2-foundation = { workspace = true, features = ["alloc"] }
@@ -76,6 +77,7 @@ block2 = ["dep:block2"]
 dispatch2 = ["dep:dispatch2"]
 objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-io-kit = ["dep:objc2-io-kit"]
+unstable-darwin-objc = []
 
 AppleUSBDescriptorParsing = []
 IOUSBHostCIControllerStateMachine = ["objc2-foundation/NSError"]

@@ -4,14 +4,16 @@ use core::ptr;
 use crate::{kCFBooleanFalse, kCFBooleanTrue, CFBoolean, CFNumber, CFNumberType, CFRetained};
 
 impl CFBoolean {
+    #[inline]
     pub fn new(value: bool) -> &'static CFBoolean {
         if value {
-            unsafe { kCFBooleanTrue }.unwrap()
+            unsafe { kCFBooleanTrue }
         } else {
-            unsafe { kCFBooleanFalse }.unwrap()
+            unsafe { kCFBooleanFalse }
         }
     }
 
+    #[inline]
     pub fn as_bool(&self) -> bool {
         self.value()
     }
@@ -117,7 +119,7 @@ impl Ord for CFNumber {
     fn cmp(&self, other: &Self) -> Ordering {
         // Documented that one should pass NULL here.
         let context = ptr::null_mut();
-        unsafe { self.compare(Some(other), context) }.into()
+        unsafe { self.compare(other, context) }.into()
     }
 }
 

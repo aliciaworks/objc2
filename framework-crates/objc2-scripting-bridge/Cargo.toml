@@ -49,6 +49,7 @@ std = ["alloc"]
 alloc = []
 libc = ["dep:libc"]
 objc2-core-services = ["dep:objc2-core-services"]
+unstable-darwin-objc = []
 
 SBApplication = [
     "objc2-foundation/NSDictionary",
@@ -59,7 +60,6 @@ SBApplication = [
 ]
 SBElementArray = [
     "objc2-foundation/NSArray",
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSEnumerator",
     "objc2-foundation/NSObject",
     "objc2-foundation/NSString",

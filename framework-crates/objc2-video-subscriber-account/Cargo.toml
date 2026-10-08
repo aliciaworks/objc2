@@ -45,6 +45,9 @@ default = [
     "VSAccountMetadataRequest",
     "VSAccountProviderResponse",
     "VSAppleSubscription",
+    "VSAutoSignInAuthorization",
+    "VSAutoSignInToken",
+    "VSAutoSignInTokenUpdateContext",
     "VSSubscription",
     "VSSubscriptionRegistrationCenter",
     "VSUserAccount",
@@ -60,6 +63,7 @@ alloc = []
 bitflags = ["dep:bitflags"]
 block2 = ["dep:block2"]
 objc2-ui-kit = ["dep:objc2-ui-kit"]
+unstable-darwin-objc = []
 
 VSAccountApplicationProvider = ["objc2-foundation/NSString"]
 VSAccountManager = [
@@ -82,6 +86,12 @@ VSAppleSubscription = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSString",
 ]
+VSAutoSignInAuthorization = []
+VSAutoSignInToken = [
+    "objc2-foundation/NSObject",
+    "objc2-foundation/NSString",
+]
+VSAutoSignInTokenUpdateContext = []
 VSSubscription = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSDate",

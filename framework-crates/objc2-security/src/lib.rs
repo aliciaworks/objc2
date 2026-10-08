@@ -5,9 +5,10 @@
 //! [apple-doc]: https://developer.apple.com/documentation/security/
 //! [framework-crates]: https://docs.rs/objc2/latest/objc2/topics/about_generated/index.html
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(feature = "unstable-darwin-objc", feature(darwin_objc))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 // Update in Cargo.toml as well.
-#![doc(html_root_url = "https://docs.rs/objc2-security/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/objc2-security/0.3.2")]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -20,11 +21,19 @@ mod generated;
 pub use self::generated::*;
 
 // Manual fixes.
-#[cfg(all(feature = "libc", feature = "Authorization"))]
+#[cfg(feature = "Authorization")]
 mod authorization;
-#[cfg(all(feature = "libc", feature = "Authorization"))]
+#[cfg(feature = "CipherSuite")]
+mod cipher_suite;
+#[cfg(feature = "cssmapple")]
+mod cssmapple;
+#[cfg(feature = "SecureTransport")]
+mod secure_transport;
+#[cfg(feature = "CipherSuite")]
+pub use self::cipher_suite::*;
+#[cfg(feature = "cssmapple")]
 #[allow(unused_imports, unreachable_pub)]
-pub use self::authorization::*;
+pub use self::cssmapple::*;
 
 #[cfg(all(feature = "cssmtype", feature = "cssmconfig", feature = "objc2"))]
 use objc2::encode::{Encode, Encoding, RefEncode};
@@ -44,11 +53,8 @@ pub(crate) type OSStatus = i32;
 pub(crate) type kr_policy_list_item = core::ffi::c_void;
 
 #[allow(non_camel_case_types)]
-#[cfg(feature = "cssmtype")]
-pub type CSSM_STRING = [core::ffi::c_char; 68];
-
-#[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
+#[allow(deprecated)]
 #[cfg(all(
     feature = "cssmtype",
     feature = "SecAsn1Types",
@@ -62,6 +68,7 @@ pub union cssm_list_element_Element {
     pub Word: SecAsn1Item,
 }
 
+#[allow(deprecated)]
 #[cfg(all(
     feature = "cssmtype",
     feature = "SecAsn1Types",
@@ -73,6 +80,7 @@ unsafe impl Encode for cssm_list_element_Element {
         Encoding::Union("?", &[<CSSM_LIST>::ENCODING, <SecAsn1Item>::ENCODING]);
 }
 
+#[allow(deprecated)]
 #[cfg(all(
     feature = "cssmtype",
     feature = "SecAsn1Types",

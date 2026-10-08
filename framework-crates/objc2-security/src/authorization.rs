@@ -1,10 +1,12 @@
-use core::ffi::c_char;
+#![allow(unused_imports)]
+use core::ffi::{c_char, CStr};
 use core::ptr::NonNull;
 
-use crate::{AuthorizationFlags, AuthorizationRef, AuthorizationString, OSStatus};
+use crate::{Authorization, AuthorizationFlags, AuthorizationString, OSStatus};
 
 // Manual re-definition: see #711.
-extern "C-unwind" {
+
+impl Authorization {
     /// Run an executable tool with enhanced privileges after passing
     /// suitable authorization procedures.
     ///
@@ -29,12 +31,41 @@ extern "C-unwind" {
     /// This function has been deprecated and should no longer be used.
     /// Use a launchd-launched helper tool and/or the Service Management framework
     /// for this functionality.
+    ///
+    /// # Safety
+    ///
+    /// - `authorization` might need manual memory-management.
+    /// - `arguments` must be a valid pointer.
+    /// - `communications_pipe` must be a valid pointer or null.
+    #[doc(alias = "AuthorizationExecuteWithPrivileges")]
+    #[cfg(feature = "libc")]
     #[deprecated]
-    pub fn AuthorizationExecuteWithPrivileges(
-        authorization: AuthorizationRef,
-        path_to_tool: NonNull<c_char>,
+    #[inline]
+    pub unsafe fn execute_with_privileges(
+        &self,
+        path_to_tool: &CStr,
         options: AuthorizationFlags,
         arguments: NonNull<AuthorizationString>,
         communications_pipe: *mut *mut libc::FILE,
-    ) -> OSStatus;
+    ) -> OSStatus {
+        extern "C-unwind" {
+            fn AuthorizationExecuteWithPrivileges(
+                authorization: &Authorization,
+                path_to_tool: NonNull<c_char>,
+                options: AuthorizationFlags,
+                arguments: NonNull<AuthorizationString>,
+                communications_pipe: *mut *mut libc::FILE,
+            ) -> OSStatus;
+        }
+        let path_to_tool = NonNull::new(path_to_tool.as_ptr().cast_mut()).unwrap();
+        unsafe {
+            AuthorizationExecuteWithPrivileges(
+                self,
+                path_to_tool,
+                options,
+                arguments,
+                communications_pipe,
+            )
+        }
+    }
 }

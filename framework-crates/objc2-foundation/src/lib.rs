@@ -104,9 +104,10 @@
 //! println!("{}", dict.len());
 //! ```
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(feature = "unstable-darwin-objc", feature(darwin_objc))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 // Update in Cargo.toml as well.
-#![doc(html_root_url = "https://docs.rs/objc2-foundation/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/objc2-foundation/0.3.2")]
 #![allow(non_snake_case)]
 #![recursion_limit = "512"]
 
@@ -119,7 +120,7 @@ extern crate alloc;
 extern crate std;
 
 #[doc(hidden)]
-pub mod __ns_macro_helpers;
+pub mod __ns_macros;
 #[cfg(feature = "NSEnumerator")]
 #[macro_use]
 mod iter;
@@ -150,7 +151,6 @@ mod fast_enumeration_state;
 mod generated;
 #[cfg(feature = "NSGeometry")]
 mod geometry;
-mod macros;
 mod ns_consumed;
 #[cfg(feature = "NSValue")]
 mod number;
@@ -170,6 +170,8 @@ mod thread;
 mod to_owned;
 #[cfg(feature = "NSURL")]
 mod url;
+#[cfg(feature = "NSUserDefaults")]
+mod user_defaults;
 mod util;
 #[cfg(feature = "NSUUID")]
 mod uuid;
@@ -203,11 +205,11 @@ pub use objc2::ffi::{NSInteger, NSUInteger};
 
 // Special types that are stored in `objc2`, but really belong here
 #[doc(inline)]
-#[cfg(feature = "NSZone")]
-pub use objc2::runtime::NSZone;
-#[doc(inline)]
 #[cfg(feature = "NSProxy")]
 pub use objc2::runtime::__NSProxy as NSProxy;
+#[doc(inline)]
+#[cfg(feature = "NSZone")]
+pub use objc2::runtime::NSZone;
 pub use objc2::runtime::{NSObject, NSObjectProtocol};
 #[deprecated = "Moved to `objc2::MainThreadMarker`"]
 pub use objc2::MainThreadMarker;
@@ -242,3 +244,7 @@ pub const NSTimeIntervalSince1970: crate::NSTimeInterval = 978307200.0;
 #[allow(non_upper_case_globals)]
 #[cfg(feature = "NSURLResponse")]
 pub const NSURLResponseUnknownLength: core::ffi::c_longlong = -1;
+
+// uuid/uuid_t.h
+#[allow(dead_code, non_camel_case_types)]
+pub(crate) type uuid_t = [u8; 16];

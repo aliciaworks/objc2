@@ -125,6 +125,7 @@ bitflags = ["dep:bitflags"]
 block2 = ["dep:block2"]
 objc2-cloud-kit = ["dep:objc2-cloud-kit"]
 objc2-core-spotlight = ["dep:objc2-core-spotlight"]
+unstable-darwin-objc = []
 
 CloudKit = [
     "objc2-foundation/NSArray",
@@ -227,7 +228,6 @@ NSFetchRequest = [
     "objc2-foundation/NSValue",
 ]
 NSFetchRequestExpression = [
-    "objc2-foundation/NSCoder",
     "objc2-foundation/NSExpression",
     "objc2-foundation/NSObject",
 ]

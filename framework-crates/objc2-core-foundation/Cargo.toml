@@ -44,7 +44,6 @@ default = [
     "CFAttributedString",
     "CFAvailability",
     "CFBag",
-    "CFBase",
     "CFBinaryHeap",
     "CFBitVector",
     "CFBundle",
@@ -95,6 +94,7 @@ default = [
 std = ["alloc"]
 alloc = []
 unstable-coerce-pointee = []
+unstable-allocator-api = []
 CFBase = []
 bitflags = ["dep:bitflags"]
 block2 = ["dep:block2"]
@@ -104,6 +104,7 @@ objc2 = [
     "dep:objc2",
     "dispatch2?/objc2",
 ]
+unstable-darwin-objc = []
 
 CFArray = []
 CFAttributedString = []

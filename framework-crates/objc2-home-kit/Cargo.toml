@@ -63,6 +63,7 @@ default = [
     "HMAccessorySetupRequest",
     "HMAccessorySetupResult",
     "HMAccessory_Camera",
+    "HMAccessory_Vendor",
     "HMAction",
     "HMActionSet",
     "HMAddAccessoryRequest",
@@ -94,6 +95,7 @@ default = [
     "HMHome",
     "HMHomeAccessControl",
     "HMHomeManager",
+    "HMHomeManager_Vendor",
     "HMLocationEvent",
     "HMNetworkConfigurationProfile",
     "HMNumberRange",
@@ -125,6 +127,7 @@ objc2-core-foundation = ["dep:objc2-core-foundation"]
 objc2-core-location = ["dep:objc2-core-location"]
 objc2-quartz-core = ["dep:objc2-quartz-core"]
 objc2-ui-kit = ["dep:objc2-ui-kit"]
+unstable-darwin-objc = []
 
 HMAccessControl = []
 HMAccessory = [
@@ -157,6 +160,7 @@ HMAccessorySetupResult = [
     "objc2-foundation/NSUUID",
 ]
 HMAccessory_Camera = ["objc2-foundation/NSArray"]
+HMAccessory_Vendor = ["objc2-foundation/NSValue"]
 HMAction = ["objc2-foundation/NSUUID"]
 HMActionSet = [
     "objc2-foundation/NSDate",
@@ -183,10 +187,7 @@ HMCameraSnapshotControl = ["objc2-foundation/NSError"]
 HMCameraSource = []
 HMCameraStream = ["objc2-foundation/NSError"]
 HMCameraStreamControl = ["objc2-foundation/NSError"]
-HMCameraView = [
-    "objc2-foundation/NSCoder",
-    "objc2-foundation/NSObject",
-]
+HMCameraView = ["objc2-foundation/NSObject"]
 HMCharacteristic = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSData",
@@ -206,7 +207,10 @@ HMCharacteristicMetadata = [
 ]
 HMCharacteristicThresholdRangeEvent = ["objc2-foundation/NSObject"]
 HMCharacteristicTypes = ["objc2-foundation/NSString"]
-HMCharacteristicWriteAction = ["objc2-foundation/NSError"]
+HMCharacteristicWriteAction = [
+    "objc2-foundation/NSError",
+    "objc2-foundation/NSObject",
+]
 HMDefines = ["objc2-foundation/NSError"]
 HMDurationEvent = [
     "objc2-foundation/NSDate",
@@ -236,6 +240,10 @@ HMHomeManager = [
     "objc2-foundation/NSArray",
     "objc2-foundation/NSError",
     "objc2-foundation/NSString",
+]
+HMHomeManager_Vendor = [
+    "objc2-foundation/NSData",
+    "objc2-foundation/NSError",
 ]
 HMLocationEvent = [
     "objc2-foundation/NSError",

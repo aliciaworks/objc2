@@ -5,10 +5,12 @@
 //! [apple-doc]: https://developer.apple.com/documentation/corefoundation/
 //! [framework-crates]: https://docs.rs/objc2/latest/objc2/topics/about_generated/index.html
 #![no_std]
+#![cfg_attr(feature = "unstable-darwin-objc", feature(darwin_objc))]
 #![cfg_attr(feature = "unstable-coerce-pointee", feature(derive_coerce_pointee))]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(feature = "unstable-allocator-api", feature(allocator_api))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 // Update in Cargo.toml as well.
-#![doc(html_root_url = "https://docs.rs/objc2-core-foundation/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/objc2-core-foundation/0.3.2")]
 
 #[cfg(any(test, feature = "alloc"))]
 extern crate alloc;
@@ -16,8 +18,8 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-#[doc(hidden)]
-pub mod __cf_macro_helpers;
+#[cfg(feature = "unstable-allocator-api")]
+mod allocator;
 #[cfg(feature = "CFArray")]
 mod array;
 mod base;
@@ -36,6 +38,7 @@ mod error;
 mod filedescriptor;
 // Allow `default` methods on CFAllocator and CFTimeZone
 #[allow(clippy::should_implement_trait)]
+#[allow(clippy::missing_transmute_annotations)]
 mod generated;
 #[cfg(feature = "CFCGTypes")]
 mod geometry;
@@ -67,6 +70,10 @@ pub use self::generated::*;
 pub use self::geometry::*;
 pub use self::retained::CFRetained;
 pub use self::type_traits::{ConcreteType, Type};
+
+// Expose `$crate::__core` for macros.
+#[doc(hidden)]
+pub use core as __core;
 
 // This is not exposed publicly, so the only way to use this in types with
 // generics is to use it through the default type (e.g. the user should write

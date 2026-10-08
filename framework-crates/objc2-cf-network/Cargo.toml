@@ -56,20 +56,25 @@ objc2 = [
     "dep:objc2",
     "objc2-core-foundation/objc2",
 ]
+unstable-darwin-objc = []
 
 CFFTPStream = [
     "objc2-core-foundation/CFDictionary",
     "objc2-core-foundation/CFStream",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFURL",
 ]
 CFHTTPAuthentication = [
     "objc2-core-foundation/CFArray",
     "objc2-core-foundation/CFDictionary",
     "objc2-core-foundation/CFStream",
+    "objc2-core-foundation/CFString",
+    "objc2-core-foundation/CFURL",
 ]
 CFHTTPMessage = [
     "objc2-core-foundation/CFData",
     "objc2-core-foundation/CFDictionary",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFURL",
 ]
 CFHTTPStream = ["objc2-core-foundation/CFStream"]
@@ -78,6 +83,7 @@ CFHost = [
     "objc2-core-foundation/CFData",
     "objc2-core-foundation/CFRunLoop",
     "objc2-core-foundation/CFStream",
+    "objc2-core-foundation/CFString",
 ]
 CFNetDiagnostics = [
     "objc2-core-foundation/CFStream",
@@ -91,6 +97,7 @@ CFNetServices = [
     "objc2-core-foundation/CFDictionary",
     "objc2-core-foundation/CFRunLoop",
     "objc2-core-foundation/CFStream",
+    "objc2-core-foundation/CFString",
 ]
 CFNetworkDefs = []
 CFNetworkErrors = []
@@ -100,6 +107,7 @@ CFProxySupport = [
     "objc2-core-foundation/CFError",
     "objc2-core-foundation/CFRunLoop",
     "objc2-core-foundation/CFStream",
+    "objc2-core-foundation/CFString",
     "objc2-core-foundation/CFURL",
 ]
 CFSocketStream = ["objc2-core-foundation/CFStream"]

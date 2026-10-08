@@ -5,9 +5,10 @@
 //! [apple-doc]: https://developer.apple.com/documentation/iokit/
 //! [framework-crates]: https://docs.rs/objc2/latest/objc2/topics/about_generated/index.html
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(feature = "unstable-darwin-objc", feature(darwin_objc))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 // Update in Cargo.toml as well.
-#![doc(html_root_url = "https://docs.rs/objc2-io-kit/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/objc2-io-kit/0.3.2")]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -53,15 +54,25 @@ pub(crate) type FourCharCode = u32;
 
 // device/device_types.h
 #[allow(dead_code, non_camel_case_types)]
-pub(crate) type io_name_t = *mut [core::ffi::c_char; 128];
+pub(crate) type io_name_t = [core::ffi::c_char; 128];
 #[allow(dead_code, non_camel_case_types)]
-pub(crate) type io_string_t = *mut [core::ffi::c_char; 512];
+pub(crate) type io_string_t = [core::ffi::c_char; 512];
 #[allow(dead_code, non_camel_case_types)]
-pub(crate) type io_struct_inband_t = *mut [core::ffi::c_char; 4096];
+pub(crate) type io_struct_inband_t = [core::ffi::c_char; 4096];
+#[allow(dead_code, non_camel_case_types)]
+#[cfg(target_pointer_width = "64")]
+pub(crate) type io_user_reference_t = u64;
+#[allow(dead_code, non_camel_case_types)]
+#[cfg(not(target_pointer_width = "64"))]
+pub(crate) type io_user_reference_t = core::ffi::c_uint; // natural_t
 
 // uuid/uuid_t.h
 #[allow(dead_code, non_camel_case_types)]
-pub(crate) type uuid_t = [u8; 16]; // Usage sites are all in structs
+pub(crate) type uuid_t = [u8; 16];
+
+/// [Apple's documentation](https://developer.apple.com/documentation/iokit/io_object_null?language=objc)
+#[cfg(feature = "libc")]
+pub const IO_OBJECT_NULL: io_object_t = 0;
 
 // mach/mach_types.h
 #[allow(dead_code, non_camel_case_types)]

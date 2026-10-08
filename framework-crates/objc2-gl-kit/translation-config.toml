@@ -1,0 +1,37 @@
+framework = "GLKit"
+crate = "objc2-gl-kit"
+required-crates = ["objc2", "objc2-foundation"]
+custom-lib-rs = true
+flags = [
+    # Make types in GLKMathTypes.h not be translated as unions.
+    "-D__STRICT_ANSI__=1",
+    # Users of GLKit likely know already that OpenGL is deprecated.
+    "-DGL_SILENCE_DEPRECATION=1",
+]
+macos = "10.8"
+ios = "5.0"
+tvos = "9.0"
+
+typedef.GLKTextureLoaderCallback.sendable = true
+
+# Uses constants from OpenGL.
+enum.GLKTextureTarget.use-value = true
+
+##
+## Pointer bounds
+##
+
+fn.GLKQuaternionRotateVector3Array.arguments.1.bounds.counted-by = "vector_count"
+fn.GLKQuaternionRotateVector4Array.arguments.1.bounds.counted-by = "vector_count"
+fn.GLKMatrix3Invert.arguments.1.bounds = "single"
+fn.GLKMatrix3InvertAndTranspose.arguments.1.bounds = "single"
+fn.GLKMatrix3MultiplyVector3Array.arguments.1.bounds.counted-by = "vector_count"
+fn.GLKMatrix4Invert.arguments.1.bounds = "single"
+fn.GLKMatrix4InvertAndTranspose.arguments.1.bounds = "single"
+fn.GLKMatrix4MultiplyVector3Array.arguments.1.bounds.counted-by = "vector_count"
+fn.GLKMatrix4MultiplyVector3ArrayWithTranslation.arguments.1.bounds.counted-by = "vector_count"
+fn.GLKMatrix4MultiplyAndProjectVector3Array.arguments.1.bounds.counted-by = "vector_count"
+fn.GLKMatrix4MultiplyVector4Array.arguments.1.bounds.counted-by = "vector_count"
+fn.GLKMathProject.arguments.3.bounds.counted-by = "4"
+fn.GLKMathUnproject.arguments.3.bounds.counted-by = "4"
+fn.GLKMathUnproject.arguments.4.bounds = "single"

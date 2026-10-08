@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use core::ffi::c_ulong;
-use core::ptr::{self, NonNull};
+use core::ptr::NonNull;
 
 use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
@@ -51,6 +51,19 @@ struct FastEnumeratorHelper {
     items_count: usize,
 }
 
+// TODO: Derive this once MSRV reaches 1.88.
+impl Default for FastEnumeratorHelper {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            state: Default::default(),
+            buf: [core::ptr::null_mut(); BUF_SIZE],
+            current_item: Default::default(),
+            items_count: Default::default(),
+        }
+    }
+}
+
 // SAFETY: Neither `FastEnumeratorHelper`, nor the inner enumeration state,
 // need to be bound to any specific thread (at least, we can generally assume
 // this for the enumerable types in Foundation - but `NSEnumerator` won't be
@@ -81,21 +94,6 @@ fn mutation_detected() -> ! {
 
 impl FastEnumeratorHelper {
     #[inline]
-    fn new() -> Self {
-        Self {
-            state: NSFastEnumerationState {
-                state: 0,
-                itemsPtr: ptr::null_mut(),
-                mutationsPtr: ptr::null_mut(),
-                extra: [0; 5],
-            },
-            buf: [ptr::null_mut(); BUF_SIZE],
-            current_item: 0,
-            items_count: 0,
-        }
-    }
-
-    #[inline]
     const fn remaining_items_at_least(&self) -> usize {
         self.items_count - self.current_item
     }
@@ -120,7 +118,7 @@ impl FastEnumeratorHelper {
         // - The collection and state are guaranteed by the caller to match.
         self.items_count = unsafe {
             collection.countByEnumeratingWithState_objects_count(
-                NonNull::from(&mut self.state),
+                &mut self.state,
                 buf_ptr,
                 self.buf.len(),
             )
@@ -301,7 +299,7 @@ pub(crate) struct IterUnchecked<'a, C: ?Sized + 'a> {
 impl<'a, C: ?Sized + FastEnumerationHelper> IterUnchecked<'a, C> {
     pub(crate) fn new(collection: &'a C) -> Self {
         Self {
-            helper: FastEnumeratorHelper::new(),
+            helper: FastEnumeratorHelper::default(),
             collection,
             #[cfg(debug_assertions)]
             mutations_state: None,
@@ -357,7 +355,7 @@ pub(crate) struct Iter<'a, C: ?Sized + 'a> {
 impl<'a, C: ?Sized + FastEnumerationHelper> Iter<'a, C> {
     pub(crate) fn new(collection: &'a C) -> Self {
         Self {
-            helper: FastEnumeratorHelper::new(),
+            helper: FastEnumeratorHelper::default(),
             collection,
             mutations_state: None,
         }
@@ -407,7 +405,7 @@ pub(crate) struct IntoIter<C: ?Sized> {
 impl<C: ?Sized + FastEnumerationHelper> IntoIter<C> {
     pub(crate) fn new(collection: Retained<C>) -> Self {
         Self {
-            helper: FastEnumeratorHelper::new(),
+            helper: FastEnumeratorHelper::default(),
             collection,
             mutations_state: None,
         }
@@ -419,7 +417,7 @@ impl<C: ?Sized + FastEnumerationHelper> IntoIter<C> {
         C: Sized,
     {
         Self {
-            helper: FastEnumeratorHelper::new(),
+            helper: FastEnumeratorHelper::default(),
             // SAFETY: Same as `Retained::into_super`, except we avoid the
             // `'static` bounds, which aren't needed because the superclass
             // carries the same generics.
@@ -475,7 +473,7 @@ where
 {
     pub(crate) unsafe fn new(collection: &'a C, enumerator: Retained<E>) -> Self {
         Self {
-            helper: FastEnumeratorHelper::new(),
+            helper: FastEnumeratorHelper::default(),
             collection,
             enumerator,
             #[cfg(debug_assertions)]
@@ -535,7 +533,7 @@ where
 {
     pub(crate) unsafe fn new(collection: &'a C, enumerator: Retained<E>) -> Self {
         Self {
-            helper: FastEnumeratorHelper::new(),
+            helper: FastEnumeratorHelper::default(),
             collection,
             enumerator,
             mutations_state: None,
@@ -692,5 +690,45 @@ mod tests {
 
         let enumerator = array.into_iter();
         assert!(enumerator.enumerate().all(|(i, obj)| obj.as_usize() == i));
+    }
+
+    type MyObject<'a> = &'a ();
+
+    /// Test that `IterUnchecked<'a, T>` is covariant over `'a` and `T`.
+    #[allow(unused)]
+    fn assert_iter_unchecked_variance<'a, 'b>(
+        obj: IterUnchecked<'static, MyObject<'static>>,
+    ) -> IterUnchecked<'a, MyObject<'b>> {
+        obj
+    }
+
+    /// Test that `Iter<'a, T>` is covariant over `'a` and `T`.
+    #[allow(unused)]
+    fn assert_iter_variance<'a, 'b>(
+        obj: Iter<'static, MyObject<'static>>,
+    ) -> Iter<'a, MyObject<'b>> {
+        obj
+    }
+
+    /// Test that `IntoIter<T>` is covariant over `T`.
+    #[allow(unused)]
+    fn assert_into_iter_variance<'b>(obj: IntoIter<MyObject<'static>>) -> IntoIter<MyObject<'b>> {
+        obj
+    }
+
+    /// Test that `IterUncheckedWithBackingEnum` is covariant in all params.
+    #[allow(unused)]
+    fn assert_iter_unchecked_with_backing_enum_variance<'a, 'b, 'c>(
+        obj: IterUncheckedWithBackingEnum<'static, MyObject<'static>, MyObject<'static>>,
+    ) -> IterUncheckedWithBackingEnum<'a, MyObject<'b>, MyObject<'c>> {
+        obj
+    }
+
+    /// Test that `IterUncheckedWithBackingEnum` is covariant in all params.
+    #[allow(unused)]
+    fn assert_iter_with_backing_enum_variance<'a, 'b, 'c>(
+        obj: IterWithBackingEnum<'static, MyObject<'static>, MyObject<'static>>,
+    ) -> IterWithBackingEnum<'a, MyObject<'b>, MyObject<'c>> {
+        obj
     }
 }

@@ -10,35 +10,20 @@ visionos = "1.0"
 
 external.ASAccessory.module = "AccessorySetupKit.ASAccessory"
 
-# error: translator assertion failure: (left `"NSString"`) (right `"const NSString"`)
-static.kNEHotspotHelperOptionDisplayName.skipped = true
-static.NEFilterProviderRemediationMapRemediationURLs.skipped = true
-static.NEFilterProviderRemediationMapRemediationButtonTexts.skipped = true
+# See #778: the method has a wrongly-declared return nullability.
+class.NWHostEndpoint.methods.hostname.return.nullability = "nullable"
 
-# Needs Network framework
-class.NEAppProxyFlow.methods."setMetadata:".skipped = true
-class.NEAppProxyFlow.methods.networkInterface.skipped = true
-class.NEAppProxyFlow.methods."setNetworkInterface:".skipped = true
-class.NEAppProxyFlow.methods."openWithLocalFlowEndpoint:completionHandler:".skipped = true
-class.NEAppProxyProvider.methods."handleNewUDPFlow:initialRemoteFlowEndpoint:".skipped = true
-class.NEAppProxyTCPFlow.methods.remoteFlowEndpoint.skipped = true
-typedef.NWEndpointArray.skipped = true
-class.NEAppProxyUDPFlow.methods.localFlowEndpoint.skipped = true
-class.NEAppProxyUDPFlow.methods."readDatagramsAndFlowEndpointsWithCompletionHandler:".skipped = true
-class.NEAppProxyUDPFlow.methods."writeDatagrams:sentByFlowEndpoints:completionHandler:".skipped = true
-class.NEDNSProxyProvider.methods."handleNewUDPFlow:initialRemoteFlowEndpoint:".skipped = true
-typedef.NEFilterPacketHandler.skipped = true
-class.NEFilterPacketProvider.methods.packetHandler.skipped = true
-class.NEFilterPacketProvider.methods."setPacketHandler:".skipped = true
-class.NEFilterSocketFlow.methods.remoteFlowEndpoint.skipped = true
-class.NEFilterSocketFlow.methods.localFlowEndpoint.skipped = true
-class.NEHotspotHelperCommand.methods.interface.skipped = true
-class.NENetworkRule.methods."initWithDestinationNetworkEndpoint:prefix:protocol:".skipped = true
-class.NENetworkRule.methods."initWithDestinationHostEndpoint:protocol:".skipped = true
-class.NENetworkRule.methods."initWithRemoteNetworkEndpoint:remotePrefix:localNetworkEndpoint:localPrefix:protocol:direction:".skipped = true
-class.NENetworkRule.methods.matchRemoteHostOrNetworkEndpoint.skipped = true
-class.NENetworkRule.methods.matchLocalNetworkEndpoint.skipped = true
-class.NEPacketTunnelProvider.methods.virtualInterface.skipped = true
+# Rename classes to allow Network structs to have the proper names.
+class.NWBonjourServiceEndpoint.renamed = "NEBonjourServiceEndpoint"
+class.NWEndpoint.renamed = "NEEndpoint"
+class.NWHostEndpoint.renamed = "NEHostEndpoint"
+class.NWPath.renamed = "NEPath"
+class.NWPathStatus.renamed = "NEPathStatus"
+class.NWTCPConnection.renamed = "NETCPConnection"
+class.NWTCPConnectionState.renamed = "NETCPConnectionState"
+class.NWTLSParameters.renamed = "NETLSParameters"
+class.NWUDPSession.renamed = "NEUDPSession"
+class.NWUDPSessionState.renamed = "NEUDPSessionState"
 
 # Wrongly renamed (Swift's renaming algorithm is insufficient)
 const.NEHotspotConfigurationEAPTLSVersion_1_0.renamed = "Version_1_0"

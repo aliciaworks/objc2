@@ -5,9 +5,10 @@
 //! [apple-doc]: https://developer.apple.com/documentation/coregraphics/
 //! [framework-crates]: https://docs.rs/objc2/latest/objc2/topics/about_generated/index.html
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(feature = "unstable-darwin-objc", feature(darwin_objc))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 // Update in Cargo.toml as well.
-#![doc(html_root_url = "https://docs.rs/objc2-core-graphics/0.3.1")]
+#![doc(html_root_url = "https://docs.rs/objc2-core-graphics/0.3.2")]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -18,14 +19,20 @@ extern crate std;
 mod generated;
 #[cfg(feature = "CGImage")]
 mod image;
+#[cfg(feature = "CGPDFContext")]
+mod pdf_context;
 mod thread_safety;
 #[allow(unused_imports, unreachable_pub)]
 pub use self::generated::*;
+#[cfg(feature = "CGPDFContext")]
+pub use self::pdf_context::*;
 
 #[allow(dead_code)]
 pub(crate) type UniCharCount = core::ffi::c_ulong;
 #[allow(dead_code)]
 pub(crate) type UniChar = u16;
+#[allow(dead_code)]
+pub(crate) type OSStatus = i32;
 
 #[allow(non_upper_case_globals)]
 #[cfg(feature = "CGWindowLevel")]
@@ -52,3 +59,14 @@ pub const kCGMinimumWindowLevel: CGWindowLevel =
 #[cfg(feature = "CGWindowLevel")]
 /// [Apple's documentation](https://developer.apple.com/documentation/coregraphics/kcgmaximumwindowlevel?language=objc)
 pub const kCGMaximumWindowLevel: CGWindowLevel = i32::MAX - kCGNumReservedWindowLevels;
+
+#[cfg(feature = "CGRemoteOperation")]
+impl CGEventFilterMask {
+    #[doc(alias = "kCGEventFilterMaskPermitAllEvents")]
+    #[allow(non_upper_case_globals)]
+    pub const PermitAllEvents: Self = Self(
+        Self::PermitLocalMouseEvents.0
+            | Self::PermitLocalKeyboardEvents.0
+            | Self::PermitSystemDefinedEvents.0,
+    );
+}
