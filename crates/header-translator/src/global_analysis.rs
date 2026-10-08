@@ -2,43 +2,60 @@
 //!
 //! Try to keep these as few as possible, since they have a hard time
 //! inspecting other crates.
-use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::mem;
+use std::collections::{BTreeMap, HashMap};
+use std::{iter, mem};
 
 use crate::availability::Availability;
-use crate::documentation::Documentation;
 use crate::expr::Expr;
 use crate::id::ItemTree;
 use crate::method::Method;
 use crate::module::Module;
-use crate::name_translation::{cf_fn_name, find_fn_implementor};
-use crate::stmt::Stmt;
-use crate::Library;
+use crate::name_translation::{find_fn_implementor, shorten_name_when_on_parent};
+use crate::stmt::{GenericWithBound, Stmt};
+use crate::{Config, ItemIdentifier, Library};
 
-pub fn global_analysis(library: &mut Library) {
+pub fn global_analysis(library: &mut Library, config: &Config) {
     let _span = info_span!("analyzing").entered();
 
     // Create a list of implement-able items.
     let mut implementable_mapping = create_implementable_mapping(&library.module);
 
     for (external_name, external_data) in &library.data.external {
-        implementable_mapping.insert(ItemTree::from_id(
-            external_data.clone().into_id(external_name.clone()),
-        ));
+        implementable_mapping.insert(
+            ItemTree::from_id(external_data.clone().into_id(external_name.clone())),
+            Vec::new(),
+        );
     }
 
+    let mut expected_bridged_types = config
+        .libraries
+        .values()
+        .flat_map(|data| &data.class_data)
+        .filter_map(|(name, data)| data.bridged_to.as_ref().map(|bridged| (&**name, bridged)))
+        .filter(|(_, bridged)| bridged.library_name() == library.link_name)
+        .collect();
+
     let ident_mapping = create_ident_mapping(&library.module);
-    update_module(&mut library.module, &implementable_mapping, &ident_mapping);
+    update_module(
+        &mut library.module,
+        &implementable_mapping,
+        &ident_mapping,
+        &mut expected_bridged_types,
+    );
+
+    if !expected_bridged_types.is_empty() {
+        warn!("too many bridged-to in config: {expected_bridged_types:?}");
+    }
 }
 
-fn create_implementable_mapping(module: &Module) -> BTreeSet<ItemTree> {
-    let mut types = BTreeSet::new();
+fn create_implementable_mapping(module: &Module) -> BTreeMap<ItemTree, Vec<GenericWithBound>> {
+    let mut types = BTreeMap::new();
     for stmt in &module.stmts {
-        if stmt.implementable() {
-            types.insert(ItemTree::new(
-                stmt.provided_item().unwrap(),
-                stmt.required_items(),
-            ));
+        if let Some(generics) = stmt.implementable() {
+            types.insert(
+                ItemTree::new(stmt.provided_item().unwrap(), stmt.required_items()),
+                generics,
+            );
         }
     }
     for submodule in module.submodules.values() {
@@ -61,11 +78,10 @@ fn create_ident_mapping(module: &Module) -> HashMap<String, Expr> {
 
 fn update_module(
     module: &mut Module,
-    implementable_mapping: &BTreeSet<ItemTree>,
+    implementable_mapping: &BTreeMap<ItemTree, Vec<GenericWithBound>>,
     ident_mapping: &HashMap<String, Expr>,
+    expected_bridged_types: &mut BTreeMap<&str, &ItemIdentifier>,
 ) {
-    let mut deprecated_fns = vec![];
-
     // Fix location for GetTypeId functions
     for stmt in module.stmts.iter_mut() {
         if let Stmt::FnDecl {
@@ -74,10 +90,10 @@ fn update_module(
             link_name,
             availability,
             arguments,
-            first_arg_is_self,
+            arg_is_self,
             result_type,
             body,
-            safe,
+            safe: _,
             must_use,
             abi,
             returns_retained,
@@ -94,7 +110,7 @@ fn update_module(
                 Some(implementor.clone())
             } else {
                 find_fn_implementor(
-                    implementable_mapping,
+                    implementable_mapping.keys(),
                     c_name,
                     id.location(),
                     arguments,
@@ -102,76 +118,96 @@ fn update_module(
                 )
             };
 
-            if let Some(cf_item) = implementor {
-                let is_instance_method = arguments
-                    .first()
-                    .is_some_and(|(_, arg_ty)| arg_ty.is_self_ty_legal(cf_item.id()));
-                let omit_memory_management_words =
-                    result_type.fn_return(*returns_retained).1.is_some();
+            if let Some(parent_item) = implementor {
+                if let Some((_, first_arg_ty)) = arguments.first() {
+                    if first_arg_ty.is_self_ty_legal(parent_item.id()) {
+                        *arg_is_self = Some(0);
+                    } else if let Some((_, second_arg_ty)) = arguments.get(1) {
+                        // CFAllocatorRef is often the first argument, with
+                        // the logical self-type as the second argument.
+                        //
+                        // E.g. CFAttributedStringCreateCopy.
+                        if first_arg_ty.is_cf_allocator()
+                            && second_arg_ty.is_self_ty_legal(parent_item.id())
+                        {
+                            *arg_is_self = Some(1);
+                        }
+                    }
+                }
 
                 let name = if id.name != *c_name {
                     // Has been renamed already
                     id.name.clone()
                 } else {
-                    cf_fn_name(
+                    let omit_memory_management_words = result_type.is_retained_return()
+                        || arguments
+                            .iter()
+                            .any(|(_, arg_ty)| arg_ty.is_fn_out_param_nonerror());
+                    shorten_name_when_on_parent(
                         c_name,
-                        &cf_item.id().name,
-                        is_instance_method,
+                        &parent_item.id().name,
+                        arg_is_self.is_some(),
                         omit_memory_management_words,
                     )
                 };
 
-                // TODO(breaking): Remove in next version
-                if body.is_none()
-                    && id.library_name() != "Dispatch"
-                    && !link_name.contains("GetTypeID")
-                {
-                    deprecated_fns.push(Stmt::FnDecl {
-                        // Emit with the actual, non-renamed name.
-                        id: id.clone().map_name(|_| c_name.clone()),
-                        c_name: c_name.clone(),
-                        link_name: link_name.clone(),
-                        availability: Availability::new_deprecated(format!(
-                            "renamed to `{}::{}`",
-                            cf_item.id().name,
-                            name,
-                        )),
-                        arguments: arguments.clone(),
-                        result_type: result_type.clone(),
-                        first_arg_is_self: *first_arg_is_self,
-                        body: *body,
-                        safe: *safe,
-                        must_use: *must_use,
-                        abi: abi.clone(),
-                        returns_retained: *returns_retained,
-                        documentation: Documentation::empty(),
-                        no_implementor: false,
-                        custom_implementor: None,
-                    });
-                }
-
                 *id = id.clone().map_name(|_| name.clone());
-
-                if is_instance_method {
-                    *first_arg_is_self = true;
-                }
 
                 documentation.set_alias(c_name.clone());
 
-                // Wrappers have normal Rust ABI (mostly to unclutter docs).
-                *abi = abi.as_rust_outer();
+                let generics = implementable_mapping
+                    .get(&parent_item)
+                    .cloned()
+                    .unwrap_or_default();
 
-                if link_name.contains("GetTypeID") {
+                // Workarounds needed because CoreFoundation types don't
+                // specify template type parameters themselves.
+                for (name, ty) in arguments
+                    .iter_mut()
+                    .map(|(arg_name, arg_ty)| (&**arg_name, arg_ty))
+                    .chain(iter::once(("return", &mut *result_type)))
+                {
+                    // Replace `CFArray` with `CFArray<T>`.
+                    ty.add_default_generics_when_matching(
+                        parent_item.id(),
+                        generics.iter().map(|(name, _)| name.clone()),
+                    );
+
+                    // Replace `void*` with generics in appropriate order.
+                    match &*generics {
+                        [] => {}
+                        [(generic_name, _)] => {
+                            if matches!(
+                                name,
+                                "value" | "values" | "new_values" | "candidate" | "return"
+                            ) {
+                                ty.try_replace_void_with_generic(generic_name);
+                            }
+                        }
+                        // Ultra hacky, though that's fine, we only need to
+                        // support `CFDictionary<K, V>` here.
+                        [(key, _), (value, _)] => match name {
+                            "key" | "keys" => ty.try_replace_void_with_generic(key),
+                            "value" | "values" => ty.try_replace_void_with_generic(value),
+                            "return" if c_name == "CFDictionaryGetValue" => {
+                                ty.try_replace_void_with_generic(value)
+                            }
+                            _ => {}
+                        },
+                        generics => unimplemented!("unimplemented generics: {generics:?}"),
+                    }
+                }
+
+                if link_name.contains("GetTypeID") && link_name != "CFGetTypeID" {
                     assert!(arguments.is_empty(), "{id:?} must have no arguments");
                     assert!(result_type.is_cf_type_id(), "{id:?} must return CFTypeID");
                     assert!(body.is_none(), "{id:?} must not be inline");
-                    assert!(!*safe, "{id:?} must not have manually modified safety");
                     assert!(!*must_use, "{id:?} must not have must_use");
                     assert!(!*returns_retained, "{id:?} must not have returns_retained");
 
                     *stmt = Stmt::FnGetTypeId {
                         id: id.clone(),
-                        cf_item,
+                        cf_item: parent_item,
                         link_name: link_name.clone(),
                         result_type: result_type.clone(),
                         availability: availability.clone(),
@@ -184,7 +220,8 @@ fn update_module(
                         stmt,
                         Stmt::GeneralImpl {
                             location,
-                            item: cf_item,
+                            generics,
+                            item: parent_item,
                             stmts: vec![],
                         },
                     );
@@ -198,7 +235,46 @@ fn update_module(
         }
     }
 
-    module.stmts.extend(deprecated_fns);
+    // Propagate availability information of `init` to `new`.
+    // NOTE: this only works within single files.
+    let init_availability: BTreeMap<String, Availability> = module
+        .stmts
+        .iter()
+        .filter_map(|stmt| match stmt {
+            Stmt::ExternMethods {
+                cls: id, methods, ..
+            }
+            | Stmt::ExternCategory {
+                cls: id, methods, ..
+            }
+            | Stmt::ProtocolDecl { id, methods, .. } => Some(
+                methods
+                    .iter()
+                    .filter(|method| method.selector == "init")
+                    .map(|method| (id.name.clone(), method.availability.clone())),
+            ),
+            _ => None,
+        })
+        .flatten()
+        .collect();
+    for stmt in module.stmts.iter_mut() {
+        if let Stmt::ExternMethods {
+            cls: id, methods, ..
+        }
+        | Stmt::ExternCategory {
+            cls: id, methods, ..
+        }
+        | Stmt::ProtocolDecl { id, methods, .. } = stmt
+        {
+            if let Some(init_availability) = init_availability.get(&id.name) {
+                if let Some(method) = methods.iter_mut().find(|method| method.selector == "new") {
+                    method
+                        .availability
+                        .method_update_new_from_init(init_availability);
+                }
+            }
+        }
+    }
 
     // disambiguate duplicate names
     // NOTE: this only works within single files
@@ -328,9 +404,32 @@ fn update_module(
         module.stmts.push(stmt);
     }
 
+    // Check bridged types.
+    for stmt in &module.stmts {
+        if let Stmt::CFDecl {
+            id,
+            bridged: Some(bridged_class),
+            ..
+        } = stmt
+        {
+            if let Some(bridged_typedef) = expected_bridged_types.remove(&**bridged_class) {
+                if bridged_typedef != id {
+                    warn!("incorrect bridged typedef for {bridged_class}: found `{bridged_typedef}`, expected `{id}`");
+                }
+            } else {
+                warn!("missing bridging decl, add:    class.{bridged_class}.bridged-to = \"{id}\"");
+            }
+        }
+    }
+
     // Recurse for submodules
     for (name, module) in &mut module.submodules {
         let _span = debug_span!("file", name).entered();
-        update_module(module, implementable_mapping, ident_mapping);
+        update_module(
+            module,
+            implementable_mapping,
+            ident_mapping,
+            expected_bridged_types,
+        );
     }
 }

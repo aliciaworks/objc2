@@ -11,22 +11,26 @@ use crate::{Context, ItemIdentifier};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Documentation {
+    first: Option<String>,
+    from_header: Vec<CommentChild>,
+    extras: Vec<String>,
     alias: Option<String>,
-    children: Vec<CommentChild>,
 }
 
 impl Documentation {
     pub fn empty() -> Self {
         Self {
-            children: vec![],
+            first: None,
+            from_header: vec![],
+            extras: vec![],
             alias: None,
         }
     }
 
-    /// Construct from an entity, possible one that has been renamed (such
+    /// Construct from an entity, possibly one that has been renamed (such
     /// that we'll want a doc alias to the entity's actual name).
     pub fn from_entity(entity: &Entity<'_>, context: &Context<'_>) -> Self {
-        let children = if let Some(comment) = entity.get_comment() {
+        let from_header = if let Some(comment) = entity.get_comment() {
             if let Some(parsed) = entity.get_parsed_comment() {
                 parsed.get_children()
             } else {
@@ -49,62 +53,101 @@ impl Documentation {
             None
         };
 
-        Self { children, alias }
+        Self {
+            first: None,
+            from_header,
+            extras: vec![],
+            alias,
+        }
     }
 
-    pub fn property_setter(getter_sel: &str) -> Self {
-        // Emit setter docs to link to getter (otherwise we'd have to
-        // duplicate the documentation across getter and setter).
-        let text = format!("Setter for [`{getter_sel}`][Self::{getter_sel}].");
-        Self {
-            children: vec![CommentChild::Paragraph(vec![CommentChild::Text(text)])],
-            alias: None,
+    /// Get documentation for enum constant / variant and struct fields.
+    ///
+    /// Removes documentation from the item if it contains stuff like
+    /// `@constant child_name` or `@var child_name`, and adds it to the child
+    /// instead.
+    pub fn child(&mut self, entity: &Entity<'_>, context: &Context<'_>) -> Self {
+        let child_name = entity.get_name().unwrap_or_else(|| "__unknown__".into());
+
+        let mut documentation = Self::from_entity(entity, context);
+
+        // Find range from `VerbatimLineCommand("{child_name} ...")` to next
+        // `VerbatimLineCommand(...)`.
+        let mut start = None;
+        let mut end = None;
+        let mut line_command_text = None;
+        for (i, child) in self.from_header.iter().enumerate() {
+            if let CommentChild::VerbatimLineCommand(verbatim_line) = child {
+                if start.is_some() {
+                    end = Some(i);
+                    break;
+                } else {
+                    let (line_command, text) = parse_line_command(verbatim_line);
+                    if line_command == child_name {
+                        start = Some(i);
+                        line_command_text = text;
+                    }
+                }
+            }
         }
+
+        if let Some(start) = start {
+            // Insert the remaining text from the `VerbatimLineCommand`.
+            if let Some(line_command_text) = line_command_text {
+                documentation
+                    .from_header
+                    .push(CommentChild::Text(line_command_text.to_string()));
+            }
+
+            let drain = if let Some(end) = end {
+                self.from_header.drain(start..end)
+            } else {
+                // There was no `VerbatimLineCommand(...)` that could be used
+                // to mark the end (likely because this is the last variant).
+                //
+                // In that case, just grab the next element. This suboptimal,
+                // but it's better than nothing.
+                let mut end = start + 1;
+                if self.from_header.get(end).is_none() {
+                    end = start;
+                }
+                self.from_header.drain(start..=end)
+            };
+
+            // Skip the now redundant `VerbatimLineCommand`.
+            documentation.from_header.extend(drain.skip(1));
+        }
+
+        documentation
+    }
+
+    pub fn set_first(&mut self, doc: impl Into<String>) {
+        self.first = Some(doc.into());
+    }
+
+    pub fn add(&mut self, doc: impl Into<String>) {
+        self.extras.push(doc.into());
     }
 
     pub fn set_alias(&mut self, alias: String) {
         self.alias = Some(alias);
     }
 
-    pub fn fmt_category<'a>(
-        &'a self,
-        category_name: &'a str,
-        cls_name: &'a str,
-    ) -> impl fmt::Display + 'a {
-        FormatterFn(move |f| {
-            if let Some(actual_name) = &self.alias {
-                if actual_name != category_name {
-                    writeln!(f, "/// Category \"{actual_name}\" on [`{cls_name}`].")?;
-                } else {
-                    writeln!(f, "/// Category on [`{cls_name}`].")?;
-                }
-            } else {
-                writeln!(f, "/// Category on [`{cls_name}`].")?;
-            }
-
-            write!(f, "{}", self.fmt(None))?;
-
-            Ok(())
-        })
-    }
-
     pub fn fmt<'a>(&'a self, doc_id: Option<&'a ItemIdentifier>) -> impl fmt::Display + 'a {
         FormatterFn(move |f| {
-            let mut s = String::new();
+            let _span = debug_span!("documentation", ?self).entered();
+            let mut from_header = String::new();
 
-            for child in &self.children {
-                write!(&mut s, "{}", format_child(child))?;
+            for child in &self.from_header {
+                write!(&mut from_header, "{}", format_child(child))?;
             }
 
-            let s = fix_code_blocks(&s)
-                .trim()
-                .replace("\n", "\n/// ")
-                .replace("/// \n", "///\n")
-                .replace("\t", "    ");
-
-            if !s.is_empty() {
-                writeln!(f, "/// {s}")?;
-            }
+            let from_header = fix_code_blocks(&from_header).trim().replace("\t", "    ");
+            let from_header = if from_header.is_empty() {
+                None
+            } else {
+                Some(from_header.to_string())
+            };
 
             // Generate a markdown link to Apple's documentation.
             //
@@ -112,27 +155,68 @@ impl Documentation {
             // methods, and possibly some renamed classes and traits.
             //
             // Additionally, the link may redirect.
+            let mut first = None;
+            let mut last = None;
             if let Some(id) = doc_id {
-                if s.is_empty() {
-                    write!(f, "/// ")?;
-                } else {
-                    writeln!(f, "///")?;
-                    write!(f, "/// See also ")?;
-                }
-                writeln!(
-                    f,
+                let doc_link = format_args!(
                     "[Apple's documentation](https://developer.apple.com/documentation/{}/{}?language=objc)",
                     id.library_name().to_lowercase(),
                     id.name.to_lowercase()
-                )?;
+                );
+
+                if from_header.is_none() && self.first.is_none() {
+                    // If there is no documentation, put this as the primary
+                    // docs. This looks better in rustdoc.
+                    first = Some(format!("{doc_link}"));
+                } else {
+                    // Otherwise, put it at the very end.
+                    last = Some(format!("See also {doc_link}"));
+                }
+            }
+
+            let groups = first
+                .iter()
+                .chain(self.first.iter())
+                .chain(from_header.iter())
+                .chain(self.extras.iter())
+                .chain(last.iter());
+
+            for (i, group) in groups.enumerate() {
+                if i != 0 {
+                    // Intersperse extra newline between groups.
+                    writeln!(f, "///")?;
+                }
+                for line in group.lines() {
+                    if line.is_empty() {
+                        writeln!(f, "///")?;
+                    } else {
+                        writeln!(f, "/// {line}")?;
+                    }
+                }
             }
 
             if let Some(alias) = &self.alias {
-                write!(f, "#[doc(alias = {alias:?})]")?;
+                writeln!(f, "        #[doc(alias = {alias:?})]")?;
             }
 
             Ok(())
         })
+    }
+}
+
+/// VerbatimLineCommand doesn't have any structure, but
+/// "{name} ..rest" seems fairly common, so let's parse it
+/// like that.
+fn parse_line_command(verbatim_line: &str) -> (&str, Option<&str>) {
+    let verbatim_line = verbatim_line.trim();
+    // Try to parse the first item as an identifier-like thing.
+    if let Some(non_ident_pos) = verbatim_line.find(|c: char| {
+        !c.is_ascii_alphanumeric() && c != '_' && c != ':' && c != '`' && c != '+' && c != '-'
+    }) {
+        let (line_command, text) = verbatim_line.split_at(non_ident_pos);
+        (line_command, Some(text))
+    } else {
+        (verbatim_line, None)
     }
 }
 
@@ -154,8 +238,37 @@ fn fix_code_blocks(s: &str) -> String {
     ret
 }
 
+/// Extra commands to pass to `-fcomment-block-commands=`
+pub const EXTRA_BLOCK_COMMANDS: &[&str] = &[
+    "NOTE",
+    "DeprecationSummary",
+    "TabNavigator",
+    "Tab",
+    "decription",
+    "summary",
+    "field",
+    "super",
+    "availability",
+    "group",
+    "memberof",
+    "pparam",
+    "praram",
+    "parameter",
+    "parameters",
+    "other",
+    "define",
+    "defined",
+    "key",
+    "options",
+    "block",
+    "error",
+    "reserved",
+    "header",
+];
+
 fn format_child(child: &CommentChild) -> impl fmt::Display + '_ {
     FormatterFn(move |f| {
+        let _span = debug_span!("child", ?child).entered();
         match child {
             CommentChild::BlockCommand(BlockCommand {
                 command,
@@ -169,33 +282,56 @@ fn format_child(child: &CommentChild) -> impl fmt::Display + '_ {
                     // @abstract is an alternate name for @brief
                     "brief" | "abstract" => {}
                     // @description and @details are alternate names for @discussion
-                    "discussion" | "description" | "details" => {}
+                    "discussion" | "description" | "decription" | "details" => {}
                     "remark" | "remarks" => {}
+                    "summary" => {}
+                    "helps" => {}
                     "see" => write!(f, "See: ")?,
                     "seealso" | "sa" => write!(f, "See also: ")?,
-                    "note" => write!(f, "Note: ")?,
+                    "note" | "NOTE" => write!(f, "Note: ")?,
                     "warning" => write!(f, "Warning: ")?,
                     "dependency" => write!(f, "Dependencies: ")?,
                     "result" | "return" | "returns" => write!(f, "Returns: ")?,
                     // TODO: Convert to # Panic section?
                     "throws" => write!(f, "Throws a ")?,
                     "performance" => write!(f, "Performance: ")?,
+                    "field" => write!(f, "Field: ")?,
+                    "super" => write!(f, "Super: ")?,
+                    "availability" => write!(f, "Availability: ")?,
+                    "copyright" => write!(f, "Copyright: ")?,
                     // For some odd reason, @host is parsed to post here?
                     "post" => write!(f, "@host")?,
                     // Ignore
-                    "superclass" => return Ok(()),
-                    // This is just the name of the thing we're parsing, so ignore.
-                    "defined" => return Ok(()),
+                    "superclass" | "coclass" => return Ok(()),
                     // Ignore for now, though in the future we should perhaps
                     // integrate this with `Availability`.
-                    "deprecated" => return Ok(()),
+                    "deprecated" | "DeprecationSummary" => return Ok(()),
                     // List
                     "li" => {}
+                    // Apple-specific extension to allow code blocks to be
+                    // dependent on
+                    "TabNavigator" => write!(f, "@TabNavigator")?,
+                    "Tab" => write!(f, "@Tab")?,
+                    // Grouping
+                    "group" | "memberof" => {}
+                    // Alternative for @param that isn't parsed into ParamCommand (?)
+                    "pparam" | "praram" | "parameter" => write!(f, "Parameter ")?,
+                    "parameters" => write!(f, "Parameters ")?,
+                    "other" => write!(f, "Parameter `other`: ")?,
+                    // This is just the name of the thing we're parsing, so ignore.
+                    "define" | "defined" | "key" | "options" | "block" => return Ok(()),
+                    // Unsure, it's used differently in GLKit and Security.
+                    "error" => write!(f, "@error ")?,
+                    // Already says "Reserved" in text, so no need to add that.
+                    "reserved" => {}
+                    // Shouldn't actually be hit, but is for some reason?
+                    "header" => {}
                     _ => warn!(?child, "unknown documentation command"),
                 }
 
-                if !arguments.is_empty() {
-                    error!(?child, "BlockCommand had arguments");
+                for arg in arguments {
+                    // Seems to only be relevant for `@throws`?
+                    write!(f, "{arg} ")?;
                 }
 
                 for child in children {
@@ -234,25 +370,20 @@ fn format_child(child: &CommentChild) -> impl fmt::Display + '_ {
                     ("autoreleasepool", &[]) => write!(f, "objc2::rc::autoreleasepool")?,
                     ("selector", &[]) => write!(f, "sel!")?,
                     ("MainActor", &[]) => write!(f, "MainThreadOnly")?,
-                    // Boolean values (Written as @YES and @NO).
-                    ("YES", &[]) => write!(f, "`true`")?,
-                    ("NO", &[]) => write!(f, "`false`")?,
-                    // Grouping
-                    ("group" | "memberof", _) => {}
-                    // Alternative for @param that isn't parsed into ParamCommand (?)
-                    ("pparam" | "parameter", &[]) => write!(f, "Parameter ")?,
-                    ("parameters", &[]) => write!(f, "Parameters ")?,
-                    // Not parsed into a block
-                    ("field", &[]) => write!(f, "Field: ")?,
-                    ("super", _) => write!(f, "Super: ")?,
-                    ("availability", _) => write!(f, "Availability: ")?,
-                    // This is just the name of the thing we're parsing, so ignore.
-                    ("define" | "defined" | "key" | "options", _) => {}
-                    // Shouldn't actually be hit, but is for some reason?
-                    ("header", _) => {}
-                    ("description", _) => {}
+                    // Boolean values (Written as @YES and @NO, and sometimes
+                    // as @true and @false).
+                    ("YES" | "true", &[]) => write!(f, "`true`")?,
+                    ("NO" | "false", &[]) => write!(f, "`false`")?,
+                    // Insides of code blocks that is incorrectly parsed.
+                    ("objc" | "implementation" | "end" | "escaping", []) => {
+                        write!(f, "@{command} ")?
+                    }
                     // ImageCaptureCore uses enums with things like `@ICMediaPresentation`.
                     (ic, _) if ic.starts_with("IC") => {}
+                    // Constants like `@kAUPresetTypeKey` incorrectly parsed.
+                    (command, []) if command.starts_with("k") => write!(f, "@{command}")?,
+                    // `/pci@f0000000/usb@5` incorrectly parsed.
+                    ("f0000000", _) => write!(f, "@f0000000")?,
                     _ => warn!(?child, "unknown documentation command"),
                 }
             }
@@ -273,8 +404,55 @@ fn format_child(child: &CommentChild) -> impl fmt::Display + '_ {
                 writeln!(f, "</{}>", name.trim())?;
             }
             CommentChild::Paragraph(children) => {
-                for child in children {
-                    write!(f, "{}", format_child(child))?;
+                let mut iter = children.iter().peekable();
+                let mut no_trim_next = false;
+                while let Some(child) = iter.next() {
+                    if let CommentChild::Text(child) = child {
+                        let child = if no_trim_next {
+                            no_trim_next = false;
+                            child
+                        } else {
+                            child.trim()
+                        };
+
+                        if let Some(CommentChild::Text(text)) = iter.peek() {
+                            // A single `"` usually means a `@"xyz"` that was
+                            // handled wrongly by Clang.
+                            //
+                            // In that case, merge the next three
+                            // `CommentChild::Text`s into a single line.
+                            //
+                            // Similar for a single `@` or `\`.
+                            if text == "\"" || text == "\\" || text == "@" {
+                                let _ = iter.next();
+                                write!(f, "{child}")?;
+                                if text == "\"" {
+                                    write!(f, "@")?;
+                                }
+                                // Intentionally no newline
+                                write!(f, "{text}")?;
+                                no_trim_next = true;
+                                continue;
+                            }
+                        }
+
+                        // A trailing `@` usually means a `@123` that was
+                        // handled wrongly by Clang.
+                        //
+                        // In that case, don't write a newline.
+                        if child.ends_with("@") || child.ends_with("%") {
+                            write!(f, "{child}")?;
+                            no_trim_next = true;
+                            continue;
+                        }
+
+                        if !child.is_empty() {
+                            writeln!(f, "{child}")?;
+                        }
+                    } else {
+                        no_trim_next = false;
+                        write!(f, "{}", format_child(child))?;
+                    }
                 }
 
                 writeln!(f)?;
@@ -312,10 +490,18 @@ fn format_child(child: &CommentChild) -> impl fmt::Display + '_ {
                 writeln!(f, "```")?;
                 writeln!(f)?;
             }
-            CommentChild::VerbatimLineCommand(_) => {
-                // Often comes from @member or similar that just name the item
-                // again.
-                // writeln!(f, "{}", verbatim_line.trim())?;
+            CommentChild::VerbatimLineCommand(verbatim_line) => {
+                // Often comes from `@member` or similar that just name the
+                // item we're already documenting again, so we won't bother
+                // with outputting that here.
+                let (line_command, text) = parse_line_command(verbatim_line);
+                // If there was extra text after the item name, we do want to
+                // emit that. We also emit the first part, since parsing
+                // `VerbatimLineCommand` isn't really possible, and it's
+                // common to run into things like `@class This class does xyz`.
+                if let Some(text) = text {
+                    writeln!(f, "{line_command}{text}")?;
+                }
             }
         }
 
@@ -330,7 +516,9 @@ mod tests {
     #[track_caller]
     fn check(children: &[CommentChild], expected: &str) {
         let actual = Documentation {
-            children: children.to_vec(),
+            first: None,
+            from_header: children.to_vec(),
+            extras: vec![],
             alias: None,
         }
         .fmt(None)
@@ -522,5 +710,32 @@ mod tests {
         ];
         let expected = "/// A\n/// B.\n///\n/// C.\n";
         check(&children, expected);
+    }
+
+    #[test]
+    fn wrong_quote() {
+        let children = [CommentChild::Paragraph(vec![
+            CommentChild::Text("NSClassFromString(".into()),
+            CommentChild::Text("\"".into()),
+            CommentChild::Text("NSProcessInfo\") + @".into()),
+            CommentChild::Text("123;".into()),
+            CommentChild::Text("Xyz".into()),
+        ])];
+        let expected = "/// NSClassFromString(@\"NSProcessInfo\") + @123;\n/// Xyz\n";
+        check(&children, expected);
+    }
+
+    #[test]
+    fn line_command() {
+        assert_eq!(parse_line_command("  x"), ("x", None));
+        assert_eq!(parse_line_command("foo(bar)"), ("foo", Some("(bar)")));
+        assert_eq!(
+            parse_line_command("  foo_a:xyz: bar"),
+            ("foo_a:xyz:", Some(" bar"))
+        );
+        assert_eq!(
+            parse_line_command("  (readonly) CMTime timestamp;  "),
+            ("", Some("(readonly) CMTime timestamp;"))
+        );
     }
 }

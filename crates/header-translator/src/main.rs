@@ -1,23 +1,26 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::fmt::Write as _;
 use std::io::{ErrorKind, Read, Seek, Write};
 use std::path::Path;
 use std::{fs, io};
 
 use apple_sdk::{AppleSdk, DeveloperDirectory, Platform, SdkPath, SimpleSdk};
+use clang::diagnostic::Severity;
 use clang::{Clang, EntityKind, EntityVisitResult, Index, TranslationUnit};
 use clap::Parser;
 use semver::VersionReq;
-use tracing::{debug_span, error, info, info_span, trace_span};
-use tracing_subscriber::filter::LevelFilter;
+use tracing::level_filters::LevelFilter;
+use tracing::{debug_span, error, info, info_span, trace, trace_span, warn};
+use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::layer::{Layer, SubscriberExt};
 use tracing_subscriber::registry::Registry;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_tree::HierarchicalLayer;
 
 use header_translator::{
-    global_analysis, load_config, load_skipped, run_cargo_fmt, Config, Context, EntryExt, Library,
-    LibraryConfig, Location, MacroEntity, MacroLocation, PlatformCfg, Stmt, HOST_MACOS, VERSION,
+    global_analysis, is_available, run_cargo_fmt, Config, Context, EntryExt, Library,
+    LibraryConfig, Location, MacroEntity, MacroLocation, PlatformCfg, Stmt, EXTRA_BLOCK_COMMANDS,
+    VERSION,
 };
 
 type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
@@ -33,26 +36,18 @@ struct Cli {
 }
 
 fn main() -> Result<(), BoxError> {
-    // use tracing_subscriber::fmt;
+    // Run with `RUST_LOG=debug RUST_LOG_NO_DEFERRED=1` to get more context
+    // for errors.
+    let filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .from_env_lossy();
     Registry::default()
-        // .with(
-        //     fmt::Layer::default()
-        //         .compact()
-        //         .without_time()
-        //         .with_target(false)
-        //         .with_span_events(fmt::format::FmtSpan::ACTIVE)
-        //         .with_filter(LevelFilter::INFO)
-        //         .with_filter(tracing_subscriber::filter::filter_fn(|metadata| {
-        //             metadata.is_span() && metadata.level() == &tracing::Level::INFO
-        //         })),
-        // )
-        // .with(tracing_subscriber::fmt::Layer::default().with_filter(LevelFilter::ERROR))
         .with(
             HierarchicalLayer::new(2)
                 .with_targets(false)
                 .with_indent_lines(true)
-                // Note: Change this to DEBUG if you want to see more info
-                .with_filter(LevelFilter::INFO),
+                .with_deferred_spans(std::env::var_os("RUST_LOG_NO_DEFERRED").is_some())
+                .with_filter(filter),
         )
         .init();
 
@@ -75,7 +70,7 @@ fn main() -> Result<(), BoxError> {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let workspace_dir = manifest_dir.parent().unwrap().parent().unwrap();
 
-    let config = load_config()?;
+    let config = Config::load()?;
 
     clang_sys::load()?;
     info!(clang_version = clang::get_version());
@@ -101,7 +96,7 @@ fn main() -> Result<(), BoxError> {
                 .filter(|sdk| !sdk.is_symlink() && sdk.platform() == &*platform)
                 .collect();
             if sdks.len() != 1 {
-                panic!("found multiple sdks {sdks:?} in {:?}", &*platform);
+                panic!("found multiple sdks {sdks:?} in {:?}", *platform);
             }
             sdks[0].sdk_path()
         })
@@ -137,7 +132,7 @@ fn main() -> Result<(), BoxError> {
 
     update_ci(workspace_dir, &config)?;
 
-    update_list(workspace_dir, &config, &load_skipped().unwrap())?;
+    update_list(workspace_dir, &config)?;
 
     Ok(())
 }
@@ -247,6 +242,7 @@ fn parse_library(
 
     let llvm_targets: &[_] = match &sdk.platform {
         Platform::MacOsX => {
+            // NOTE: SafariServices overrides the target!
             if data.macos.is_some() {
                 &[
                     "arm64-apple-macosx10.12.0",
@@ -262,26 +258,26 @@ fn parse_library(
             // "armv7s-apple-ios10.0.0",
         ],
         Platform::AppleTvOs => &[
-            "arm64-apple-tvos",
+            "arm64-apple-tvos10.0.0",
             // "x86_64-apple-tvos",
         ],
         Platform::WatchOs => &[
-            "arm64-apple-watchos",
+            "arm64-apple-watchos5.0.0",
             // "arm64_32-apple-watchos",
             // "armv7k-apple-watchos",
         ],
-        Platform::XrOs => &["arm64-apple-xros"],
+        Platform::XrOs => &["arm64-apple-xros1.0"],
         _ => unimplemented!("SDK platform {sdk:?}"),
     };
 
     for llvm_target in llvm_targets {
         let _span = info_span!("target", platform = ?sdk.platform, llvm_target).entered();
 
-        let mut context = Context::new(config);
+        let mut context = Context::new(config, name);
         let mut library = Library::new(name, data);
         let tu = get_translation_unit(index, sdk, llvm_target, data, tempdir);
         parse_translation_unit(tu, &mut context, &mut library);
-        global_analysis(&mut library);
+        global_analysis(&mut library, config);
 
         if let Some(prev_result) = &result {
             // Ensure that each target produces the same result.
@@ -384,7 +380,7 @@ fn parse_translation_unit(
         match entity.get_kind() {
             EntityKind::InclusionDirective if preprocessing => {
                 let file = entity.get_file().expect("inclusion directive has file");
-                let location = Location::from_file(file);
+                let location = Location::from_file(file, context);
                 if context.module_configs(&location).any(|c| c.skipped) {
                     return EntityVisitResult::Continue;
                 }
@@ -393,13 +389,13 @@ fn parse_translation_unit(
                 }
             }
             EntityKind::MacroExpansion if preprocessing => {
-                let entity = MacroEntity::from_entity(&entity, context);
+                let entity = MacroEntity::from_entity(&entity, context, false);
                 context
                     .macro_invocations
                     .insert(MacroLocation::from_location(&location), entity);
             }
             EntityKind::MacroDefinition if preprocessing => {
-                let macro_entity = MacroEntity::from_entity(&entity, context);
+                let macro_entity = MacroEntity::from_entity(&entity, context, true);
                 context
                     .macro_invocations
                     .insert(MacroLocation::from_location(&location), macro_entity);
@@ -409,7 +405,7 @@ fn parse_translation_unit(
                     return EntityVisitResult::Continue;
                 };
 
-                let location = Location::from_file(file);
+                let location = Location::from_file(file, context);
 
                 // Only parse if the module is the current one and is not skipped.
                 if location.library_name() != library.data.framework
@@ -435,7 +431,7 @@ fn parse_translation_unit(
                     .get_expansion_location()
                     .file
                     .expect("expanded location file");
-                let location = Location::from_file(file);
+                let location = Location::from_file(file, context);
 
                 // Don't try to parse if the entire module, or supermodule, is skipped.
                 if context.module_configs(&location).any(|c| c.skipped) {
@@ -484,6 +480,24 @@ fn get_translation_unit<'i: 'c, 'c>(
         }
     }
 
+    // Certain developer frameworks like XCTest are found in the platform
+    // path instead of the SDK path.
+    let platform_framework_path = sdk
+        .path
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("Library/Frameworks");
+
+    let platform_path = platform_framework_path.join(format!(
+        "{}.framework/Modules/module.modulemap",
+        data.framework
+    ));
+    if data.located_outside_sdk {
+        path = platform_path;
+    }
+
     // Find the framework module name
     let module = if data.modulemap.is_none() {
         let re = regex::Regex::new(r"(?m)^framework +module +(\w*)").unwrap();
@@ -497,6 +511,11 @@ fn get_translation_unit<'i: 'c, 'c>(
         // (dispatch.modulemap has both Dispatch and DispatchIntrospection).
         data.framework.clone()
     };
+
+    let comment_block_commands = format!(
+        "-fcomment-block-commands={}",
+        EXTRA_BLOCK_COMMANDS.join(",")
+    );
 
     let cache_path = format!("-fmodules-cache-path={}", tempdir.to_str().unwrap());
     let module_name = format!("-fmodule-name={module}");
@@ -517,6 +536,8 @@ fn get_translation_unit<'i: 'c, 'c>(
         //
         // See: https://clang.llvm.org/docs/UsersManual.html#comment-parsing-options
         "-fretain-comments-from-system-headers",
+        // Make Clang a bit better at parsing Apple's documentation.
+        &comment_block_commands,
         // Tell Clang to parse non-doc comments too.
         // "-fparse-all-comments",
         // Explicitly pass the sysroot (we aren't invoked through
@@ -547,7 +568,7 @@ fn get_translation_unit<'i: 'c, 'c>(
         "-Xclang",
         "-emit-module",
         &module_name,
-        "-fsystem-module",
+        // "-fsystem-module",
         // "-fmodules-validate-system-headers",
         // "-fmodules-search-all",
         "-Xclang",
@@ -556,11 +577,16 @@ fn get_translation_unit<'i: 'c, 'c>(
         // "-fmodule-feature",
         // "-Xclang",
         // "swift",
-        "-disable-objc-default-synthesize-properties",
+        // "-disable-objc-default-synthesize-properties",
         // Explicitly enable API notes (implicitly enabled by -fmodules).
         "-fapinotes",
         "-fapinotes-modules",
         // "-fapi-notes-swift-version=6.0",
+        // Make properties that are nonatomic on iOS only be nonatomic
+        // everywhere; this is the safe default, we can consider `cfg`-gating
+        // these in the future.
+        "-D",
+        "NS_NONATOMIC_IOSONLY=nonatomic",
     ];
 
     // Add include paths for Mac Catalyst
@@ -572,6 +598,13 @@ fn get_translation_unit<'i: 'c, 'c>(
             ios_include.to_str().unwrap(),
             "-iframework",
             ios_frameworks.to_str().unwrap(),
+        ]);
+    }
+
+    if data.located_outside_sdk {
+        arguments.extend(&[
+            "-iframework",
+            platform_framework_path.as_os_str().to_str().unwrap(),
         ]);
     }
 
@@ -591,6 +624,27 @@ fn get_translation_unit<'i: 'c, 'c>(
         .arguments(&arguments)
         .parse()
         .unwrap();
+
+    for diag in tu.get_diagnostics() {
+        let location = diag.get_location().get_spelling_location();
+        let location = format!(
+            "{}:{}:{}",
+            location
+                .file
+                .map(|f| f.get_path())
+                .unwrap_or_else(|| "unknown".into())
+                .to_string_lossy(),
+            location.line,
+            location.column
+        );
+        let text = diag.get_text();
+        match diag.get_severity() {
+            Severity::Ignored => trace!("{location}: {text}"),
+            Severity::Note => info!("{location}: {text}"),
+            Severity::Warning => warn!("{location}: {text}"),
+            Severity::Error | Severity::Fatal => error!("{location}: {text}"),
+        }
+    }
 
     // dbg!(&tu);
     // dbg!(tu.get_entity().get_children());
@@ -651,6 +705,9 @@ fn update_ci(workspace_dir: &Path, config: &Config) -> io::Result<()> {
             if library.is_library {
                 continue; // Skip non-framework crates for now
             }
+            if library.located_outside_sdk {
+                continue; // Cannot easily link to these.
+            }
             if check(library) {
                 frameworks.insert(&*library.krate);
             }
@@ -679,6 +736,19 @@ fn update_ci(workspace_dir: &Path, config: &Config) -> io::Result<()> {
                 | "objc2-scene-kit"
         )
     };
+    // HACK: Cinematic, MediaSetup, etc. aren't available in the simulator.
+    // MLCompute and MetalFX are also only available on Aarch64
+    let not_on_simulator = |lib: &LibraryConfig| {
+        matches!(
+            &*lib.krate,
+            "objc2-cinematic"
+                | "objc2-media-setup"
+                | "objc2-thread-network"
+                | "objc2-ml-compute"
+                | "objc2-metal-fx"
+        )
+    };
+
     writer(&mut ci, config, "FRAMEWORKS_MACOS_10_12", |lib| {
         lib.macos
             .as_ref()
@@ -733,15 +803,15 @@ fn update_ci(workspace_dir: &Path, config: &Config) -> io::Result<()> {
         lib.ios
             .as_ref()
             .is_some_and(|v| VersionReq::parse("<=17.0").unwrap().matches(v))
-            // HACK: MLCompute and MetalFX are only available on Aarch64
-            && !["objc2-ml-compute", "objc2-metal-fx"].contains(&&*lib.krate)
-            // HACK: Cinematic, MediaSetup, etc. aren't available in the simulator.
-            && !["objc2-cinematic", "objc2-media-setup", "objc2-thread-network"].contains(&&*lib.krate)
+            && !not_on_simulator(lib)
     })?;
     writer(&mut ci, config, "FRAMEWORKS_TVOS_17", |lib| {
         lib.tvos
             .as_ref()
             .is_some_and(|v| VersionReq::parse("<=17.0").unwrap().matches(v))
+            // HACK: MetalPerformanceShadersGraph is not available on tvOS simulator
+            && !["objc2-metal-performance-shaders-graph"].contains(&&*lib.krate)
+            && !not_on_simulator(lib)
     })?;
     writer(&mut ci, config, "FRAMEWORKS_MAC_CATALYST_17", |lib| {
         lib.maccatalyst
@@ -752,11 +822,13 @@ fn update_ci(workspace_dir: &Path, config: &Config) -> io::Result<()> {
         lib.visionos
             .as_ref()
             .is_some_and(|v| VersionReq::parse("<=1.0").unwrap().matches(v))
+            && !not_on_simulator(lib)
     })?;
     writer(&mut ci, config, "FRAMEWORKS_WATCHOS_10", |lib| {
         lib.watchos
             .as_ref()
             .is_some_and(|v| VersionReq::parse("<=10.0").unwrap().matches(v))
+            && !not_on_simulator(lib)
     })?;
     writer(&mut ci, config, "FRAMEWORKS_GNUSTEP", |lib| {
         // HACK: CoreFoundation uses mach types that GNUStep doesn't support
@@ -768,19 +840,19 @@ fn update_ci(workspace_dir: &Path, config: &Config) -> io::Result<()> {
     Ok(())
 }
 
-fn update_list(
-    workspace_dir: &Path,
-    config: &Config,
-    skipped: &BTreeMap<String, String>,
-) -> io::Result<()> {
+fn update_list(workspace_dir: &Path, config: &Config) -> io::Result<()> {
     let _span = info_span!("updating lists").entered();
 
-    let mut f = fs::File::create(
-        workspace_dir.join("crates/objc2/src/topics/about_generated/list_data.md"),
-    )?;
+    let mut f = fs::File::create(workspace_dir.join("docs/frameworks_list.md"))?;
+
+    writeln!(f, "# List of framework crates")?;
+    writeln!(f)?;
+    writeln!(f, "The following is a full list of all supported Apple")?;
+    writeln!(f, "frameworks, and the corresponding Rust crate.")?;
+    writeln!(f)?;
 
     writeln!(f, "| Framework | Crate | Docs.rs |")?;
-    writeln!(f, "| --- | --- | --- |")?;
+    writeln!(f, "| --------- | ----- | ------- |")?;
 
     for (name, library) in config.to_parse() {
         if library.is_library {
@@ -790,30 +862,42 @@ fn update_list(
         writeln!(f, "| `{name}` | [`{package}`](https://crates.io/crates/{package}) | [![docs.rs](https://docs.rs/{package}/badge.svg)](https://docs.rs/{package}/) |")?;
     }
 
-    let mut f = fs::File::create(
-        workspace_dir.join("crates/objc2/src/topics/about_generated/list_unsupported.md"),
-    )?;
+    writeln!(f)?;
+    writeln!(f, "## Unsupported")?;
+    writeln!(f)?;
+    writeln!(f, "Unsupported frameworks are listed below, feel free to")?;
+    writeln!(f, "[open an issue][new] if a framework that you need isn't")?;
+    writeln!(f, "supported, or if you disagree with the given reasoning.")?;
+    writeln!(f)?;
+    writeln!(f, "[new]: https://github.com/madsmtm/objc2/issues/new")?;
+    writeln!(f)?;
 
     writeln!(f, "| Framework | Why is this unsupported? |")?;
-    writeln!(f, "| --- | --- |")?;
+    writeln!(f, "| --------- | ------------------------ |")?;
 
-    for (framework, why) in skipped {
+    for (framework, why) in &config.skipped {
         writeln!(f, "| `{framework}` | {why}. |")?;
     }
+
+    f.sync_all()?;
+    drop(f);
 
     Ok(())
 }
 
 fn update_test_metadata(workspace_dir: &Path, config: &Config) {
     let test_crate_dir = workspace_dir.join("crates").join("test-frameworks");
+    let tested = config
+        .to_parse()
+        .filter(|(_, lib)| !lib.located_outside_sdk);
 
     let _span = info_span!("updating test-frameworks metadata").entered();
 
     // Write imports
     let mut s = String::new();
-    for (_, lib) in config.to_parse() {
-        if let Some(macos) = &lib.macos {
-            if (HOST_MACOS as u64) < macos.major {
+    for (_, lib) in tested.clone() {
+        if let Some(version) = &lib.macos {
+            if !is_available(version.major as _, version.minor as _, version.patch as _) {
                 // Skip library if not available on current host.
                 continue;
             }
@@ -822,7 +906,7 @@ fn update_test_metadata(workspace_dir: &Path, config: &Config) {
         if let Some(cfgs) = platform_cfg.cfgs() {
             writeln!(&mut s, "#[cfg({cfgs})]",).unwrap();
         }
-        writeln!(&mut s, "pub use {}::*;", &lib.krate.replace('-', "_")).unwrap();
+        writeln!(&mut s, "pub use {}::*;", lib.krate.replace('-', "_")).unwrap();
     }
     // This fork's workspace is the tool, the core crates and the frameworks it generates, and has no test
     // crate at all - a missing directory is a reason not to write this file rather than to stop after the
@@ -843,7 +927,7 @@ fn update_test_metadata(workspace_dir: &Path, config: &Config) {
         .expect("invalid test toml");
 
     let mut features = toml_edit::Array::new();
-    for (_, lib) in config.to_parse() {
+    for (_, lib) in tested.clone() {
         // Add feature per crate.
         //
         // This is required for some reason for `cargo run --example` to work
@@ -917,7 +1001,7 @@ fn update_test_metadata(workspace_dir: &Path, config: &Config) {
     ]));
     let _ = cargo_toml.remove("target");
 
-    for (_, lib) in config.to_parse() {
+    for (_, lib) in tested.clone() {
         let platform_cfg = PlatformCfg::from_config_explicit(lib);
 
         let dependencies = if let Some(cfgs) = platform_cfg.cfgs() {

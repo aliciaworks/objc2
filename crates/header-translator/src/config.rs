@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+use std::collections::hash_map::Entry;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::error::Error;
 use std::fs;
@@ -12,69 +14,56 @@ use semver::Version;
 use serde::{de, Deserialize, Deserializer};
 
 use crate::name_translation::cf_no_ref;
-use crate::stmt::{Counterpart, Derives};
 use crate::{ItemIdentifier, Location};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Config {
-    libraries: BTreeMap<String, LibraryConfig>,
-}
-
-pub fn load_skipped() -> Result<BTreeMap<String, String>, Box<dyn Error + Send + Sync>> {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("configs")
-        .join("skipped.toml");
-    Ok(basic_toml::from_str(&fs::read_to_string(path)?)?)
-}
-
-pub fn load_config() -> Result<Config, Box<dyn Error + Send + Sync>> {
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let workspace_dir = manifest_dir.parent().unwrap().parent().unwrap();
-
-    let _span = info_span!("loading configs").entered();
-
-    let mut libraries = BTreeMap::default();
-
-    for dir in fs::read_dir(workspace_dir.join("framework-crates"))? {
-        let dir = dir?;
-        if !dir.file_type()?.is_dir() {
-            continue;
-        }
-        let path = dir.path().join("translation-config.toml");
-        let config =
-            LibraryConfig::from_file(&path).unwrap_or_else(|e| panic!("read {path:?} config: {e}"));
-        assert_eq!(*config.krate, *dir.file_name());
-        libraries.insert(config.framework.to_string(), config);
-    }
-
-    let path = workspace_dir
-        .join("crates")
-        .join("block2")
-        .join("translation-config.toml");
-    let objc = basic_toml::from_str(&fs::read_to_string(path)?)?;
-    libraries.insert("block".to_string(), objc);
-
-    let path = workspace_dir
-        .join("crates")
-        .join("objc2")
-        .join("translation-config.toml");
-    let objc = basic_toml::from_str(&fs::read_to_string(path)?)?;
-    libraries.insert("ObjectiveC".to_string(), objc);
-
-    let path = workspace_dir
-        .join("crates")
-        .join("dispatch2")
-        .join("translation-config.toml");
-    let objc = basic_toml::from_str(&fs::read_to_string(path)?)?;
-    libraries.insert("Dispatch".to_string(), objc);
-
-    Config::new(libraries)
+    pub libraries: BTreeMap<String, LibraryConfig>,
+    pub skipped: BTreeMap<String, String>,
 }
 
 impl Config {
-    pub fn new(
-        mut libraries: BTreeMap<String, LibraryConfig>,
-    ) -> Result<Self, Box<dyn Error + Send + Sync>> {
+    pub fn load() -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let workspace_dir = manifest_dir.parent().unwrap().parent().unwrap();
+
+        let _span = info_span!("loading configs").entered();
+
+        let mut libraries = BTreeMap::default();
+
+        for dir in fs::read_dir(workspace_dir.join("framework-crates"))? {
+            let dir = dir?;
+            if !dir.file_type()?.is_dir() {
+                continue;
+            }
+            let path = dir.path().join("translation-config.toml");
+            let config = LibraryConfig::from_file(&path)
+                .unwrap_or_else(|e| panic!("read {path:?} config: {e}"));
+            assert_eq!(*config.krate, *dir.file_name());
+            libraries.insert(config.framework.to_string(), config);
+        }
+
+        let path = workspace_dir
+            .join("crates")
+            .join("block2")
+            .join("translation-config.toml");
+        let objc = toml::from_str(&fs::read_to_string(path)?)?;
+        libraries.insert("block".to_string(), objc);
+
+        let path = workspace_dir
+            .join("crates")
+            .join("objc2")
+            .join("translation-config.toml");
+        let objc = toml::from_str(&fs::read_to_string(path)?)?;
+        libraries.insert("ObjectiveC".to_string(), objc);
+
+        let path = workspace_dir
+            .join("crates")
+            .join("dispatch2")
+            .join("translation-config.toml");
+        let objc = toml::from_str(&fs::read_to_string(path)?)?;
+        libraries.insert("Dispatch".to_string(), objc);
+
         let configs_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("configs");
 
         for lib in libraries.values() {
@@ -85,18 +74,21 @@ impl Config {
 
         for builtin_file in builtin_files {
             let path = configs_dir.join(builtin_file);
-            let config: LibraryConfig = basic_toml::from_str(&fs::read_to_string(path)?)?;
+            let config: LibraryConfig = toml::from_str(&fs::read_to_string(path)?)?;
             libraries.insert(config.framework.clone(), config);
         }
 
-        for framework in load_skipped()?.keys() {
+        let skipped_path = manifest_dir.join("configs").join("skipped.toml");
+        let skipped: BTreeMap<String, String> = toml::from_str(&fs::read_to_string(skipped_path)?)?;
+
+        for framework in skipped.keys() {
             assert!(
                 !libraries.contains_key(framework),
                 "skipped framework {framework} was not actually skipped"
             );
         }
 
-        Ok(Self { libraries })
+        Ok(Self { libraries, skipped })
     }
 
     pub fn try_library(&self, library_name: &str) -> Option<&LibraryConfig> {
@@ -205,7 +197,7 @@ fn get_version<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<Vers
             Ok(None)
         }
 
-        fn visit_borrowed_str<E>(self, v: &str) -> Result<Self::Value, E>
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
         where
             E: de::Error,
         {
@@ -253,6 +245,13 @@ pub struct LibraryConfig {
     #[serde(rename = "is-library")]
     #[serde(default)]
     pub is_library: bool,
+    #[serde(rename = "located-outside-sdk")]
+    #[serde(default)]
+    pub located_outside_sdk: bool,
+    // TODO: Maybe flip this config option, and make most dependencies non-default?
+    #[serde(rename = "undesired-default-dependencies")]
+    #[serde(default)]
+    pub undesired_default_dependencies: HashSet<String>,
 
     #[serde(default = "link_default")]
     pub link: bool,
@@ -321,12 +320,73 @@ pub struct LibraryConfig {
     #[serde(default)]
     pub const_data: HashMap<String, StmtData>,
 
+    #[serde(rename = "unsafe-default-safety")]
+    #[serde(default)]
+    pub default_safety: DefaultSafety,
     #[serde(default)]
     pub module: HashMap<String, ModuleConfig>,
 }
 
+/// There are many different things that influence the soundness
+/// of an API. A few of these:
+/// 1. Initialization safety.
+/// 2. Lifetime safety.
+/// 3. Type safety.
+/// 4. Bounds safety.
+/// 5. Thread safety.
+/// 6. Arbitrary additional restrictions.
+///
+/// Objective-C's object model upholds the initialization requirement, we can
+/// reasonably ensure that lifetime safety is upheld (object pointers are
+/// reference-counted, and we can disallow direct pointers), type safety is
+/// also doable (the subtyping model is fairly intricate, but we can be
+/// conservative), collections like NSArray etc. are internally bounds checked
+/// and thread safety is handled by `nonatomic` on properties, as well as the
+/// NS_SWIFT_SENDABLE- and NS_SWIFT_UI_ACTOR-like macros.
+///
+/// The only thing we really can't check automatically is if a function/method
+/// does something outside the usual. One example of this is the
+/// `NSAutoreleasePool` class, which may allow one to violate lifetime safety
+/// if misused.
+///
+/// As such, each framework must be explicitly marked with the kinds of safety
+/// it has been reviewed for.
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(deny_unknown_fields)]
+pub struct DefaultSafety {
+    /// All methods, functions and properties are marked as safe by default,
+    /// provided that they do not take pointers or other such things as
+    /// arguments.
+    #[serde(rename = "documentation-is-reviewed")]
+    #[serde(default)]
+    pub automatically_safe: bool,
+    /// Whether functions or methods with bounds-affecting parameters are
+    /// checked internally, and thus don't need to be unsafe.
+    ///
+    /// The documentation in CoreFoundation-like frameworks often say it's
+    /// "undefined behaviour" to have indexes or ranges out of bounds - but
+    /// then the function often checks it anyhow, so whether that is something
+    /// we can rely on is unclear?
+    #[serde(rename = "bounds-checked-internally")]
+    #[serde(default = "bounds_checked_internally_default")]
+    pub bounds_checked_internally: bool,
+}
+
 fn link_default() -> bool {
     true
+}
+
+fn bounds_checked_internally_default() -> bool {
+    true
+}
+
+impl Default for DefaultSafety {
+    fn default() -> Self {
+        Self {
+            automatically_safe: false,
+            bounds_checked_internally: bounds_checked_internally_default(),
+        }
+    }
 }
 
 #[derive(Deserialize, Debug, Default, Clone, PartialEq, Eq)]
@@ -363,7 +423,8 @@ impl LibraryConfig {
             }
         }
 
-        inner(&self.macos, &other.macos, semver::Version::new(10, 12, 0))
+        !self.undesired_default_dependencies.contains(&other.krate)
+            && inner(&self.macos, &other.macos, semver::Version::new(10, 12, 0))
             && inner(
                 &self.maccatalyst,
                 &other.maccatalyst,
@@ -407,6 +468,13 @@ impl LibraryConfig {
         }
 
         let allowed_in = empty()
+            .chain(self.struct_data.values())
+            .chain(self.union_data.values());
+        for data in all.clone().filter(filter_ptr(allowed_in)) {
+            assert_eq!(data.fields, Default::default());
+        }
+
+        let allowed_in = empty()
             .chain(self.enum_data.values())
             .chain(self.statics.values())
             .chain(self.const_data.values());
@@ -417,11 +485,12 @@ impl LibraryConfig {
         let allowed_in = self.class_data.values();
         for data in all.clone().filter(filter_ptr(allowed_in)) {
             assert_eq!(data.derives, Default::default());
-            assert_eq!(data.definition_skipped, Default::default());
+            assert_eq!(data.definition_skipped, bool::default());
             assert_eq!(data.categories, Default::default());
             assert_eq!(data.counterpart, Default::default());
             assert_eq!(data.skipped_protocols, Default::default());
-            assert_eq!(data.main_thread_only, Default::default());
+            assert_eq!(data.main_thread_only, bool::default());
+            assert_eq!(data.bridged_to, Default::default());
         }
 
         let allowed_in = self.protocol_data.values();
@@ -429,16 +498,41 @@ impl LibraryConfig {
             assert_eq!(data.requires_mainthreadonly, Default::default());
         }
 
-        let allowed_in = self.typedef_data.values();
+        let allowed_in = self.class_data.values().chain(self.typedef_data.values());
         for data in all.clone().filter(filter_ptr(allowed_in)) {
-            assert!(data.generics.is_empty());
+            assert!(data.generics.is_none());
         }
 
         let allowed_in = self.fns.values();
         for data in all.clone().filter(filter_ptr(allowed_in)) {
-            assert_eq!(data.unsafe_, Default::default());
-            assert_eq!(data.no_implementor, Default::default());
+            assert_eq!(data.no_implementor, bool::default());
             assert_eq!(data.implementor, Default::default());
+            assert_eq!(data.arguments, Default::default());
+            assert_eq!(data.return_, Default::default());
+        }
+
+        let allowed_in = self
+            .fns
+            .values()
+            .chain(self.class_data.values())
+            .chain(self.protocol_data.values());
+        for data in all.clone().filter(filter_ptr(allowed_in)) {
+            assert_eq!(data.unsafe_, Default::default());
+        }
+
+        let allowed_in = self.typedef_data.values().chain(self.statics.values());
+        for data in all.clone().filter(filter_ptr(allowed_in)) {
+            assert_eq!(data.nullability, Default::default());
+        }
+
+        let allowed_in = self.typedef_data.values();
+        for data in all.clone().filter(filter_ptr(allowed_in)) {
+            assert_eq!(data.sendable, Default::default());
+        }
+
+        let allowed_in = self.typedef_data.values();
+        for data in all.clone().filter(filter_ptr(allowed_in)) {
+            assert_eq!(data.opaque, Default::default());
         }
     }
 
@@ -480,6 +574,7 @@ impl LibraryConfig {
             | EntityKind::ObjCPropertyDecl => None,
             EntityKind::MacroDefinition | EntityKind::MacroExpansion => None,
             EntityKind::UnexposedDecl => None,
+            EntityKind::TemplateTypeParameter => None,
             kind => {
                 error!(
                     ?kind,
@@ -495,14 +590,6 @@ impl LibraryConfig {
 
 #[derive(Deserialize, Debug, Default, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct Example {
-    pub name: String,
-    #[serde(default)]
-    pub description: String,
-}
-
-#[derive(Deserialize, Debug, Default, Clone, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
 pub struct StmtData {
     // Common
     #[serde(default)]
@@ -513,6 +600,10 @@ pub struct StmtData {
     // Classes and protocols.
     #[serde(default)]
     pub methods: HashMap<String, MethodData>,
+
+    /// Structs and unions.
+    #[serde(default)]
+    pub fields: HashMap<String, FieldData>,
 
     // Enums, constants and statics.
     #[serde(rename = "use-value")]
@@ -535,31 +626,72 @@ pub struct StmtData {
     #[serde(default)]
     #[serde(rename = "main-thread-only")]
     pub main_thread_only: bool,
+    /// Toll-free bridging is declared on the CF-typedef, while we need it on
+    /// the class in a different framework. `header-translator` tries to avoid
+    /// too much global analysis (to allow processing a single framework at a
+    /// time), so we must define each of these manually.
+    ///
+    /// They are correctness-checked in `global_analysis.rs` though.
+    #[serde(default)]
+    #[serde(rename = "bridged-to")]
+    pub bridged_to: Option<ItemIdentifier>,
 
     // Protocol only.
     #[serde(default)]
     #[serde(rename = "requires-mainthreadonly")]
     pub requires_mainthreadonly: Option<bool>,
 
-    // Typedef only.
+    // Classes and typedefs
     #[serde(default)]
-    pub generics: Vec<String>,
+    pub generics: Option<Vec<String>>,
 
     // Functions only.
-    #[serde(rename = "unsafe")]
-    #[serde(default)]
-    pub unsafe_: Unsafe,
     #[serde(rename = "no-implementor")]
     #[serde(default)]
     pub no_implementor: bool,
     #[serde(default)]
     pub implementor: Option<ItemIdentifier>,
+    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_argument_overrides")]
+    pub arguments: HashMap<usize, TypeOverride>,
+    #[serde(rename = "return")]
+    #[serde(default)]
+    pub return_: TypeOverride,
+
+    // Classes, protocols and functions
+    #[serde(rename = "unsafe")]
+    #[serde(default)]
+    pub unsafe_: Option<bool>,
+
+    // Typedef and statics
+    #[serde(default)]
+    pub nullability: Option<Nullability>,
+
+    // Typedefs to blocks only (for now)
+    #[serde(default)]
+    pub sendable: Option<bool>,
+
+    /// Whether to merge typedef + struct into a single type (similar to
+    /// what's done for CF typedefs).
+    // Typedefs
+    #[serde(rename = "opaque")]
+    #[serde(default)]
+    pub opaque: Option<bool>,
 }
 
 impl StmtData {
     pub fn empty() -> &'static Self {
         static DEFAULT: OnceLock<StmtData> = OnceLock::new();
         DEFAULT.get_or_init(StmtData::default)
+    }
+
+    pub fn method(&self, key: &str) -> MethodData {
+        let mut data = self.methods.get(key).cloned().unwrap_or_default();
+        if data.unsafe_.is_none() {
+            // Propagate safety of class/protocol to methods.
+            data.unsafe_ = self.unsafe_;
+        }
+        data
     }
 }
 
@@ -572,13 +704,67 @@ pub struct CategoryData {
     pub renamed: Option<String>,
 }
 
-#[derive(Deserialize, Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-#[serde(rename_all = "lowercase")]
 pub enum Nullability {
-    #[default]
+    #[serde(rename = "nullable")]
     Nullable,
+    #[serde(rename = "nonnull")]
     NonNull,
+}
+
+impl From<Nullability> for clang::Nullability {
+    fn from(nullability: Nullability) -> Self {
+        match nullability {
+            Nullability::Nullable => clang::Nullability::Nullable,
+            Nullability::NonNull => clang::Nullability::NonNull,
+        }
+    }
+}
+
+/// The bounds of a raw pointer.
+///
+/// Modelled after <https://clang.llvm.org/docs/BoundsSafety.html>.
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[serde(deny_unknown_fields)]
+pub enum PointerBounds {
+    #[default]
+    #[serde(skip)]
+    Unspecified,
+    #[serde(rename = "unsafe")]
+    Unsafe,
+    #[serde(rename = "single")]
+    Single,
+    #[serde(rename = "null-terminated")]
+    NullTerminated, // Equivalent to TerminatedBy(b'\0')
+    #[serde(rename = "terminated-by")]
+    TerminatedBy(String),
+    #[serde(rename = "counted-by")]
+    CountedBy(String),
+    #[serde(rename = "sized-by")]
+    SizedBy(String),
+    #[serde(rename = "ended-by")]
+    EndedBy(String),
+}
+
+/// The lifetime of a raw pointer.
+///
+/// TODO: Use more of <https://clang.llvm.org/docs/LifetimeSafety.html>.
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[serde(deny_unknown_fields)]
+pub enum PointerLifetime {
+    #[default]
+    #[serde(skip)]
+    Unspecified,
+    // TODO: For returning `&'static T` instead of `&T`.
+    // #[serde(rename = "static")]
+    // Static,
+    #[serde(rename = "out-pointer-unsafe")]
+    OutPointerUnsafe,
+    #[serde(rename = "out-pointer-retained")]
+    OutPointerRetained,
+    #[serde(rename = "out-pointer-not-retained")]
+    OutPointerNotRetained,
 }
 
 #[derive(Deserialize, Debug, Default, Clone, PartialEq, Eq)]
@@ -586,6 +772,46 @@ pub enum Nullability {
 pub struct TypeOverride {
     #[serde(default)]
     pub nullability: Option<Nullability>,
+    #[serde(default)]
+    pub generics: Option<Vec<ItemGeneric>>,
+    #[serde(default)]
+    pub bounds: PointerBounds,
+    #[serde(default)]
+    pub lifetime: PointerLifetime,
+    /// Override whether this pointer is read from.
+    ///
+    /// By default, this is assumed for all pointers, but if we set this to
+    /// `false`, we can generate `MaybeUninit<T>` instead.
+    #[serde(default)]
+    pub read: Option<bool>,
+    /// Override whether this pointer is written to.
+    ///
+    /// By default, this is the inverse of the `const`-ness of the pointer.
+    /// That is safe by default, but in many cases we want to set this to
+    /// `false` to generate `*const T`/`&T` instead of `*mut T`/`&mut T`.
+    #[serde(default)]
+    pub written: Option<bool>,
+}
+
+impl TypeOverride {
+    fn merge_with_superclass(self, superclass: Self) -> Self {
+        Self {
+            nullability: self.nullability.or(superclass.nullability),
+            generics: self.generics.or(superclass.generics),
+            bounds: if self.bounds != PointerBounds::Unspecified {
+                self.bounds
+            } else {
+                superclass.bounds
+            },
+            lifetime: if self.lifetime != PointerLifetime::Unspecified {
+                self.lifetime
+            } else {
+                superclass.lifetime
+            },
+            read: self.read.or(superclass.read),
+            written: self.written.or(superclass.written),
+        }
+    }
 }
 
 #[derive(Deserialize, Debug, Default, Clone, PartialEq, Eq)]
@@ -597,7 +823,7 @@ pub struct MethodData {
     pub renamed: Option<String>,
     #[serde(rename = "unsafe")]
     #[serde(default)]
-    pub unsafe_: Unsafe,
+    pub unsafe_: Option<bool>,
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_argument_overrides")]
     pub arguments: HashMap<usize, TypeOverride>,
@@ -608,38 +834,53 @@ pub struct MethodData {
 
 impl MethodData {
     pub(crate) fn merge_with_superclass(self, superclass: Self) -> Self {
+        let unsafe_ = match (self.unsafe_, superclass.unsafe_) {
+            // Prefer safety attribute on the item itself.
+            (Some(unsafe_), _) => Some(unsafe_),
+            // Otherwise, take from the superclass if explicitly set as unsafe.
+            (_, Some(true)) => Some(true),
+            // Otherwise assume nothing.
+            _ => None,
+        };
+
+        let mut arguments = self.arguments;
+        for (i, superclass_arg) in superclass.arguments {
+            match arguments.entry(i) {
+                Entry::Occupied(arg) => {
+                    let arg = arg.remove();
+                    let arg = arg.merge_with_superclass(superclass_arg);
+                    arguments.insert(i, arg);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(superclass_arg);
+                }
+            }
+        }
+
         Self {
-            // Only use `unsafe` from itself, never take if from the superclass
-            unsafe_: self.unsafe_,
-            renamed: self.renamed.or(superclass.renamed).clone(),
-            skipped: self.skipped | superclass.skipped,
-            arguments: self.arguments,
-            return_: self.return_,
+            unsafe_,
+            renamed: self.renamed.or(superclass.renamed),
+            skipped: self.skipped || superclass.skipped,
+            arguments,
+            return_: self.return_.merge_with_superclass(superclass.return_),
         }
     }
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
-#[repr(transparent)]
-pub struct Unsafe(pub bool);
-
-impl Unsafe {
-    pub(crate) fn safe(&self) -> bool {
-        !self.0
-    }
-}
-
-impl Default for Unsafe {
-    fn default() -> Self {
-        Self(true)
-    }
+#[derive(Deserialize, Debug, Default, Clone, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct FieldData {
+    #[serde(default)]
+    pub nullability: Option<Nullability>,
+    #[serde(default)]
+    pub generics: Option<Vec<ItemGeneric>>,
 }
 
 impl LibraryConfig {
     pub fn from_file(file: &Path) -> Result<Self, Box<dyn Error>> {
         let s = fs::read_to_string(file)?;
 
-        let config: Self = basic_toml::from_str(&s)?;
+        let config: Self = toml::from_str(&s)?;
 
         assert_eq!(
             config.framework.to_lowercase(),
@@ -648,6 +889,14 @@ impl LibraryConfig {
         );
         if matches!(&*config.krate, "objc2-tv-ml-kit" | "objc2-tv-ui-kit") {
             // Named this way for better consistency with other tv-specific crates.
+            return Ok(config);
+        }
+        if config.krate == "objc2-xc-ui-automation" {
+            // Better match `objc2-xc-test`.
+            return Ok(config);
+        }
+        if config.krate == "objc2-open-gl-es" {
+            // Better match `objc2-open-gl`.
             return Ok(config);
         }
         if config.krate == "objc2-javascript-core" {
@@ -672,46 +921,33 @@ impl LibraryConfig {
     }
 }
 
-impl<'de> de::Deserialize<'de> for Counterpart {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: de::Deserializer<'de>,
-    {
-        struct CounterpartVisitor;
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct Derives(Cow<'static, str>);
 
-        impl de::Visitor<'_> for CounterpartVisitor {
-            type Value = Counterpart;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("item identifier")
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                if let Some(value) = value.strip_prefix("ImmutableSuperclass(") {
-                    let value = value
-                        .strip_suffix(')')
-                        .ok_or_else(|| de::Error::custom("end parenthesis"))?;
-                    let item = ItemIdentifier::from_str(value).map_err(de::Error::custom)?;
-                    return Ok(Counterpart::ImmutableSuperclass(item));
-                }
-
-                if let Some(value) = value.strip_prefix("MutableSubclass(") {
-                    let value = value
-                        .strip_suffix(')')
-                        .ok_or_else(|| de::Error::custom("end parenthesis"))?;
-                    let item = ItemIdentifier::from_str(value).map_err(de::Error::custom)?;
-                    return Ok(Counterpart::MutableSubclass(item));
-                }
-
-                Err(de::Error::custom(format!("unknown variant {value:?}")))
-            }
-        }
-
-        deserializer.deserialize_str(CounterpartVisitor)
+impl Default for Derives {
+    fn default() -> Self {
+        Derives("Debug, PartialEq, Eq, Hash".into())
     }
+}
+
+impl fmt::Display for Derives {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if !self.0.is_empty() {
+            write!(f, "#[derive({})]", self.0)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub enum Counterpart {
+    #[serde(rename = "no-counterpart")]
+    #[default]
+    NoCounterpart,
+    #[serde(rename = "immutable-superclass")]
+    ImmutableSuperclass(ItemIdentifier),
+    #[serde(rename = "mutable-subclass")]
+    MutableSubclass(ItemIdentifier),
 }
 
 fn deserialize_argument_overrides<'de, D>(
@@ -720,7 +956,7 @@ fn deserialize_argument_overrides<'de, D>(
 where
     D: de::Deserializer<'de>,
 {
-    let str_map = HashMap::<&str, TypeOverride>::deserialize(deserializer)?;
+    let str_map = HashMap::<Cow<'_, str>, TypeOverride>::deserialize(deserializer)?;
     let original_len = str_map.len();
     let data = {
         str_map
@@ -729,7 +965,7 @@ where
                 Ok(int_key) => Ok((int_key, value)),
                 Err(_) => Err({
                     de::Error::invalid_value(
-                        de::Unexpected::Str(str_key),
+                        de::Unexpected::Str(&str_key),
                         &"a non-negative integer",
                     )
                 }),
@@ -741,4 +977,148 @@ where
         return Err(de::Error::custom("duplicate integer key"));
     }
     Ok(data)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ItemGeneric {
+    pub id: ItemIdentifier,
+    pub generics: Vec<ItemGeneric>,
+}
+
+impl FromStr for ItemGeneric {
+    type Err = Box<dyn Error>;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        fn split_top_level_commas(s: &str) -> Vec<&str> {
+            let mut parts = Vec::new();
+            let mut depth = 0usize;
+            let mut start = 0;
+
+            for (i, c) in s.char_indices() {
+                match c {
+                    '<' => depth += 1,
+                    '>' => depth = depth.saturating_sub(1),
+                    ',' if depth == 0 => {
+                        parts.push(s[start..i].trim());
+                        start = i + 1;
+                    }
+                    _ => {}
+                }
+            }
+            parts.push(s[start..].trim());
+            parts
+        }
+
+        if let Some((id, generics)) = s.split_once('<') {
+            let (generics, rest) = generics
+                .rsplit_once('>')
+                .ok_or_else(|| std::io::Error::other("missing closing >"))?;
+            if !rest.is_empty() {
+                Err(std::io::Error::other("unexpected after >"))?;
+            }
+            Ok(Self {
+                id: ItemIdentifier::from_str(id)?,
+                generics: split_top_level_commas(generics)
+                    .into_iter()
+                    .map(|g| g.parse::<ItemGeneric>())
+                    .collect::<Result<Vec<_>, _>>()?,
+            })
+        } else {
+            Ok(Self {
+                id: ItemIdentifier::from_str(s)?,
+                generics: vec![],
+            })
+        }
+    }
+}
+
+impl<'de> de::Deserialize<'de> for ItemGeneric {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        struct ItemGenericVisitor;
+
+        impl de::Visitor<'_> for ItemGenericVisitor {
+            type Value = ItemGeneric;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("item identifier")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                ItemGeneric::from_str(value).map_err(de::Error::custom)
+            }
+        }
+
+        deserializer.deserialize_str(ItemGenericVisitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn item_generic_parse() {
+        assert_eq!(
+            ItemGeneric::from_str("Foo.Bar").unwrap(),
+            ItemGeneric {
+                id: ItemIdentifier::from_str("Foo.Bar").unwrap(),
+                generics: vec![],
+            }
+        );
+
+        assert_eq!(
+            ItemGeneric::from_str("Foo.Bar<X.Y.Z, A.B.C>").unwrap(),
+            ItemGeneric {
+                id: ItemIdentifier::from_str("Foo.Bar").unwrap(),
+                generics: vec![
+                    ItemGeneric {
+                        id: ItemIdentifier::from_str("X.Y.Z").unwrap(),
+                        generics: vec![],
+                    },
+                    ItemGeneric {
+                        id: ItemIdentifier::from_str("A.B.C").unwrap(),
+                        generics: vec![],
+                    },
+                ],
+            }
+        );
+
+        assert_eq!(
+            ItemGeneric::from_str(
+                "Foo.Bar<X.Y.Z, Inner.Item<With.Generic, Second.Generic>, A.B.C>"
+            )
+            .unwrap(),
+            ItemGeneric {
+                id: ItemIdentifier::from_str("Foo.Bar").unwrap(),
+                generics: vec![
+                    ItemGeneric {
+                        id: ItemIdentifier::from_str("X.Y.Z").unwrap(),
+                        generics: vec![],
+                    },
+                    ItemGeneric {
+                        id: ItemIdentifier::from_str("Inner.Item").unwrap(),
+                        generics: vec![
+                            ItemGeneric {
+                                id: ItemIdentifier::from_str("With.Generic").unwrap(),
+                                generics: vec![],
+                            },
+                            ItemGeneric {
+                                id: ItemIdentifier::from_str("Second.Generic").unwrap(),
+                                generics: vec![],
+                            }
+                        ],
+                    },
+                    ItemGeneric {
+                        id: ItemIdentifier::from_str("A.B.C").unwrap(),
+                        generics: vec![],
+                    },
+                ],
+            }
+        );
+    }
 }

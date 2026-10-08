@@ -12,7 +12,6 @@ use std::str::FromStr;
 use clang::source::File;
 use clang::Entity;
 
-use crate::cfgs::cfg_features_ln;
 use crate::cfgs::PlatformCfg;
 use crate::context::Context;
 use crate::display_helper::FormatterFn;
@@ -69,6 +68,22 @@ pub struct Location {
 impl Location {
     fn new(module_path: impl Into<Box<str>>) -> Self {
         let module_path = module_path.into();
+
+        // We don't care about the difference between the different
+        // DarwinFoundation modules (for now at least).
+        if let Some(rest) = module_path.strip_prefix("DarwinFoundation.") {
+            return Self::new(rest);
+        }
+        if let Some(rest) = module_path.strip_prefix("_DarwinFoundation1.") {
+            return Self::new(rest);
+        }
+        if let Some(rest) = module_path.strip_prefix("_DarwinFoundation2.") {
+            return Self::new(rest);
+        }
+        if let Some(rest) = module_path.strip_prefix("_DarwinFoundation3.") {
+            return Self::new(rest);
+        }
+
         let module_path = match &*module_path {
             // Remove submodules for Objective-C.
             name if name.starts_with("ObjectiveC") => "ObjectiveC".into(),
@@ -83,7 +98,9 @@ impl Location {
 
             // Various macros
             name if name.starts_with("os_availability") => "__builtin__".into(),
-            "DarwinFoundation.cdefs" => "__builtin__".into(),
+            name if name.starts_with("_AvailabilityInternal") => "__builtin__".into(),
+            name if name.starts_with("availability") => "__builtin__".into(),
+            "cdefs" => "__builtin__".into(),
             "Darwin.libkern.OSByteOrder" => "__builtin__".into(),
             "TargetConditionals" => "__builtin__".into(),
             "Darwin.AssertMacros" => "__builtin__".into(),
@@ -94,36 +111,44 @@ impl Location {
 
             // These types are redefined in the framework crate itself.
             "Darwin.MacTypes" => "__builtin__".into(),
-            "Darwin.device" => "__builtin__".into(),
+            name if name.starts_with("Darwin.device") => "__builtin__".into(),
             "uuid.uuid_t" => "__builtin__".into(),
             "libkern.OSTypes" => "__builtin__".into(),
             "Darwin.net.if_media" => "__builtin__".into(),
             "XPC" => "__builtin__".into(),
+            "dnssd" => "__builtin__".into(),
+            // Prevent OSLog from requiring dependency on os
+            "os.activity" => "__builtin__".into(),
+            "os.signpost" => "__builtin__".into(),
 
             // We don't emit the `hfs`, so let's act as-if CoreServices is the
             // one that defines the types in there (such as HFSUniStr255).
             name if name.starts_with("Darwin.hfs") => "CoreServices.Files".into(),
 
             // int8_t, int16_t etc., translated to i8, i16 etc.
-            "_Builtin_stdint" | "_stdint" => "__builtin__".into(),
+            "_Builtin_stdint" => "__builtin__".into(),
+            name if name.starts_with("_stdint") => "__builtin__".into(),
             name if name.starts_with("_Builtin_stddef") => "__builtin__".into(),
+            // u_int32_t
+            name if name.starts_with("unsigned_types") => "__builtin__".into(),
             // Implementation of the above
-            "DarwinFoundation.types.machine_types" => "__builtin__".into(),
+            name if name.starts_with("types.machine_types") => "__builtin__".into(),
             // UINT_MAX, FLT_MIN, DBL_MAX, etc.
             // Handled manually in `expr.rs`.
             "_Builtin_limits" => "__builtin__".into(),
             // C99 bool
             "_Builtin_stdbool" => "__builtin__".into(),
             // float_t and double_t
-            "_math" => "__builtin__".into(),
+            "_math" | "_tgmath" => "__builtin__".into(),
 
             // `core::ffi` types
             name if name.starts_with("_Builtin_stdarg") => {
-                warn!("va_list is not yet supported");
+                debug!("va_list is not yet supported");
                 "__core__.ffi".into()
             }
             // c_float and c_double
-            "_float" | "_Builtin_float" => "__core__.ffi".into(),
+            "_float" => "__core__.ffi".into(),
+            name if name.starts_with("_Builtin_float") => "__core__.ffi".into(),
 
             // Unstable in FFI.
             name if name.starts_with("simd") => "__core__.simd".into(),
@@ -132,8 +157,8 @@ impl Location {
             name if name.starts_with("sys_types") => "__libc__".into(),
             name if name.starts_with("Darwin.POSIX") => "__libc__".into(),
             name if name.starts_with("_signal") => "__libc__".into(),
-            "DarwinFoundation.types.sys_types" => "__libc__".into(),
-            "DarwinFoundation.qos" => "__libc__".into(),
+            "types.sys_types" => "__libc__".into(),
+            "qos" => "__libc__".into(),
             "_stdio" => "__libc__".into(),
             "_time.timespec" => "__libc__".into(),
             "_fenv" => "__libc__".into(),
@@ -149,9 +174,12 @@ impl Location {
             "ptrauth" => "__libc__".into(),
             "Darwin.uuid" => "__libc__".into(),
             "unistd" => "__libc__".into(),
+            "Darwin.malloc" => "__libc__".into(),
+            "_stdlib.malloc.malloc_type" => "__libc__".into(),
 
             // Will be moved to the `mach2` crate in `libc` v1.0
             name if name.starts_with("Darwin.Mach") => "__libc__".into(),
+            "mach.port.mach_port_t" => "__libc__".into(),
             "mach.mach_port_t" => "__libc__".into(),
             "_mach_port_t" => "__libc__".into(),
 
@@ -164,13 +192,36 @@ impl Location {
                 .replace("IOBluetoothUI.objc", "IOBluetoothUI.objc2")
                 .into(),
 
+            // Remove unnecessary CFBase module, a lot of trait impls aren't
+            // available without it, which can be quite confusing.
+            "CoreFoundation.CFBase" => "CoreFoundation".into(),
+
+            // UIUtilities "subframework". It doesn't seem to be intentionally
+            // exposed. It's small enough that we'll just inline it into
+            // UIKit for now (which is where it was extracted from anyhow).
+            "UIUtilities.UIGeometry" => "UIKit.UIGeometry".into(),
+            "UIUtilities.UICoordinateSpace" => "UIKit.UIView".into(),
+            "UIUtilities.UIDefines" => "UIKit.UIKitDefines".into(),
+
+            // Similarly, _LocationEssentials was extracted from CoreLocation.
+            "_LocationEssentials" => "CoreLocation".into(),
+            "_LocationEssentials.CLEssentionsAvailability" => "CoreLocation.CLAvailability".into(),
+            "_LocationEssentials.CLLocationEssentials" => "CoreLocation.CLLocation".into(),
+
             _ => module_path,
         };
 
         Self { module_path }
     }
 
-    pub fn from_file(file: File<'_>) -> Self {
+    pub fn from_entity(entity: &Entity<'_>, context: &Context<'_>) -> Option<Self> {
+        entity
+            .get_location()
+            .and_then(|loc| loc.get_expansion_location().file)
+            .map(|file| Self::from_file(file, context))
+    }
+
+    pub fn from_file(file: File<'_>, _context: &Context<'_>) -> Self {
         // Get from module first if available
         if let Some(module) = file.get_module() {
             return Self::new(module.get_full_name());
@@ -331,29 +382,30 @@ impl<N: ToOptionString> ItemIdentifier<N> {
     ///
     /// The C name will be renamed according to the configuration.
     pub fn with_name(mut name: N, entity: &Entity<'_>, context: &Context<'_>) -> Self {
-        let file = entity
-            .get_location()
-            .and_then(|loc| loc.get_expansion_location().file);
-
-        let mut location = if let Some(file) = file {
-            Location::from_file(file)
-        } else {
+        let mut location = Location::from_entity(entity, context).unwrap_or_else(|| {
             // Assume item to be a built-in macro like __nonnull if no file.
             Location::new("__builtin__")
-        };
-
-        // Remove unnecessary CFBase module, a lot of trait impls aren't
-        // available without it, which can be quite confusing.
-        if location == Location::new("CoreFoundation.CFBase") {
-            location = Location::new("CoreFoundation");
-        }
+        });
 
         // Replace module from external data if it exists, such that all
         // subsequent usage of the location, including in other configuration
         // lookups, is done in the external library.
         if let Some(name) = name.to_option() {
-            // TODO: Lookup only in current library? Or always there?
-            if let Some(external) = context.library(&location).external.get(name) {
+            // Try find the item in the library where it was supposed to be.
+            //
+            // If we can't find that library, try in the currently parsed
+            // library instead.
+            if let Some(external) = context
+                .try_library(location.library_name())
+                .and_then(|data| data.external.get(name))
+                .or_else(|| {
+                    context
+                        .try_library(context.current_library)
+                        .expect("must be able to find current library")
+                        .external
+                        .get(name)
+                })
+            {
                 location = external.module.clone();
             } else if let EntityKind::ObjCClassRef | EntityKind::ObjCProtocolRef = entity.get_kind()
             {
@@ -407,6 +459,19 @@ impl ItemIdentifier {
 
     pub fn is_nserror(&self) -> bool {
         self.library_name() == "Foundation" && self.name == "NSError"
+    }
+
+    pub fn is_cferror(&self) -> bool {
+        self.library_name() == "CoreFoundation" && matches!(&*self.name, "CFError" | "CFErrorRef")
+    }
+
+    pub fn is_cftype(&self) -> bool {
+        self.library_name() == "CoreFoundation" && matches!(&*self.name, "CFType" | "CFTypeRef")
+    }
+
+    pub fn is_cfallocator(&self) -> bool {
+        self.library_name() == "CoreFoundation"
+            && matches!(&*self.name, "CFAllocator" | "CFAllocatorRef")
     }
 
     pub fn nserror() -> Self {
@@ -599,6 +664,38 @@ pub fn cfg_gate_ln<'a, R: AsRef<ItemTree> + 'a, I: AsRef<ItemTree> + 'a>(
     })
 }
 
+fn cfg_features_ln<'a, I, F>(feature_names: I) -> impl fmt::Display + 'a
+where
+    I: IntoIterator<Item = F> + Clone + 'a,
+    F: AsRef<str>,
+{
+    FormatterFn(move |f| {
+        let mut iter = feature_names.clone().into_iter().peekable();
+
+        if let Some(first) = iter.next() {
+            if iter.peek().is_none() {
+                // One feature.
+                writeln!(f, "#[cfg(feature = {:?})]", first.as_ref())?;
+            } else {
+                write!(f, "#[cfg(all(")?;
+
+                write!(f, "feature = {:?}", first.as_ref())?;
+
+                for feature in iter {
+                    write!(f, ", feature = {:?}", feature.as_ref())?;
+                }
+
+                write!(f, "))]")?;
+                writeln!(f)?;
+            }
+        } else {
+            // No features, no output.
+        }
+
+        Ok(())
+    })
+}
+
 impl FromStr for Location {
     type Err = Box<dyn Error>;
 
@@ -610,6 +707,12 @@ impl FromStr for Location {
         Ok(Location {
             module_path: s.into(),
         })
+    }
+}
+
+impl fmt::Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.module_path)
     }
 }
 
@@ -656,6 +759,12 @@ impl FromStr for ItemIdentifier {
                 module_path: module_path.into(),
             },
         })
+    }
+}
+
+impl fmt::Display for ItemIdentifier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}", self.location, self.name)
     }
 }
 
@@ -787,6 +896,13 @@ impl ItemTree {
         Self::from_id(ItemIdentifier::nserror())
     }
 
+    pub fn sendable_block() -> Self {
+        Self::from_id(ItemIdentifier {
+            name: "SendableBlock".into(),
+            location: Location::new("block"),
+        })
+    }
+
     pub fn block() -> Self {
         Self::from_id(ItemIdentifier {
             name: "Block".into(),
@@ -822,6 +938,13 @@ impl ItemTree {
         })
     }
 
+    pub fn network(name: impl Into<String>) -> Self {
+        Self::from_id(ItemIdentifier {
+            name: name.into(),
+            location: Location::new("Network"),
+        })
+    }
+
     pub fn cf_string_macro() -> Self {
         Self::from_id(ItemIdentifier {
             name: "cf_string".into(),
@@ -847,6 +970,13 @@ impl ItemTree {
         Self::from_id(ItemIdentifier {
             name: "NonNull".into(),
             location: Location::new("__core__.ptr"),
+        })
+    }
+
+    pub fn core_mem_maybeuninit() -> Self {
+        Self::from_id(ItemIdentifier {
+            name: "MaybeUninit".into(),
+            location: Location::new("__core__.mem"),
         })
     }
 
@@ -1126,6 +1256,9 @@ impl ItemTree {
                 "__core__.ffi" => Some("core::ffi::*".into()),
                 // HACKs
                 "__core__.ptr" if self.id.name == "NonNull" => Some("core::ptr::NonNull".into()),
+                "__core__.mem" if self.id.name == "MaybeUninit" => {
+                    Some("core::mem::MaybeUninit".into())
+                }
                 "__core__.simd" if self.id.name == "Simd" => Some("core::simd::*".into()),
                 "__core__.cell" if self.id.name == "UnsafeCell" => {
                     Some("core::cell::UnsafeCell".into())

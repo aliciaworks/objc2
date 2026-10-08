@@ -3,9 +3,12 @@ use std::{
     fmt::{self, Display},
 };
 
-use clang::{Entity, PlatformAvailability, Version};
+use clang::{Entity, EntityKind, PlatformAvailability, Version};
 
-use crate::{context::Context, display_helper::FormatterFn};
+use crate::{
+    context::Context, display_helper::FormatterFn, immediate_children,
+    unexposed_attr::UnexposedAttr,
+};
 
 #[derive(Debug, Clone, PartialEq, Default)]
 struct Unavailable {
@@ -15,6 +18,17 @@ struct Unavailable {
     watchos: bool,
     tvos: bool,
     visionos: bool,
+}
+
+impl Unavailable {
+    const ALL_UNAVAILABLE: Self = Self {
+        ios: true,
+        macos: true,
+        maccatalyst: true,
+        watchos: true,
+        tvos: true,
+        visionos: true,
+    };
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -35,6 +49,22 @@ impl Versions {
         tvos: None,
         watchos: None,
         visionos: None,
+    };
+
+    const MIN: Self = {
+        let min = Version {
+            x: 0,
+            y: None,
+            z: None,
+        };
+        Self {
+            macos: Some(min),
+            maccatalyst: Some(min),
+            ios: Some(min),
+            tvos: Some(min),
+            watchos: Some(min),
+            visionos: Some(min),
+        }
     };
 
     const RUST_OS_MIN: Self = Self {
@@ -135,7 +165,7 @@ fn version_cmp(left: Version, right: Version) -> Ordering {
 }
 
 impl Availability {
-    pub fn parse(entity: &Entity<'_>, _context: &Context<'_>) -> Self {
+    pub fn parse(entity: &Entity<'_>, context: &Context<'_>) -> Self {
         let availabilities = entity
             .get_platform_availability()
             .expect("platform availability");
@@ -223,6 +253,38 @@ impl Availability {
             }
         }
 
+        // This is an unconditional attribute that overrides the platform
+        // availability for the current platform.
+        //
+        // Unfortunately, it is partially merged into the platform
+        // availability above, so it's kinda hard to know when it applies.
+        let current_target_availability = entity.get_availability();
+        match current_target_availability {
+            clang::Availability::Available => {}
+            clang::Availability::Deprecated => {
+                // TODO: Handle this better?
+                if deprecated == Versions::default() {
+                    deprecated = Versions::MIN;
+                }
+            }
+            clang::Availability::Inaccessible => {
+                error!(?entity, "cannot handle 'Inaccessible' availability")
+            }
+            clang::Availability::Unavailable => {
+                // Handled below.
+            }
+        }
+
+        immediate_children(entity, |entity, _span| {
+            if let EntityKind::UnexposedAttr = entity.get_kind() {
+                if let Some(UnexposedAttr::FullyUnavailable) =
+                    UnexposedAttr::parse(&entity, context)
+                {
+                    unavailable = Unavailable::ALL_UNAVAILABLE;
+                }
+            }
+        });
+
         Self {
             unavailable,
             introduced,
@@ -234,7 +296,7 @@ impl Availability {
 
     pub fn new_deprecated(msg: impl Into<String>) -> Self {
         Self {
-            deprecated: Versions::RUST_OS_MIN,
+            deprecated: Versions::MIN,
             message: Some(msg.into()),
             ..Default::default()
         }
@@ -242,31 +304,15 @@ impl Availability {
 
     /// Available and non-deprecated enum cases.
     pub fn is_available_non_deprecated(&self) -> bool {
-        !matches!(
-            self.unavailable,
-            Unavailable {
-                ios: true,
-                macos: true,
-                maccatalyst: true,
-                watchos: true,
-                tvos: true,
-                visionos: true,
-            }
-        ) && !self.is_deprecated()
+        self.is_available() && !self.is_deprecated()
+    }
+
+    pub fn is_available(&self) -> bool {
+        self.unavailable != Unavailable::ALL_UNAVAILABLE
     }
 
     pub fn is_deprecated(&self) -> bool {
-        !matches!(
-            self.deprecated,
-            Versions {
-                ios: None,
-                macos: None,
-                maccatalyst: None,
-                watchos: None,
-                tvos: None,
-                visionos: None,
-            }
-        )
+        self.deprecated != Versions::default()
     }
 
     pub fn check_is_available(&self) -> Option<impl Display + '_> {
@@ -336,10 +382,9 @@ impl Availability {
         if self.unavailable.macos {
             return false;
         }
-        if let Some(macos) = self.introduced.macos {
-            // Disable test if introduced later than my current OS.
-            // TODO: Use `available!` macro here.
-            if HOST_MACOS < macos.x {
+        if let Some(version) = self.introduced.macos {
+            // Disable test if introduced later than the current OS version.
+            if !is_available(version.x, version.y.unwrap_or(0), version.z.unwrap_or(0)) {
                 return false;
             }
         }
@@ -350,6 +395,13 @@ impl Availability {
             return false;
         }
         true
+    }
+
+    pub fn method_update_new_from_init(&mut self, other: &Self) {
+        if other.unavailable == Unavailable::ALL_UNAVAILABLE {
+            self.unavailable = Unavailable::ALL_UNAVAILABLE;
+        }
+        // TODO: Other parameters?
     }
 }
 
@@ -375,9 +427,22 @@ impl fmt::Display for Availability {
     }
 }
 
-pub const HOST_MACOS: u32 = if option_env!("CI").is_some() {
-    9999
-} else {
-    // @madsmtm's development machine's current OS version.
-    14
-};
+// Link to `__isOSVersionAtLeast` provided by Rust's `std`.
+//
+// This is a hack for not really being able to use `objc2::available!` here.
+#[cfg(target_vendor = "apple")]
+unsafe extern "C" {
+    safe fn __isOSVersionAtLeast(major: i32, minor: i32, subminor: i32) -> i32;
+}
+
+pub fn is_available(major: u32, minor: u32, patch: u32) -> bool {
+    #[cfg(target_vendor = "apple")]
+    {
+        __isOSVersionAtLeast(major as _, minor as _, patch as _) != 0
+    }
+    #[cfg(not(target_vendor = "apple"))]
+    {
+        let _ = (major, minor, patch);
+        false
+    }
+}

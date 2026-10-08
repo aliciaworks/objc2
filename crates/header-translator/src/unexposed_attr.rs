@@ -1,6 +1,11 @@
-use clang::source::{SourceLocation, SourceRange};
-use clang::token::{Token, TokenKind};
-use clang::{Entity, EntityKind};
+use clang::{
+    source::{SourceLocation, SourceRange},
+    token::{Token, TokenKind},
+    Entity, EntityKind,
+};
+use proc_macro2::TokenStream;
+use std::ffi::{c_int, c_void};
+use std::sync::LazyLock;
 
 use crate::context::{Context, MacroLocation};
 
@@ -16,8 +21,8 @@ pub enum UnexposedAttr {
 
     BridgedTypedef,
     BridgedImplicit,
-    Bridged,
-    BridgedMutable,
+    Bridged(String),
+    BridgedMutable(String),
     BridgedRelated,
 
     /// `ns_returns_retained` / `cf_returns_retained` / `os_returns_retained`
@@ -32,15 +37,20 @@ pub enum UnexposedAttr {
 
     NoEscape,
     NoThrow,
+
+    FullyUnavailable,
+
+    SwiftAsync,
+    NonSwiftAsync,
 }
 
 impl UnexposedAttr {
-    pub(crate) fn from_name<T>(
+    pub(crate) fn from_name(
         s: &str,
-        get_arguments: impl FnOnce() -> T,
+        get_arguments: impl FnOnce() -> TokenStream,
     ) -> Result<Option<Self>, ()> {
         Ok(match s {
-            "CF_ENUM" | "JSC_CF_ENUM" | "DISPATCH_ENUM" | "NS_ENUM" => {
+            "CF_ENUM" | "JSC_CF_ENUM" | "DISPATCH_ENUM" | "NS_ENUM" | "NW_ENUM" => {
                 let _ = get_arguments();
                 Some(Self::Enum)
             }
@@ -65,14 +75,32 @@ impl UnexposedAttr {
             | "CF_TYPED_EXTENSIBLE_ENUM"
             | "NS_EXTENSIBLE_STRING_ENUM"
             | "CF_EXTENSIBLE_STRING_ENUM" => Some(Self::TypedExtensibleEnum),
+            // FIXME: Attribute used directly in CoreGraphics, we really need
+            // to parse and check the contents of it here.
+            "swift_wrapper" => None,
             "NS_SWIFT_BRIDGED_TYPEDEF" | "CF_SWIFT_BRIDGED_TYPEDEF" => Some(Self::BridgedTypedef),
             "CF_IMPLICIT_BRIDGING_ENABLED" => Some(Self::BridgedImplicit),
             "CF_BRIDGED_TYPE"
             | "CV_BRIDGED_TYPE"
             | "CM_BRIDGED_TYPE"
             | "IIO_BRIDGED_TYPE"
-            | "OPENGL_BRIDGED_TYPE" => Some(Self::Bridged),
-            "CF_BRIDGED_MUTABLE_TYPE" => Some(Self::BridgedMutable),
+            | "OPENGL_BRIDGED_TYPE"
+            | "CF_BRIDGED_MUTABLE_TYPE" => {
+                let mut args = get_arguments().into_iter();
+                // PATCH: an attribute with no argument is not this one. Apple's visionOS headers have
+                // macros this list has never seen, and the answer is to skip them, not to crash.
+                let Some(first) = args.next() else { return Ok(None) };
+                let ty = first.to_string();
+                assert!(
+                    args.next().is_none(),
+                    "invalid number of arguments in error macro"
+                );
+                if s.contains("MUTABLE") {
+                    Some(Self::BridgedMutable(ty))
+                } else {
+                    Some(Self::Bridged(ty))
+                }
+            }
             "CF_RELATED_TYPE" => Some(Self::BridgedRelated),
             "NS_RETURNS_RETAINED"
             | "CF_RETURNS_RETAINED"
@@ -80,7 +108,8 @@ impl UnexposedAttr {
             | "CM_RETURNS_RETAINED_BLOCK"
             | "CM_RETURNS_RETAINED_PARAMETER"
             | "CV_RETURNS_RETAINED"
-            | "CV_RETURNS_RETAINED_PARAMETER" => Some(Self::ReturnsRetained),
+            | "CV_RETURNS_RETAINED_PARAMETER"
+            | "NW_RETURNS_RETAINED" => Some(Self::ReturnsRetained),
             "NS_RETURNS_NOT_RETAINED"
             | "CF_RETURNS_NOT_RETAINED"
             | "CM_RETURNS_NOT_RETAINED_PARAMETER" => Some(Self::ReturnsNotRetained),
@@ -89,16 +118,35 @@ impl UnexposedAttr {
             // `nullability` is already exposed, so we won't bother with that.
             // `sendability` is most for backwards-compatibility with older
             // versions of system headers that didn't assign sendability.
-            "NS_HEADER_AUDIT_BEGIN" | "WK_HEADER_AUDIT_BEGIN" => None,
+            "NS_HEADER_AUDIT_BEGIN" | "WK_HEADER_AUDIT_BEGIN" | "XCT_HEADER_AUDIT_BEGIN" => None,
             // Nullability attributes
             s if s.starts_with("DISPATCH_NONNULL") => None,
             s if s.starts_with("XPC_NONNULL") => None,
-            "NS_SWIFT_SENDABLE" | "AS_SWIFT_SENDABLE" | "CM_SWIFT_SENDABLE"
-            | "CT_SWIFT_SENDABLE" | "CV_SWIFT_SENDABLE" => Some(Self::Sendable),
-            "NS_SWIFT_NONSENDABLE" | "CM_SWIFT_NONSENDABLE" | "CV_SWIFT_NONSENDABLE" => {
-                Some(Self::NonSendable)
+            "NS_SWIFT_SENDABLE"
+            | "AS_SWIFT_SENDABLE"
+            | "CF_SWIFT_SENDABLE"
+            | "CM_SWIFT_SENDABLE"
+            | "CT_SWIFT_SENDABLE"
+            | "CV_SWIFT_SENDABLE"
+            | "SEC_SWIFT_SENDABLE"
+            | "XCT_SWIFT_SENDABLE"
+            | "IOSFC_SWIFT_SENDABLE" => Some(Self::Sendable),
+            "NS_SWIFT_NONSENDABLE"
+            | "CM_SWIFT_NONSENDABLE"
+            | "CV_SWIFT_NONSENDABLE"
+            | "IOSFC_SWIFT_NONSENDABLE" => Some(Self::NonSendable),
+            // TODO
+            "NS_SWIFT_SENDING" | "CM_SWIFT_SENDING" => None,
+            "CM_SWIFT_SENDING_RETAINED_RESULT" | "CM_SWIFT_SENDING_RETAINED_PARAMETER" => {
+                Some(Self::ReturnsRetained)
             }
-            "NS_SWIFT_UI_ACTOR" | "WK_SWIFT_UI_ACTOR" => Some(Self::UIActor),
+            // The main and UI actor is effectively the same on Apple platforms.
+            "NS_SWIFT_UI_ACTOR"
+            | "NS_SWIFT_MAIN_ACTOR"
+            | "WK_SWIFT_UI_ACTOR"
+            | "XCT_SWIFT_MAIN_ACTOR"
+            | "XCUI_SWIFT_MAIN_ACTOR"
+            | "CARPLAY_TEMPLATE_UI_ACTOR" => Some(Self::UIActor),
             "NS_SWIFT_NONISOLATED" | "UIKIT_SWIFT_ACTOR_INDEPENDENT" => Some(Self::NonIsolated),
             // TODO
             "CF_FORMAT_ARGUMENT" | "CF_FORMAT_FUNCTION" | "NS_FORMAT_FUNCTION"
@@ -106,8 +154,28 @@ impl UnexposedAttr {
                 let _ = get_arguments();
                 None
             }
-            "CF_NOESCAPE" | "DISPATCH_NOESCAPE" | "NS_NOESCAPE" => Some(Self::NoEscape),
+            "CF_NOESCAPE" | "DISPATCH_NOESCAPE" | "NW_NOESCAPE" | "NS_NOESCAPE"
+            | "XCT_NOESCAPE" | "XCUI_NOESCAPE" => Some(Self::NoEscape),
             "DISPATCH_NOTHROW" | "NS_SWIFT_NOTHROW" => Some(Self::NoThrow),
+            // The presence of `swift_async` changes the sendability of the
+            // block, so let's check for these.
+            "WK_SWIFT_ASYNC_NAME"
+            | "WK_SWIFT_ASYNC"
+            | "NS_REFINED_FOR_SWIFT_ASYNC"
+            | "NS_SWIFT_ASYNC"
+            | "NS_SWIFT_ASYNC_NAME"
+            | "NS_SWIFT_ASYNC_THROWS_ON_FALSE" => {
+                let _ = get_arguments();
+                Some(Self::SwiftAsync)
+            }
+            "NS_SWIFT_DISABLE_ASYNC" | "NW_SWIFT_DISABLE_ASYNC" => Some(Self::NonSwiftAsync),
+            // Might be interesting in the future?
+            "CF_SWIFT_UNAVAILABLE_FROM_ASYNC"
+            | "XCT_SWIFT_UNAVAILABLE_FROM_ASYNC"
+            | "NS_SWIFT_UNAVAILABLE_FROM_ASYNC" => {
+                let _ = get_arguments();
+                None
+            }
             // TODO: We could potentially automatically elide this argument
             // from the method call, though it's rare enough that it's
             // probably not really worth the effort.
@@ -119,6 +187,18 @@ impl UnexposedAttr {
             "NS_REQUIRES_PROPERTY_DEFINITIONS" => None,
             // Weak specifiers - would be interesting if Rust supported weak statics
             "GK_EXTERN_WEAK" | "MC_EXTERN_WEAK" | "weak_import" => None,
+            // Some availability attributes are not properly exposed.
+            "NS_UNAVAILABLE"
+            | "UNAVAILABLE_ATTRIBUTE"
+            | "DISPATCH_UNAVAILABLE"
+            | "AV_INIT_UNAVAILABLE"
+            | "AVKIT_INIT_UNAVAILABLE"
+            | "MP_INIT_UNAVAILABLE"
+            | "VS_INIT_UNAVAILABLE" => Some(Self::FullyUnavailable),
+            // TODO: Add this to the above?
+            "CF_AUTOMATED_REFCOUNT_UNAVAILABLE"
+            | "NS_AUTOMATED_REFCOUNT_UNAVAILABLE"
+            | "NS_AUTOMATED_REFCOUNT_WEAK_UNAVAILABLE" => None,
             // Availability attributes - their data is already exposed.
             "__API_AVAILABLE"
             | "__API_DEPRECATED"
@@ -146,6 +226,8 @@ impl UnexposedAttr {
             | "API_DEPRECATED"
             | "API_DEPRECATED_BEGIN"
             | "API_DEPRECATED_WITH_REPLACEMENT"
+            | "API_OBSOLETED"
+            | "API_OBSOLETED_WITH_REPLACEMENT"
             | "API_UNAVAILABLE_BEGIN"
             | "API_UNAVAILABLE"
             | "AUGRAPH_DEPRECATED"
@@ -161,6 +243,8 @@ impl UnexposedAttr {
             | "CF_SWIFT_UNAVAILABLE"
             | "CG_AVAILABLE_BUT_DEPRECATED"
             | "CG_AVAILABLE_STARTING"
+            | "CG_SOFT_DEPRECATED_WITH_REPLACEMENT"
+            | "CG_ENUM_SOFT_DEPRECATED_WITH_REPLACEMENT"
             | "CI_GL_DEPRECATED"
             | "CI_GL_DEPRECATED_IOS"
             | "CI_GL_DEPRECATED_MAC"
@@ -269,7 +353,12 @@ impl UnexposedAttr {
             | "WEBKIT_ENUM_DEPRECATED_MAC"
             | "WK_AVAILABLE_WATCHOS_ONLY"
             | "WK_DEPRECATED_WATCHOS"
-            | "WK_DEPRECATED_WITH_REPLACEMENT" => {
+            | "WK_DEPRECATED_WITH_REPLACEMENT"
+            | "XCT_UNAVAILABLE"
+            | "XCT_DEPRECATED_WITH_REPLACEMENT"
+            | "XCUI_UNAVAILABLE"
+            | "XCUI_DEPRECATED_WITH_REPLACEMENT"
+            | "XCUI_DEPRECATED_WITH_DIRECT_REPLACEMENT" => {
                 let _ = get_arguments();
                 None
             }
@@ -290,28 +379,34 @@ impl UnexposedAttr {
             | "__WATCHOS_UNAVAILABLE"
             | "__UNAVAILABLE_PUBLIC_IOS"
             | "APPKIT_API_UNAVAILABLE_BEGIN_MACCATALYST"
-            | "AVKIT_INIT_UNAVAILABLE"
+            | "ATS_UNAVAILABLE"
             | "BROWSERENGINE_TEXTINPUT_AVAILABILITY"
             | "BROWSERENGINE_ACCESSIBILITY_AVAILABILITY"
+            | "BROWSERENGINE_ACCESSIBILITY_AVAILABILITY_27"
             | "BROWSERENGINE_ACCESSIBILITY_MARKER_AVAILABILITY"
+            | "BROWSERENGINE_ACCESSIBILITY_REMOTE_AVAILABILITY"
             | "CA_CANONICAL_DEPRECATED"
             | "CB_CM_API_AVAILABLE"
-            | "CF_AUTOMATED_REFCOUNT_UNAVAILABLE"
             | "CG_OBSOLETE"
-            | "CS_UNAVAILABLE_EMBEDDED"
+            | "CK_SHARE_ACCESS_REQUESTER_AVAILABILITY"
+            | "CK_SHARE_BLOCKED_IDENTITY_AVAILABILITY"
+            | "CKSHARE_REQUEST_ACCESS_INTERFACES_AVAILABILITY"
+            | "CM_VISION_OS_AVAILABLE"
             | "CS_TVOS_UNAVAILABLE"
+            | "CS_UNAVAILABLE_EMBEDDED"
             | "CSSM_DEPRECATED"
             | "deprecated"
             | "DEPRECATED_ATTRIBUTE"
             | "DEPRECATED_ATTRIBUTE_EXCLUDE_PUBLIC_IOS"
             | "DEPRECATED_MSG_ATTRIBUTE"
-            | "DISPATCH_UNAVAILABLE"
             | "EN_API_AVAILABLE"
             | "EN_API_AVAILABLE_V2"
             | "EN_API_AVAILABLE_V3"
             | "EN_API_AVAILABLE_V5"
             | "EN_API_AVAILABLE_EXPORT"
             | "EN_API_AVAILABLE_EXPORT_V2"
+            | "FSKIT_API_INTRODUCED_V1_DEPRECATED_V3_WITH_REPLACEMENT"
+            | "FILE_PROVIDER_AVAILABILITY_NAMESPACE_POLICY"
             | "GK_BASE_AVAILABILITY"
             | "GK_BASE_AVAILABILITY_2"
             | "GK_BASE_AVAILABILITY_3"
@@ -321,6 +416,7 @@ impl UnexposedAttr {
             | "INTERAPP_AUDIO_DEPRECATED"
             | "MD_AVAIL"
             | "MD_AVAIL_LEOPARD"
+            | "MHDR_AVAILABILITY_v1"
             | "MIDI_API_UNAVAILABLE_NON_MACOS"
             | "MIDI_AVAILABLE_UMP1_1"
             | "MIDICI1_0_AVAILABILITY"
@@ -331,17 +427,14 @@ impl UnexposedAttr {
             | "MIDICI1_1"
             | "MIDICI1_2"
             | "MIDINETWORKSESSION_AVAILABLE"
-            | "MP_INIT_UNAVAILABLE"
-            | "NS_AUTOMATED_REFCOUNT_UNAVAILABLE"
-            | "NS_AUTOMATED_REFCOUNT_WEAK_UNAVAILABLE"
+            | "MPSF_AVAILABILITY_v1"
             | "NS_CLASS_AVAILABLE"
-            | "NS_UNAVAILABLE"
-            | "UNAVAILABLE_ATTRIBUTE"
             | "UT_AVAILABLE_BEGIN"
             | "MP_DEPRECATED_BEGIN"
             | "SEC_ASN1_API_DEPRECATED"
             | "SECUREDOWNLOAD_API_DEPRECATED"
-            | "VS_INIT_UNAVAILABLE" => None,
+            | "XCT_METRIC_API_AVAILABLE"
+            | "XCUI_PROTECTED_RESOURCES_RESET_API_AVAILABLE" => None,
             s if s.starts_with("AVAILABLE_MAC_OS_X_VERSION_") => None,
             s if s.starts_with("DEPRECATED_IN_MAC_OS_X_VERSION_") => None,
             s if s.starts_with("FILEPROVIDER_API_AVAILABILITY_") => None,
@@ -350,26 +443,20 @@ impl UnexposedAttr {
             // Might be interesting in the future
             "swift_name"
             | "CF_SWIFT_NAME"
-            | "CF_SWIFT_UNAVAILABLE_FROM_ASYNC"
             | "DISPATCH_SWIFT_NAME"
             | "IOSFC_SWIFT_NAME"
             | "MPS_SWIFT_NAME"
-            | "NS_REFINED_FOR_SWIFT_ASYNC"
-            | "NS_SWIFT_ASYNC_NAME"
-            | "NS_SWIFT_ASYNC_THROWS_ON_FALSE"
-            | "NS_SWIFT_ASYNC"
             | "NS_SWIFT_NAME"
-            | "NS_SWIFT_UNAVAILABLE_FROM_ASYNC"
-            | "WK_SWIFT_ASYNC_NAME"
-            | "WK_SWIFT_ASYNC" => {
+            | "OPENGL_SWIFT_NAME" => {
                 let _ = get_arguments();
                 None
             }
             "CF_REFINED_FOR_SWIFT"
+            | "CM_REFINED_FOR_SWIFT"
             | "DISPATCH_REFINED_FOR_SWIFT"
             | "NS_REFINED_FOR_SWIFT"
             | "AR_REFINED_FOR_SWIFT"
-            | "NS_SWIFT_DISABLE_ASYNC" => None,
+            | "CP_STRUCT_REF" => None,
             // Possibly interesting?
             "DISPATCH_COLD" => None,
             "DISPATCH_MALLOC" => None,
@@ -382,20 +469,53 @@ impl UnexposedAttr {
                 None
             }
             "objc_non_runtime_protocol" => None,
-            // Emits unavailability attributes on `new` and `init` methods
-            "AV_INIT_UNAVAILABLE" => None,
             // Helper used to easy declare @interface in CompositorServices.
             "CP_OBJECT_DECL" => {
                 let _ = get_arguments();
                 None
             }
+            "NW_SENDABLE_OBJECT_DECL" => {
+                let _ = get_arguments();
+                None
+            }
+            // Weak imports are still unsupported by Rust.
+            "XCT_WEAK_EXPORT" => None,
             // Irrelevant, we don't emit dispatch_object_t anyhow.
             "DISPATCH_TRANSPARENT_UNION" => None,
+            "NS_NO_TAIL_CALL" => None,
+            // TODO: Use this to map as `BlockOnce`? Probably not strong
+            // enough to be a soundness guarantee.
+            // <https://clang.llvm.org/docs/AttributeReference.html#called-once>
+            "FSKIT_CALLED_ONCE" => None,
             _ => return Err(()),
         })
     }
 
     pub fn parse(entity: &Entity<'_>, context: &Context<'_>) -> Option<Self> {
+        let (cursor, tu) = entity.as_raw();
+        #[derive(Hash, PartialEq, Eq, Debug)]
+        struct CacheKey(
+            clang_sys::CXCursorKind,
+            c_int,
+            [*const c_void; 3],
+            clang_sys::CXTranslationUnit,
+        );
+        unsafe impl Send for CacheKey {}
+        unsafe impl Sync for CacheKey {}
+
+        let key = CacheKey(cursor.kind, cursor.kind, cursor.data, tu.as_raw());
+
+        static CACHE: LazyLock<moka::sync::Cache<CacheKey, Option<UnexposedAttr>>> =
+            LazyLock::new(|| moka::sync::Cache::new(100000));
+
+        CACHE
+            .entry(key)
+            .or_insert_with(|| Self::parse_inner(entity, context))
+            .into_value()
+    }
+
+    // This function is fairly expensive, so let's memoize it above ^.
+    fn parse_inner(entity: &Entity<'_>, context: &Context<'_>) -> Option<Self> {
         if let Some(location) = entity.get_location() {
             if let Some(entity) = context
                 .macro_invocations
@@ -405,6 +525,7 @@ impl UnexposedAttr {
                     if !entity.is_function_like {
                         error!(?entity, "tried to get tokens from non-function-like macro");
                     }
+                    entity.macro_arguments.clone()
                 })
                 .unwrap_or_else(|()| {
                     error!(
@@ -429,12 +550,13 @@ impl UnexposedAttr {
             match parsed.get_kind() {
                 EntityKind::MacroExpansion => {
                     let macro_name = parsed.get_name().expect("macro name");
-                    Self::from_name(&macro_name, || get_argument_tokens(&parsed)).unwrap_or_else(
-                        |()| {
-                            error!(macro_name, "unknown unexposed attribute");
-                            None
-                        },
-                    )
+                    Self::from_name(&macro_name, || {
+                        parse_macro_arguments(&get_argument_tokens(&parsed))
+                    })
+                    .unwrap_or_else(|()| {
+                        error!(macro_name, "unknown unexposed attribute");
+                        None
+                    })
                 }
                 // Some macros can't be found using this method,
                 // for example NS_NOESCAPE.
@@ -466,32 +588,18 @@ impl UnexposedAttr {
             }
             let macro_name = token.get_spelling();
 
-            Self::from_name(&macro_name, move || {
-                if tokens.is_empty() {
-                    error!(?entity, "tried to get tokens from non-function-like macro");
-                    return vec![];
-                }
-
-                let start = tokens.remove(0);
-                assert_eq!(start.get_kind(), TokenKind::Punctuation);
-                assert_eq!(start.get_spelling(), "(");
-                let end = tokens.pop().expect("tokens to have parentheses");
-                assert_eq!(end.get_kind(), TokenKind::Punctuation);
-                assert_eq!(end.get_spelling(), ")");
-
-                tokens
-            })
-            .unwrap_or_else(|()| {
-                error!(macro_name, "unknown unexposed attribute");
-                None
-            })
+            Self::from_name(&macro_name, move || parse_macro_arguments(&tokens)).unwrap_or_else(
+                |()| {
+                    error!(macro_name, "unknown unexposed attribute");
+                    None
+                },
+            )
         }
     }
 }
 
-fn get_argument_tokens<'a>(entity: &Entity<'a>) -> Vec<Token<'a>> {
+pub(crate) fn get_argument_tokens<'a>(entity: &Entity<'a>) -> Vec<Token<'a>> {
     if !entity.is_function_like_macro() {
-        error!(?entity, "tried to get tokens from non-function-like macro");
         return vec![];
     }
     // Remove the macro name from the full macro tokens
@@ -500,14 +608,30 @@ fn get_argument_tokens<'a>(entity: &Entity<'a>) -> Vec<Token<'a>> {
     let name_range = name_ranges.first().unwrap();
     let range = entity.get_range().expect("macro range");
 
-    let mut tokens = SourceRange::new(name_range.get_end(), range.get_end()).tokenize();
+    if range.get_start() == range.get_end() {
+        // No arguments.
+        return vec![];
+    }
 
-    let start = tokens.remove(0);
+    SourceRange::new(name_range.get_end(), range.get_end()).tokenize()
+}
+
+pub(crate) fn parse_macro_arguments(tokens: &[Token<'_>]) -> TokenStream {
+    let Some((start, tokens)) = tokens.split_first() else {
+        return TokenStream::new();
+    };
     assert_eq!(start.get_kind(), TokenKind::Punctuation);
     assert_eq!(start.get_spelling(), "(");
-    let end = tokens.pop().expect("tokens to have parentheses");
+    let (end, tokens) = tokens.split_last().expect("tokens to have parentheses");
     assert_eq!(end.get_kind(), TokenKind::Punctuation);
     assert_eq!(end.get_spelling(), ")");
 
+    // TODO: Actually parse commas etc. here
     tokens
+        .iter()
+        .map(|token| token.get_spelling())
+        .collect::<Vec<_>>()
+        .join("")
+        .parse()
+        .expect("invalid tokenstream")
 }

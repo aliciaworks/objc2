@@ -9,6 +9,7 @@ use std::path::Path;
 use toml_edit::InlineTable;
 use toml_edit::{value, Array, DocumentMut, Item, Table, Value};
 
+use crate::availability::is_available;
 use crate::cfgs::PlatformCfg;
 use crate::config::LibraryConfig;
 use crate::display_helper::FormatterFn;
@@ -20,7 +21,7 @@ use crate::VERSION;
 #[derive(Debug, PartialEq)]
 pub struct Library {
     pub module: Module,
-    link_name: String,
+    pub link_name: String,
     pub data: LibraryConfig,
 }
 
@@ -197,8 +198,9 @@ impl Library {
             .data
             .macos
             .as_ref()
-            .map(|macos| macos.major <= (crate::HOST_MACOS as u64))
-            .unwrap_or(true);
+            .map(|version| is_available(version.major as _, version.minor as _, version.patch as _))
+            .unwrap_or(true)
+            && !self.data.located_outside_sdk;
 
         // Output `src/generated/*`.
         self.module.output(
@@ -231,7 +233,13 @@ impl Library {
             )?;
             writeln!(lib_rs, "//! [framework-crates]: https://docs.rs/objc2/latest/objc2/topics/about_generated/index.html")?;
             writeln!(lib_rs, "#![no_std]")?;
-            writeln!(lib_rs, "#![cfg_attr(docsrs, feature(doc_auto_cfg))]")?;
+            if !self.data.is_library {
+                writeln!(
+                    lib_rs,
+                    "#![cfg_attr(feature = \"unstable-darwin-objc\", feature(darwin_objc))]"
+                )?;
+            }
+            writeln!(lib_rs, "#![cfg_attr(docsrs, feature(doc_cfg))]")?;
             writeln!(lib_rs, "// Update in Cargo.toml as well.")?;
             writeln!(
                 lib_rs,
@@ -394,7 +402,7 @@ see that for related crates.", self.data.krate)?;
 
                 let target = cargo_toml.entry("target").implicit_table();
 
-                target.set_position(dep_position);
+                target.set_position(Some(dep_position));
 
                 let key = format!("'cfg({cfgs})'").parse().unwrap();
                 target
@@ -447,12 +455,26 @@ see that for related crates.", self.data.krate)?;
 
         // Emit crate features first (the "default" feature overrides in
         // `default_cargo.toml`).
-        for (feature, _) in emitted_features.clone().iter() {
+        for feature in emitted_features.clone().keys() {
             if config.try_library_from_crate(feature).is_none() {
                 continue;
             }
             let enabled_features = emitted_features.remove(feature).unwrap();
             cargo_toml["features"][feature] = array_with_newlines(enabled_features);
+        }
+
+        // Emit unstable-darwin-objc feature in framework crates.
+        //
+        // We could also use this to enable the feature automatically in
+        // dependencies, but we'd like for this feature to remain "unstable" in
+        // the sense that we'd be free to remove it in a patch release. By
+        // mentioning it across crates, that would no longer be the case.
+        //
+        // It's slightly less convenient for users, but in practice, most users
+        // already directly depend on all their `objc2-*` crates in their
+        // dependency tree.
+        if !self.data.is_library {
+            cargo_toml["features"]["unstable-darwin-objc"] = array_with_newlines([]);
         }
 
         // And then the rest of the features.
@@ -498,6 +520,8 @@ see that for related crates.", self.data.krate)?;
             writeln!(f, "#![allow(clippy::too_many_arguments)]")?;
             // We have no control over how complex a type is.
             writeln!(f, "#![allow(clippy::type_complexity)]")?;
+            // Some new methods use out parameters (currently).
+            writeln!(f, "#![allow(clippy::new_ret_no_self)]")?;
             // Apple's naming scheme allows this.
             writeln!(f, "#![allow(clippy::upper_case_acronyms)]")?;
             // Headers often use `x << 0` for clarity.
@@ -509,7 +533,6 @@ see that for related crates.", self.data.krate)?;
             writeln!(f, "#![allow(clippy::doc_lazy_continuation)]")?;
             writeln!(f, "#![allow(rustdoc::broken_intra_doc_links)]")?;
             writeln!(f, "#![allow(rustdoc::bare_urls)]")?;
-            writeln!(f, "#![allow(rustdoc::unportable_markdown)]")?;
             writeln!(f, "#![allow(rustdoc::invalid_html_tags)]")?;
 
             writeln!(f)?;
@@ -560,12 +583,12 @@ fn merge_toml_table(original: &mut Table, addition: Table) {
             toml_edit::Entry::Vacant(original) => {
                 match &mut addition {
                     Item::Table(table) => {
-                        table.set_position(usize::MAX);
+                        table.set_position(Some(isize::MAX));
                         table.decor_mut().clear();
                     }
                     Item::ArrayOfTables(array) => {
                         for table in array.iter_mut() {
-                            table.set_position(usize::MAX);
+                            table.set_position(Some(isize::MAX));
                             table.decor_mut().clear();
                         }
                     }

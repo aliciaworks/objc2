@@ -6,11 +6,11 @@ use clang::token::TokenKind;
 use clang::{Entity, EntityKind, EntityVisitResult, EvaluationResult};
 use four_char_code::FourCharCode;
 
-use crate::availability::Availability;
 use crate::context::MacroLocation;
 use crate::id::ItemTree;
 use crate::name_translation::enum_prefix;
 use crate::rust_type::{Primitive, Ty};
+use crate::stmt::non_deprecated_enum_cases;
 use crate::unexposed_attr::UnexposedAttr;
 use crate::{immediate_children, Context, ItemIdentifier, Location};
 
@@ -36,6 +36,7 @@ pub enum Expr {
     Signed(i64),
     Unsigned(u64),
     Float(f64),
+    Boolean(bool),
     MacroInvocation {
         id: ItemIdentifier,
         is_function_like: bool,
@@ -79,6 +80,7 @@ impl Expr {
             Self::Signed(_) => Ty::Primitive(Primitive::Int),
             Self::Unsigned(_) => Ty::Primitive(Primitive::UInt),
             Self::Float(_) => Ty::Primitive(Primitive::Float),
+            Self::Boolean(_) => Ty::Primitive(Primitive::C99Bool),
             Self::MacroInvocation { evaluated, .. } => {
                 if let Some(evaluated) = evaluated {
                     evaluated.guess_type(location)
@@ -99,7 +101,7 @@ impl Expr {
                     Ty::TypeDef {
                         id: ItemIdentifier::from_raw(to.clone(), location.clone()),
                         // Unknown at this point what the casted type actually is.
-                        to: Box::new(Ty::Primitive(Primitive::Void)),
+                        to: Box::new(Ty::VOID),
                     }
                 }
                 [Token::Expr(expr)] => expr.guess_type(location),
@@ -254,6 +256,10 @@ impl Expr {
                     } else if ident == "CFUUIDGetConstantUUIDWithBytes" {
                         i = tokens.len() - i - 1;
                         Token::CFUUID("todo".into())
+                    } else if ident == "true" {
+                        Token::Expr(Expr::Boolean(true))
+                    } else if ident == "false" {
+                        Token::Expr(Expr::Boolean(false))
                     } else if let Some(expr) = declaration_references.get(&ident) {
                         Token::Expr(expr.clone())
                     } else if let Some(macro_invocation) = context
@@ -288,19 +294,20 @@ impl Expr {
                         let chars = lit
                             .strip_suffix('\'')
                             .expect("start quote to have end quote");
+                        let chars = chars.replace("\\0", "\0");
 
                         match chars.len() {
                             // Byte-character literal
                             1 => Token::ByteChar(chars.as_bytes()[0]),
                             // Four character codes
                             4 => {
-                                let fcc = FourCharCode::from_str(chars)
+                                let fcc = FourCharCode::from_str(&chars)
                                     .expect("invalid four character code");
 
                                 Token::FourChar(fcc)
                             }
-                            _ => {
-                                error!(?chars, "unknown length of single-quoted string");
+                            len => {
+                                error!(len, ?chars, "unknown length of single-quoted string");
                                 Token::Literal("UNSUPPORTED".into())
                             }
                         }
@@ -442,31 +449,16 @@ impl Expr {
                     let parent_id = parent_id.map_name(|name| name.unwrap());
 
                     let mut attrs = HashSet::new();
-                    let mut variants = vec![];
-                    immediate_children(&parent, |entity, _span| match entity.get_kind() {
-                        EntityKind::UnexposedAttr => {
+                    immediate_children(&parent, |entity, _span| {
+                        if let EntityKind::UnexposedAttr = entity.get_kind() {
                             if let Some(attr) = UnexposedAttr::parse(&entity, context) {
                                 attrs.insert(attr);
                             }
                         }
-                        EntityKind::EnumConstantDecl => {
-                            let name = entity.get_name().expect("enum constant name");
-                            let availability = Availability::parse(&entity, context);
-                            variants.push((name, availability));
-                        }
-                        _ => {}
                     });
 
-                    let mut relevant_enum_cases = variants
-                        .iter()
-                        .filter(|(_, availability)| availability.is_available_non_deprecated())
-                        .map(|(name, _)| &**name)
-                        .peekable();
-                    let prefix = if relevant_enum_cases.peek().is_some() {
-                        enum_prefix(&parent_id.name, relevant_enum_cases)
-                    } else {
-                        enum_prefix(&parent_id.name, variants.iter().map(|(name, _)| &**name))
-                    };
+                    let cases = non_deprecated_enum_cases(&parent, context);
+                    let prefix = enum_prefix(&parent_id.name, cases.iter().map(|s| &**s));
                     let variant = variant.strip_prefix(prefix).unwrap_or(&variant).to_string();
 
                     Self::Enum {
@@ -497,6 +489,7 @@ impl Expr {
             Self::Signed(_) => {}
             Self::Unsigned(_) => {}
             Self::Float(_) => {}
+            Self::Boolean(_) => {}
             Self::MacroInvocation { evaluated, id, .. } => {
                 if evaluated.is_none() {
                     items.push(ItemTree::from_id(id.clone()));
@@ -536,6 +529,7 @@ impl fmt::Display for Expr {
             Self::Signed(signed) => write!(f, "{signed}"),
             Self::Unsigned(unsigned) => write!(f, "{unsigned}"),
             Self::Float(n) => write!(f, "{n}"),
+            Self::Boolean(b) => write!(f, "{b}"),
             Self::MacroInvocation {
                 id,
                 is_function_like,

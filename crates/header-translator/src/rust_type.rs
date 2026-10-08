@@ -1,170 +1,147 @@
-use std::str::FromStr;
-use std::sync::LazyLock;
-use std::{fmt, iter, mem};
+use std::collections::VecDeque;
+use std::fmt::Debug;
+use std::{fmt, fmt::Display, iter, mem, str::FromStr, sync::LazyLock};
 
 use clang::{CallingConvention, Entity, EntityKind, Nullability, Type, TypeKind};
 use proc_macro2::{TokenStream, TokenTree};
+use regex::Regex;
 
+use crate::config::{ItemGeneric, PointerBounds, PointerLifetime, StmtData, TypeOverride};
 use crate::context::Context;
 use crate::display_helper::FormatterFn;
 use crate::id::{ItemIdentifier, ItemTree};
 use crate::name_translation::cf_no_ref;
 use crate::protocol::ProtocolRef;
-use crate::stmt::{anonymous_record_name, is_bridged};
+use crate::stmt::{anonymous_record_name, bridged_to, parse_class_generics, GenericWithBound};
 use crate::stmt::{parse_superclasses, superclasses_required_items};
 use crate::thread_safety::ThreadSafety;
 use crate::unexposed_attr::UnexposedAttr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-enum ParsePosition {
-    Suffix,
-    Prefix,
-}
-
-impl ParsePosition {
-    fn strip<'a>(self, s: &'a str, needle: &str) -> Option<&'a str> {
-        match self {
-            Self::Suffix => s.strip_suffix(needle),
-            Self::Prefix => s.strip_prefix(needle),
-        }
-    }
-}
-
 /// Helper for parsing various attributes.
 ///
-/// This is _very_ ugly, but required because libclang doesn't expose
+/// This is pretty ugly, but required because libClang doesn't expose
 /// lifetime information.
 #[derive(Debug)]
-struct AttributeParser<'a, 'b> {
-    _original_name: &'a str,
-    name: &'a str,
-    expected_name: &'b str,
+struct AttributeParser<'a> {
+    _original: &'a str,
+    to_check: Vec<&'a str>,
 }
 
-impl<'a, 'b> AttributeParser<'a, 'b> {
-    fn new(name: &'a str, expected_name: &'b str) -> Self {
-        Self {
-            _original_name: name,
-            name: name.trim(),
-            expected_name: expected_name.trim(),
-        }
-    }
+impl<'a> AttributeParser<'a> {
+    fn new(original: &'a str, inner: &str) -> Self {
+        assert!(original.len() >= inner.len(), "{original:?} >= {inner:?}");
+        let _original = original;
 
-    fn map(&mut self, f: impl Fn(&str) -> &str) {
-        self.name = f(self.name);
-        self.expected_name = f(self.expected_name);
-    }
+        // Split into parts at non-identifier boundaries.
+        static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[A-Za-z0-9_]+|.").unwrap());
+        let original = RE
+            .find_iter(original)
+            .map(|m| m.as_str().trim())
+            .filter(|s| !s.is_empty());
+        let mut inner = RE
+            .find_iter(inner)
+            .map(|m| m.as_str().trim())
+            .filter(|s| !s.is_empty())
+            .peekable();
 
-    fn set_constant_array(&mut self) {
-        self.map(|s| {
-            let (s, _) = s.split_once('[').expect("array to contain [");
-            s.trim()
-        });
-    }
-
-    /// Parse an incomplete array like:
-    /// `id<MTLFunctionHandle>  _Nullable const  _Nonnull __unsafe_unretained[]`
-    /// By removing the ending `[]`.
-    fn set_incomplete_array(&mut self) {
-        self.map(|s| s.strip_suffix("[]").expect("array to end with []").trim());
-    }
-
-    /// Parse a function pointer like:
-    /// `void (^ _Nonnull __strong)(...)`
-    /// By extracting the inner data to:
-    /// `^ _Nonnull __strong`
-    fn set_fn_ptr(&mut self) {
-        self.map(|s| {
-            let (_, s) = s.split_once('(').expect("fn to have begin parenthesis");
-            let (s, _) = s.split_once(')').expect("fn to have end parenthesis");
-            s.trim()
-        });
-    }
-
-    fn set_inner_pointer(&mut self) {
-        if let Some(rest) = self.name.strip_suffix('*') {
-            self.name = rest.trim();
-        } else {
-            error!(?self, "expected pointer to have star");
-        }
-    }
-}
-
-impl AttributeParser<'_, '_> {
-    fn strip(&mut self, needle: &str, position: ParsePosition) -> bool {
-        if let Some(rest) = position.strip(self.name, needle) {
-            // If the string is present in the name
-            if position.strip(self.expected_name, needle).is_some() {
-                let rest = rest.trim();
-                // If it can be stripped from both `name` and `expected_name`,
-                // it might appear twice in `name`.
-                //
-                // This is done to support:
-                // "const char * _Nonnull  _Nonnull[]".
-                if position.strip(rest, needle).is_some() {
-                    self.name = rest;
-                    return true;
+        // And grab the parts from `original` that are not in `inner`.
+        let mut to_check = Vec::new();
+        for part in original {
+            if let Some(inner_part) = inner.peek() {
+                if part == *inner_part {
+                    inner.next();
+                    continue;
                 }
+                to_check.push(part);
             } else {
-                // And _not_ in the expected name, then we should strip it so that they match.
-                self.name = rest.trim();
-                return true;
+                to_check.push(part);
             }
         }
 
-        false
+        Self {
+            _original,
+            to_check,
+        }
     }
 
-    fn lifetime(&mut self, position: ParsePosition) -> Lifetime {
-        if self.strip("__unsafe_unretained", position) {
+    fn parse(&mut self, needle: &str) -> usize {
+        let mut found = 0;
+        self.to_check.retain(|elem| {
+            if *elem == needle {
+                found += 1;
+                false
+            } else {
+                true
+            }
+        });
+        found
+    }
+
+    fn parse_sequence(&mut self, needle: &[&str]) -> usize {
+        let mut found = 0;
+        for (i, window) in self.to_check.clone().windows(needle.len()).enumerate() {
+            if window == needle {
+                found += 1;
+                for _ in 0..needle.len() {
+                    self.to_check.remove(i);
+                }
+            }
+        }
+        found
+    }
+
+    fn is_volatile(&mut self) -> bool {
+        self.parse("volatile") > 0
+    }
+
+    fn lifetime(&mut self) -> Lifetime {
+        if self.parse("__unsafe_unretained") > 0 {
             Lifetime::Unretained
-        } else if self.strip("__strong", position) {
+        } else if self.parse("__strong") > 0 {
             Lifetime::Strong
-        } else if self.strip("__weak", position) {
+        } else if self.parse("__weak") > 0 {
             Lifetime::Weak
-        } else if self.strip("__autoreleasing", position) {
+        } else if self.parse("__autoreleasing") > 0 {
             Lifetime::Autoreleasing
         } else {
             Lifetime::Unspecified
         }
     }
 
-    /// We completely ignore `__kindof` in Rust as it is done in Swift, since
-    /// it only exists to allow legacy Objective-C code to continue compiling.
-    ///
-    /// See <https://lapcatsoftware.com/articles/kindof.html>
-    fn is_kindof(&mut self, position: ParsePosition) -> bool {
-        self.strip("__kindof", position)
+    fn sending(&mut self) -> bool {
+        // __attribute__((swift_attr("sending")))
+        self.parse_sequence(&[
+            "__attribute__",
+            "(",
+            "(",
+            "swift_attr",
+            "(",
+            "\"",
+            "sending",
+            "\"",
+            ")",
+            ")",
+            ")",
+        ]) > 0
     }
 
-    fn is_const(&mut self, position: ParsePosition) -> bool {
-        self.strip("const", position)
-    }
+    fn check(mut self) {
+        // Ignore nullabililty, libClang exposes these sufficiently.
+        self.parse("_Nullable");
+        self.parse("_Nonnull");
+        self.parse("_Null_unspecified");
+        self.parse("_Nullable_result");
 
-    fn is_volatile(&mut self, position: ParsePosition) -> bool {
-        self.strip("volatile", position)
-    }
+        // Ignore `const`, libClang exposes this sufficiently.
+        self.parse("const");
 
-    fn nullability(&mut self, position: ParsePosition) -> Option<Nullability> {
-        if self.strip("_Nullable", position) {
-            Some(Nullability::Nullable)
-        } else if self.strip("_Nonnull", position) {
-            Some(Nullability::NonNull)
-        } else if self.strip("_Null_unspecified", position) {
-            Some(Nullability::Unspecified)
-        } else {
-            None
-        }
-    }
+        // We completely ignore `__kindof` in Rust as it is done in Swift, since
+        // it only exists to allow legacy Objective-C code to continue compiling.
+        //
+        // See <https://lapcatsoftware.com/articles/kindof.html>
+        self.parse("__kindof");
 
-    fn nullable_result(&mut self, position: ParsePosition) -> bool {
-        self.strip("_Nullable_result", position)
-    }
-}
-
-impl Drop for AttributeParser<'_, '_> {
-    fn drop(&mut self) {
-        if !std::thread::panicking() && self.name != self.expected_name {
+        if !self.to_check.is_empty() {
             error!(?self, "could not extract all attributes");
         }
     }
@@ -184,43 +161,6 @@ pub enum Lifetime {
     Autoreleasing,
 }
 
-impl Lifetime {
-    fn update(&mut self, new: Self) {
-        match (*self, new) {
-            (_, Self::Unspecified) => {
-                // No lifetime attribute parsed
-            }
-            (Self::Unspecified, _) => {
-                *self = new;
-            }
-            // Temporary
-            (Self::Strong, Self::Strong) => {}
-            (old, new) => error!(?old, ?new, "invalid lifetime update"),
-        }
-    }
-}
-
-// TODO: refactor this
-fn update_nullability(nullability: &mut Nullability, new: Option<Nullability>) {
-    match (*nullability, new) {
-        (_, None) => {
-            // No nullability attribute parsed
-        }
-        (Nullability::Unspecified, Some(new)) => {
-            *nullability = new;
-        }
-        (old, new) => error!(?old, ?new, "invalid nullability update"),
-    }
-}
-
-fn check_nullability(ty: &Type<'_>, new: Option<Nullability>) -> Nullability {
-    let on_ty = ty.get_nullability();
-    if new != on_ty {
-        error!(?ty, ?on_ty, ?new, "failed parsing nullability");
-    }
-    new.unwrap_or(Nullability::Unspecified)
-}
-
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum MethodArgumentQualifier {
     In,
@@ -228,8 +168,209 @@ pub enum MethodArgumentQualifier {
     Out,
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub enum SafetyProperty {
+    /// The type is unsafe in the selected position.
+    Unsafe { reasons: Vec<String> },
+    /// The safety of using the type in this position is unknown.
+    Unknown { reasons: Vec<String> },
+    /// The type is always safe in this position (and methods/functions using
+    /// this is thus eligible for being automatically marked safe).
+    Safe,
+}
+
+impl SafetyProperty {
+    pub fn new_unsafe(reason: impl Into<String>) -> Self {
+        Self::Unsafe {
+            reasons: vec![reason.into()],
+        }
+    }
+
+    pub fn new_unknown(reason: impl Into<String>) -> Self {
+        Self::Unknown {
+            reasons: vec![reason.into()],
+        }
+    }
+
+    /// Merge two safety properties.
+    ///
+    /// When there are multiple reasons for something being unsafe, these
+    /// are merged as well.
+    pub fn merge(self, other: Self) -> Self {
+        match (self, other) {
+            (
+                Self::Unsafe { reasons: reasons1 },
+                Self::Unsafe { reasons: reasons2 } | Self::Unknown { reasons: reasons2 },
+            ) => Self::Unsafe {
+                reasons: reasons1.into_iter().chain(reasons2).collect(),
+            },
+            (Self::Unknown { reasons: reasons1 }, Self::Unsafe { reasons: reasons2 }) => {
+                Self::Unsafe {
+                    reasons: reasons1.into_iter().chain(reasons2).collect(),
+                }
+            }
+            (Self::Unsafe { reasons }, Self::Safe) => Self::Unsafe { reasons },
+            (Self::Safe, Self::Unsafe { reasons }) => Self::Unsafe { reasons },
+
+            (Self::Unknown { reasons: reasons1 }, Self::Unknown { reasons: reasons2 }) => {
+                Self::Unknown {
+                    reasons: reasons1.into_iter().chain(reasons2).collect(),
+                }
+            }
+            (Self::Unknown { reasons }, Self::Safe) => Self::Unknown { reasons },
+            (Self::Safe, Self::Unknown { reasons }) => Self::Unknown { reasons },
+
+            (Self::Safe, Self::Safe) => Self::Safe,
+        }
+    }
+
+    pub fn is_unsafe(&self) -> bool {
+        matches!(self, SafetyProperty::Unsafe { .. })
+    }
+
+    pub fn is_safe(&self) -> bool {
+        matches!(self, SafetyProperty::Safe)
+    }
+
+    fn ignore(self) -> Self {
+        match self {
+            Self::Unsafe { .. } => Self::Unsafe { reasons: vec![] },
+            Self::Unknown { .. } => Self::Unknown { reasons: vec![] },
+            Self::Safe => Self::Safe,
+        }
+    }
+
+    fn context(self, context: impl Display) -> Self {
+        match self {
+            Self::Unsafe { mut reasons } => {
+                // TODO: Is this how we wanna do context?
+                for reason in &mut reasons {
+                    *reason = format!("{context} {reason}");
+                }
+                Self::Unsafe { reasons }
+            }
+            Self::Unknown { mut reasons } => {
+                // TODO: Is this how we wanna do context?
+                for reason in &mut reasons {
+                    *reason = format!("{context} {reason}");
+                }
+                Self::Unknown { reasons }
+            }
+            Self::Safe => Self::Safe,
+        }
+    }
+
+    fn preface(self, preface: impl Display) -> Self {
+        match self {
+            Self::Unsafe { mut reasons } => {
+                for reason in &mut reasons {
+                    *reason = format!("{preface} {reason}");
+                }
+                Self::Unsafe { reasons }
+            }
+            Self::Unknown { mut reasons } => {
+                for reason in &mut reasons {
+                    *reason = format!("{preface} {reason}");
+                }
+                Self::Unknown { reasons }
+            }
+            Self::Safe => Self::Safe,
+        }
+    }
+
+    /// This comment is incomplete, it cannot know about extra requirements
+    /// that a method may have.
+    ///
+    /// A concern could be that adding the "# Safety" comments might lead
+    /// users to think that that is all they need to uphold, whereas in
+    /// reality there might be further requirements stated elsewhere in the
+    /// documentation. This is _probably_ fine, having a safety comment is
+    /// better than not having it.
+    ///
+    /// TODO: Maybe search for "undefined behaviour" in the docstring, and use
+    /// that as a marker too?
+    pub fn to_safety_comment(&self) -> Option<String> {
+        match self {
+            Self::Unsafe { reasons } | Self::Unknown { reasons } => Some(if reasons.len() == 1 {
+                format!("{}.", reasons[0])
+            } else {
+                format!("- {}.", reasons.join(".\n- "))
+            }),
+            Self::Safe => None,
+        }
+    }
+}
+
+/// The safety properties of a type.
+///
+/// These depend on which position the type is used in.
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct TypeSafety {
+    /// The type's safety properties when passed into foreign code.
+    pub in_argument: SafetyProperty,
+    /// The type's safety properties when given by foreign code.
+    pub in_return: SafetyProperty,
+}
+
+impl TypeSafety {
+    const SAFE: Self = Self {
+        in_argument: SafetyProperty::Safe,
+        in_return: SafetyProperty::Safe,
+    };
+
+    fn always_unsafe(reason: impl Into<String> + Clone) -> Self {
+        Self {
+            in_argument: SafetyProperty::new_unsafe(reason.clone()),
+            in_return: SafetyProperty::new_unsafe(reason),
+        }
+    }
+
+    fn unknown_in_argument(reason: impl Into<String>) -> Self {
+        Self {
+            in_argument: SafetyProperty::new_unknown(reason),
+            in_return: SafetyProperty::Safe,
+        }
+    }
+
+    fn unsafe_in_argument(reason: impl Into<String>) -> Self {
+        Self {
+            in_argument: SafetyProperty::new_unsafe(reason),
+            in_return: SafetyProperty::Safe,
+        }
+    }
+
+    fn unsafe_in_return(reason: impl Into<String>) -> Self {
+        Self {
+            in_argument: SafetyProperty::Safe,
+            in_return: SafetyProperty::new_unsafe(reason),
+        }
+    }
+
+    fn merge(self, other: Self) -> Self {
+        Self {
+            in_argument: self.in_argument.merge(other.in_argument),
+            in_return: self.in_return.merge(other.in_return),
+        }
+    }
+
+    fn ignore_in_argument(self) -> Self {
+        Self {
+            in_argument: self.in_argument.ignore(),
+            in_return: self.in_return,
+        }
+    }
+
+    fn context(self, context: impl Display + Clone) -> Self {
+        Self {
+            in_argument: self.in_argument.context(context.clone()),
+            in_return: self.in_return.context(context),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Primitive {
+    /// `()` or `c_void`
     Void,
     C99Bool,
     Char,
@@ -253,6 +394,7 @@ pub enum Primitive {
     /// Not yet supported by `rustc`
     /// <https://github.com/rust-lang/rust/issues/116909>
     F128,
+    // Integer types
     I8,
     U8,
     I16,
@@ -284,6 +426,8 @@ impl Primitive {
                 let s = self.as_str();
                 if s.starts_with("c_") {
                     Some(ItemTree::core_ffi(s))
+                } else if *self == Self::Void {
+                    Some(ItemTree::core_ffi("c_void"))
                 } else {
                     None
                 }
@@ -295,7 +439,7 @@ impl Primitive {
     const fn as_str(&self) -> &'static str {
         match self {
             // Primitives
-            Self::Void => "c_void",
+            Self::Void => "()",
             Self::C99Bool => "bool",
             Self::Char => "c_char",
             Self::SChar => "c_schar",
@@ -351,6 +495,15 @@ impl Primitive {
             _ => return None,
         })
     }
+
+    fn safety(&self) -> TypeSafety {
+        match self {
+            // FIXME(madsmtm): Remove Imp from primitive?
+            Self::Imp => TypeSafety::always_unsafe("must be a valid IMP"),
+            Self::VaList => TypeSafety::always_unsafe("must be valid"),
+            _ => TypeSafety::SAFE,
+        }
+    }
 }
 
 impl fmt::Display for Primitive {
@@ -362,7 +515,12 @@ impl fmt::Display for Primitive {
 fn get_class_data(
     entity_ref: &Entity<'_>,
     context: &Context<'_>,
-) -> (ItemIdentifier, ThreadSafety, Vec<ItemIdentifier>) {
+) -> (
+    ItemIdentifier,
+    Vec<GenericWithBound>,
+    ThreadSafety,
+    Vec<ItemIdentifier>,
+) {
     // @class produces a ObjCInterfaceDecl if we didn't load the actual
     // declaration, but we don't actually want that, since it'll point to the
     // wrong place.
@@ -374,6 +532,14 @@ fn get_class_data(
 
     let mut id = ItemIdentifier::new(&entity, context);
 
+    let data = context
+        .library(&id)
+        .class_data
+        .get(&id.name)
+        .unwrap_or(StmtData::empty());
+
+    let declaration_generics = parse_class_generics(&entity, context, data);
+
     match entity.get_kind() {
         EntityKind::ObjCInterfaceDecl => {
             let thread_safety = ThreadSafety::from_decl(&entity, context);
@@ -382,11 +548,11 @@ fn get_class_data(
                 .map(|(id, _, _)| id)
                 .collect();
 
-            (id, thread_safety, superclasses)
+            (id, declaration_generics, thread_safety, superclasses)
         }
         EntityKind::ObjCClassRef => {
             let thread_safety = ThreadSafety::from_ref(&entity, context);
-            (id, thread_safety, vec![])
+            (id, declaration_generics, thread_safety, vec![])
         }
         EntityKind::MacroExpansion => {
             id.name = entity_ref.get_name().unwrap_or_else(|| {
@@ -397,25 +563,30 @@ fn get_class_data(
             let thread_safety = ThreadSafety::dummy();
             // Similarly, we cannot get for required items
             let superclasses = vec![];
-            (id, thread_safety, superclasses)
+            (id, declaration_generics, thread_safety, superclasses)
         }
         _ => {
             error!(?entity, "was not a class");
-            (id, ThreadSafety::dummy(), vec![])
+            (id, declaration_generics, ThreadSafety::dummy(), vec![])
         }
     }
 }
 
 fn parse_protocol(entity: Entity<'_>, context: &Context<'_>) -> (ProtocolRef, ThreadSafety) {
-    let entity = entity.get_definition().unwrap_or(entity);
+    let mut entity = entity.get_definition().unwrap_or(entity);
     // @protocol produces a ObjCProtocolDecl if we didn't
     // load the actual declaration, but we don't actually
     // want that, since it'll point to the wrong place.
-    let entity = entity
+    let source_entity = entity
         .get_location()
         .expect("itemref location")
         .get_entity()
         .expect("itemref entity");
+
+    // Workaround for OS_OBJECT_DECL.
+    if source_entity.get_kind() != EntityKind::MacroExpansion {
+        entity = source_entity;
+    }
 
     let id = ItemIdentifier::new(&entity, context);
 
@@ -441,6 +612,32 @@ fn parse_protocol(entity: Entity<'_>, context: &Context<'_>) -> (ProtocolRef, Th
     }
 }
 
+/// Pad generics with `AnyObject` until it is of the given size.
+fn pad_generics<'a>(
+    generics: &'a [PointeeTy],
+    pad_with: &'a PointeeTy,
+    len: usize,
+) -> impl Iterator<Item = &'a PointeeTy> {
+    let missing = len.checked_sub(generics.len()).unwrap_or_else(|| {
+        error!(?generics, ?len, "had too many generics");
+        0
+    });
+
+    generics.iter().chain(iter::repeat_n(pad_with, missing))
+}
+
+/// Only allow `*SENDABLE` attributes, not `*NONSENDABLE`.
+fn only_positive_sendable(sendable: Option<bool>) -> bool {
+    match sendable {
+        Some(true) => true,
+        Some(false) => {
+            error!("unexpected non-sendable marker");
+            false
+        }
+        None => false,
+    }
+}
+
 /// Types that are only valid behind pointers.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PointeeTy {
@@ -448,14 +645,23 @@ pub enum PointeeTy {
         id: ItemIdentifier,
         thread_safety: ThreadSafety,
         superclasses: Vec<ItemIdentifier>,
-        generics: Vec<Ty>,
+        generics: Vec<PointeeTy>,
+        declaration_generics: Vec<GenericWithBound>,
         protocols: Vec<(ProtocolRef, ThreadSafety)>,
+        /// Whether there's a *SENDABLE requirement on the type.
+        sendable: bool,
     },
     GenericParam {
+        /// Whether the generic parameter is guaranteed to be an object type.
+        ///
+        /// `CFArray` etc. sets this to `false`.
+        object_like: bool,
         name: String,
     },
     AnyObject {
         protocols: Vec<(ProtocolRef, ThreadSafety)>,
+        /// Whether there's a *SENDABLE requirement on the type.
+        sendable: bool,
     },
     AnyProtocol,
     AnyClass {
@@ -465,37 +671,94 @@ pub enum PointeeTy {
     Fn {
         is_variadic: bool,
         no_escape: bool,
+        // TODO: Add parameter names if possible?
         arguments: Vec<Ty>,
         result_type: Box<Ty>,
     },
     Block {
         sendable: Option<bool>,
         no_escape: bool,
+        // TODO: Add parameter names if possible?
         arguments: Vec<Ty>,
         result_type: Box<Ty>,
     },
     CFTypeDef {
         id: ItemIdentifier,
+        generics: Vec<PointeeTy>,
+        num_declaration_generics: usize,
+        /// The superclass of this CF type. Must point to another `CFTypeDef`.
+        to: Option<Box<PointeeTy>>,
     },
+    CFOpaque,
     DispatchTypeDef {
+        id: ItemIdentifier,
+    },
+    NetworkTypeDef {
+        id: ItemIdentifier,
+    },
+    OpaqueTypeDef {
         id: ItemIdentifier,
     },
     TypeDef {
         id: ItemIdentifier,
         to: Box<PointeeTy>,
     },
-    CStr,
 }
 
 impl PointeeTy {
-    fn required_items(&self) -> impl Iterator<Item = ItemTree> {
+    /// Recurse into typedefs.
+    fn through_typedef(&self) -> &Self {
+        match self {
+            Self::TypeDef { to, .. } => to.through_typedef(),
+            _ => self,
+        }
+    }
+
+    pub(crate) fn parse_generic_bound(ty: Type<'_>, context: &Context<'_>) -> Self {
+        let ty = Ty::parse(ty, false, context);
+        match ty {
+            Ty::Pointee(pointee) => pointee,
+            Ty::Pointer {
+                nullability: Nullability::Unspecified,
+                read: _,
+                written: _,
+                lifetime: Lifetime::Unspecified,
+                bounds: PointerBounds::Single,
+                pointee,
+            } => match *pointee {
+                Ty::Pointee(pointee) => pointee,
+                ty => {
+                    error!(?ty, "invalid generic bound pointer");
+                    PointeeTy::GenericParam {
+                        object_like: true,
+                        name: "Unknown".to_string(),
+                    }
+                }
+            },
+            ty => {
+                error!(?ty, "invalid generic bound");
+                PointeeTy::GenericParam {
+                    object_like: true,
+                    name: "Unknown".to_string(),
+                }
+            }
+        }
+    }
+
+    pub(crate) fn is_plain_anyobject(&self) -> bool {
+        matches!(self, Self::AnyObject { protocols, sendable: false } if protocols.is_empty())
+    }
+
+    pub(crate) fn required_items(&self) -> impl Iterator<Item = ItemTree> {
         match self {
             Self::Class {
                 id,
                 thread_safety: _,
                 superclasses,
                 generics,
+                declaration_generics,
                 protocols,
+                sendable: _,
             } => {
                 let superclasses = superclasses_required_items(superclasses.iter().cloned());
                 let protocols = protocols
@@ -504,10 +767,16 @@ impl PointeeTy {
                 iter::once(ItemTree::new(id.clone(), superclasses))
                     .chain(protocols)
                     .chain(generics.iter().flat_map(|generic| generic.required_items()))
+                    .chain(
+                        declaration_generics
+                            .iter()
+                            .flat_map(|(_, bound)| bound.as_ref())
+                            .flat_map(|bound| bound.required_items()),
+                    )
                     .collect()
             }
             Self::GenericParam { .. } => vec![],
-            Self::AnyObject { protocols } => {
+            Self::AnyObject { protocols, .. } => {
                 let protocols = protocols
                     .iter()
                     .flat_map(|(protocol, _)| protocol.required_items());
@@ -538,21 +807,39 @@ impl PointeeTy {
                 .chain(arguments.iter().flat_map(|arg| arg.required_items()))
                 .collect(),
             Self::Block {
-                sendable: _,
+                sendable,
                 no_escape: _,
                 arguments,
                 result_type,
-            } => iter::once(ItemTree::block())
-                .chain(result_type.required_items())
-                .chain(arguments.iter().flat_map(|arg| arg.required_items()))
-                .collect(),
-            Self::CFTypeDef { id } | Self::DispatchTypeDef { id } => {
+            } => iter::once(if *sendable == Some(true) {
+                ItemTree::sendable_block()
+            } else {
+                ItemTree::block()
+            })
+            .chain(result_type.required_items())
+            .chain(arguments.iter().flat_map(|arg| arg.required_items()))
+            .collect(),
+            Self::CFTypeDef {
+                id, generics, to, ..
+            } => iter::once(ItemTree::new(
+                id.clone(),
+                to.iter().flat_map(|to| to.required_items()),
+            ))
+            .chain(generics.iter().flat_map(|generic| generic.required_items()))
+            .collect(),
+            Self::DispatchTypeDef { id } => {
                 vec![ItemTree::from_id(id.clone())]
             }
+            Self::NetworkTypeDef { id } => {
+                vec![ItemTree::from_id(id.clone())]
+            }
+            Self::OpaqueTypeDef { id } => {
+                vec![ItemTree::from_id(id.clone())]
+            }
+            Self::CFOpaque => vec![],
             Self::TypeDef { id, to } => {
                 vec![ItemTree::new(id.clone(), to.required_items())]
             }
-            Self::CStr => vec![ItemTree::core_ffi("CStr")],
         }
         .into_iter()
     }
@@ -564,7 +851,9 @@ impl PointeeTy {
                 thread_safety,
                 superclasses: _,
                 generics,
+                declaration_generics: _,
                 protocols,
+                sendable: _,
             } => {
                 thread_safety.inferred_mainthreadonly()
                     || generics
@@ -575,7 +864,7 @@ impl PointeeTy {
                         .any(|(_, thread_safety)| thread_safety.inferred_mainthreadonly())
             }
             Self::GenericParam { .. } => false,
-            Self::AnyObject { protocols } => protocols
+            Self::AnyObject { protocols, .. } => protocols
                 .iter()
                 .any(|(_, thread_safety)| thread_safety.inferred_mainthreadonly()),
             Self::AnyProtocol => false,
@@ -602,9 +891,14 @@ impl PointeeTy {
                     .any(|arg| arg.requires_mainthreadmarker(self_requires))
                     || result_type.requires_mainthreadmarker(self_requires)
             }
-            Self::CFTypeDef { .. } | Self::DispatchTypeDef { .. } => false,
+            Self::CFTypeDef { generics, .. } => generics
+                .iter()
+                .any(|generic| generic.requires_mainthreadmarker(self_requires)),
+            Self::CFOpaque => false,
+            Self::DispatchTypeDef { .. } => false,
+            Self::NetworkTypeDef { .. } => false,
+            Self::OpaqueTypeDef { .. } => false,
             Self::TypeDef { to, .. } => to.requires_mainthreadmarker(self_requires),
-            Self::CStr => false,
         }
     }
 
@@ -613,7 +907,7 @@ impl PointeeTy {
         // optional things like `Option<&NSView>` or `&NSArray<NSView>`.
         match self {
             Self::Class { thread_safety, .. } => thread_safety.inferred_mainthreadonly(),
-            Self::AnyObject { protocols } => {
+            Self::AnyObject { protocols, .. } => {
                 match &**protocols {
                     [] => false,
                     [(_, thread_safety)] => thread_safety.inferred_mainthreadonly(),
@@ -627,11 +921,540 @@ impl PointeeTy {
         }
     }
 
+    fn behind_pointer(&self, allow_generic_param: bool) -> impl fmt::Display + '_ {
+        FormatterFn(move |f| match self {
+            Self::Class {
+                id,
+                thread_safety: _,
+                superclasses: _,
+                generics,
+                declaration_generics: _,
+                protocols: _,
+                sendable: _,
+            } => {
+                write!(f, "{}", id.path())?;
+                if !generics.is_empty() {
+                    write!(f, "<")?;
+                    for generic in generics {
+                        if !allow_generic_param && matches!(generic, Self::GenericParam { .. }) {
+                            continue;
+                        }
+                        write!(f, "{},", generic.behind_pointer(allow_generic_param))?;
+                    }
+                    write!(f, ">")?;
+                }
+                Ok(())
+            }
+            Self::GenericParam { name, .. } => {
+                if allow_generic_param {
+                    write!(f, "{name}")
+                } else {
+                    write!(f, "c_void")
+                }
+            }
+            Self::AnyObject {
+                protocols,
+                // TODO: Emit as `Object<dyn Any + Send + Sync>`?
+                sendable: _,
+            } => match &**protocols {
+                [] => write!(f, "AnyObject"),
+                [(protocol, _)] => write!(f, "ProtocolObject<dyn {}>", protocol.id.path()),
+                // TODO: Handle this better
+                [(first, _), rest @ ..] => {
+                    write!(f, "AnyObject /* {}", first.id.path())?;
+                    for (protocol, _) in rest {
+                        write!(f, "+ {}", protocol.id.path())?;
+                    }
+                    write!(f, " */")?;
+                    Ok(())
+                }
+            },
+            Self::AnyProtocol => write!(f, "AnyProtocol"),
+            Self::AnyClass { protocols } => match &**protocols {
+                [] => write!(f, "AnyClass"),
+                // TODO: Handle this better
+                _ => write!(f, "AnyClass"),
+            },
+            Self::Self_ => write!(f, "Self"),
+            // TODO: Handle this better.
+            Self::Fn { .. } => {
+                write!(f, "core::ffi::c_void /* TODO: Should be a function. */")
+            }
+            Self::Block {
+                sendable,
+                no_escape,
+                arguments,
+                result_type,
+            } => {
+                let ty = if *sendable == Some(true) {
+                    "SendableBlock"
+                } else {
+                    "Block"
+                };
+                let lifetime = if *no_escape { "_" } else { "static" };
+                write!(f, "block2::{ty}<'{lifetime}, fn(")?;
+                for arg in arguments {
+                    write!(f, "{}, ", arg.argument(allow_generic_param))?;
+                }
+                write!(f, ")")?;
+                write!(
+                    f,
+                    "{}",
+                    result_type.prefix_return(result_type.fn_type_return())
+                )?;
+                write!(f, ">")
+            }
+            Self::CFTypeDef { id, generics, .. } => {
+                write!(f, "{}", id.path())?;
+                if !generics.is_empty() {
+                    write!(f, "<")?;
+                    for generic in generics {
+                        if !allow_generic_param && matches!(generic, Self::GenericParam { .. }) {
+                            continue;
+                        }
+                        write!(f, "{},", generic.behind_pointer(allow_generic_param))?;
+                    }
+                    write!(f, ">")?;
+                }
+                Ok(())
+            }
+            Self::CFOpaque => write!(f, "Opaque"),
+            Self::DispatchTypeDef { id } => write!(f, "{}", id.path()),
+            Self::NetworkTypeDef { id } => write!(f, "{}", id.path()),
+            Self::OpaqueTypeDef { id } => write!(f, "{}", id.path()),
+            Self::TypeDef { id, .. } => write!(f, "{}", id.path()),
+        })
+    }
+
+    fn fn_ptr(&self, allow_generic_param: bool, in_method: bool) -> impl fmt::Display + '_ {
+        FormatterFn(move |f| {
+            match self {
+                Self::Fn {
+                    is_variadic,
+                    no_escape: _,
+                    arguments,
+                    result_type,
+                } => {
+                    // Allow pointers that the user provides to unwind.
+                    //
+                    // This is not _necessarily_ safe, though in practice
+                    // it will be for all of Apple's frameworks.
+                    write!(f, "unsafe extern \"C-unwind\" fn(")?;
+                    for arg in arguments {
+                        if in_method {
+                            // Emit functions in methods without references, as those
+                            // aren't `Encode`-able.
+                            write!(f, "{},", arg.argument(allow_generic_param))?;
+                        } else {
+                            write!(f, "{},", arg.fn_argument(allow_generic_param))?;
+                        }
+                    }
+                    if *is_variadic {
+                        write!(f, "...")?;
+                    }
+                    write!(f, ")")?;
+                    write!(
+                        f,
+                        "{}",
+                        result_type.prefix_return(result_type.fn_type_return())
+                    )?;
+
+                    Ok(())
+                }
+                Self::TypeDef { id, to } => {
+                    assert!(matches!(to.through_typedef(), Self::Fn { .. }));
+                    write!(f, "{}", id.path())
+                }
+                _ => unreachable!("fn_ptr must be PointeeTy::Fn"),
+            }
+        })
+    }
+
+    pub(crate) fn add_protocol(&mut self, entity: Entity<'_>, context: &Context<'_>) {
+        let Self::AnyObject { protocols, .. } = self else {
+            error!(?self, "invalid type to add protocols to");
+            return;
+        };
+
+        protocols.push(parse_protocol(entity, context));
+    }
+
+    pub(crate) fn generic_bound(&self) -> impl fmt::Display + '_ {
+        FormatterFn(move |f| match self {
+            Self::Class {
+                sendable: false, // TODO
+                ..
+            } => {
+                // HACK: Use `AsRef<Bound>`.
+                //
+                // This is not perfect, since `AsRef` can be implemented for
+                // other reasons than subclassing. We really need a general
+                // `SubclassOf` trait, but this is at least better than
+                // nothing.
+                write!(f, "AsRef<{}>", self.behind_pointer(true))
+            }
+            Self::AnyObject {
+                protocols,
+                sendable: false, // TODO
+            } => match &**protocols {
+                // Should be avoided by `is_plain_anyobject` above
+                [] => write!(f, "InvalidAnyObjectAsBound"),
+                [(first, _), rest @ ..] => {
+                    write!(f, "{}", first.id.path())?;
+                    for (protocol, _) in rest {
+                        write!(f, " + {}", protocol.id.path())?;
+                    }
+                    Ok(())
+                }
+            },
+            pointee => {
+                error!(?pointee, "unhandled generic bound");
+                write!(f, "/* {} */", pointee.behind_pointer(true))
+            }
+        })
+    }
+
+    fn safety(&self) -> TypeSafety {
+        match self {
+            // TODO: Unsure of the safety of `NSCoder`s.
+            Self::Class { id, .. } if id.name == "NSCoder" => {
+                TypeSafety::unknown_in_argument("possibly has further requirements")
+            }
+            // TODO: Unsure of the thread-safety of run loops and dispatch queues.
+            // https://github.com/madsmtm/objc2/issues/696
+            Self::Class { id, .. } if id.name == "NSRunLoop" => {
+                TypeSafety::unknown_in_argument("possibly has additional threading requirements")
+            }
+            Self::CFTypeDef { id, .. } if id.name == "CFRunLoop" => {
+                TypeSafety::unknown_in_argument("possibly has additional threading requirements")
+            }
+            Self::DispatchTypeDef { id, .. } if id.name == "DispatchQueue" => {
+                TypeSafety::unknown_in_argument("possibly has additional threading requirements")
+            }
+            // Unsure if operation queues are thread-safe? Do blocks added to
+            // it have to be sendable?
+            Self::Class { id, .. } if id.name == "NSOperationQueue" => {
+                TypeSafety::unknown_in_argument("possibly has additional threading requirements")
+            }
+            // `objc2` ensures that objects are initialized before being
+            // allowed as references.
+            Self::Class {
+                id,
+                thread_safety: _,
+                superclasses: _,
+                generics,
+                declaration_generics,
+                protocols,
+                sendable,
+            } => {
+                // Check that the inner generics are safe to use.
+                // TODO: NSMutableArray and variance?
+                let mut safety = generics.iter().fold(TypeSafety::SAFE, |safety, generic| {
+                    safety.merge(generic.safety().context("generic"))
+                });
+
+                if generics.len() != declaration_generics.len() {
+                    let mut gave_more_specific_message = false;
+                    for (_, bound) in declaration_generics {
+                        if let Some(bound) = bound {
+                            // Unclear if these bounds are correct.
+                            let reason = format!("should be bound by `{}`", bound.generic_bound());
+                            safety = safety
+                                .merge(TypeSafety::unknown_in_argument(reason))
+                                .context("generic");
+                            gave_more_specific_message = true;
+                        }
+                    }
+
+                    // If all generics aren't specified, the remaining are
+                    // AnyObject, so apply the restrictions from that as well.
+                    if !gave_more_specific_message {
+                        safety = safety
+                            .merge(TypeSafety::unknown_in_argument(
+                                "should be of the correct type",
+                            ))
+                            .context("generic");
+                    }
+                }
+
+                // We don't uphold protocol type safety properly yet, since we
+                // have no way of specifying ad-hoc protocol requirements.
+                if !protocols.is_empty() {
+                    safety = safety.merge(TypeSafety::unsafe_in_argument(format!(
+                        "must implement {}",
+                        separate_with_comma_and(protocols.iter().map(|(p, _)| &p.id.name))
+                    )));
+                } else if id.name == "NSObject" {
+                    // `NSObject` has similar safety to `AnyObject`.
+                    safety = TypeSafety::unknown_in_argument("should be of the correct type");
+                } else if id.name == "NSEnumerator" {
+                    safety = TypeSafety::unsafe_in_return(
+                        "enumerator's underlying collection should not be mutated while in use",
+                    );
+                }
+
+                if id.name.contains("Mutable") {
+                    // When returning a mutable collection, treat it as an
+                    // argument as well, since
+                    //
+                    // An example of this is `-[NSThread threadDictionary]`,
+                    // which, apart from being super thread-unsafe, also
+                    // doesn't check the values that you insert into it.
+                    //
+                    // (they are invariant).
+                    safety = TypeSafety {
+                        in_argument: safety.in_argument.clone(),
+                        in_return: safety.in_return.merge(safety.in_argument),
+                    };
+                }
+
+                if *sendable {
+                    safety = safety.merge(TypeSafety::unsafe_in_argument("must be thread-safe"));
+                }
+
+                safety
+            }
+            Self::AnyObject {
+                protocols,
+                sendable,
+            } => {
+                let mut safety = match &**protocols {
+                    // Make `AnyObject` conservatively disallowed as argument,
+                    // see https://github.com/madsmtm/objc2/issues/562.
+                    //
+                    // Returning it is fine though, since if you actually
+                    // want to do anything with the type, you have to downcast it,
+                    // and `objc2` checks that at runtime.
+                    [] => TypeSafety::unknown_in_argument("should be of the correct type"),
+                    // Certain protocols are not descriptive enough, and often
+                    // essentially amount to `AnyObject`.
+                    [(protocol, _)]
+                        if matches!(
+                            &*protocol.id.name,
+                            "NSObjectProtocol"
+                                | "NSCoding"
+                                | "NSSecureCoding"
+                                | "NSCopying"
+                                | "NSMutableCopying"
+                                | "NSFastEnumeration"
+                        ) =>
+                    {
+                        TypeSafety::unknown_in_argument("should be of the correct type")
+                    }
+                    // Passing `MTLFunction` is spiritually similar to passing an
+                    // `unsafe` function pointer; we can't know without inspecting
+                    // the function (or it's documentation) whether it has special
+                    // safety requirements. Example:
+                    //
+                    // ```metal
+                    // constant float data[5] = { 1.0, 2.0, 3.0, 4.0, 5.0 };
+                    //
+                    // // Safety: Must not be called with an index < 5.
+                    // kernel void add_static(
+                    //     device const float* input,
+                    //     device float* result,
+                    //     uint index [[thread_position_in_grid]]
+                    // ) {
+                    //     if (5 <= index) {
+                    //         // For illustration purposes.
+                    //         __builtin_unreachable();
+                    //     }
+                    //     result[index] = input[index] + data[index];
+                    // }
+                    // ```
+                    [(protocol, _)]
+                        if protocol.is_subprotocol_of("MTLFunction")
+                            || protocol.is_subprotocol_of("MTLFunctionHandle") =>
+                    {
+                        TypeSafety::unknown_in_argument("must be safe to call").merge(
+                            TypeSafety::unknown_in_argument(
+                                "must have the correct argument and return types",
+                            ),
+                        )
+                    }
+                    // Access to the contents of a resource has to be manually
+                    // synchronized using things like `didModifyRange:` (CPU side)
+                    // or `synchronizeResource:`, `useResource:usage:` and
+                    // `MTLFence` (GPU side).
+                    [(protocol, _)] if protocol.is_subprotocol_of("MTLResource") => {
+                        let safety = TypeSafety::unknown_in_argument("may need to be synchronized");
+
+                        // Additionally, resources in a command buffer must be
+                        // kept alive by the application for as long as they're
+                        // used. If this is not done, it is possible to encounter
+                        // use-after-frees with:
+                        // - `MTLCommandBufferDescriptor::setRetainedReferences(false)`.
+                        // - `MTLCommandQueue::commandBufferWithUnretainedReferences()`.
+                        // - All `MTL4CommandBuffer`s.
+                        let safety = safety.merge(TypeSafety::unknown_in_argument(
+                            "may be unretained, you must ensure it is kept alive while in use",
+                        ));
+
+                        // TODO: Should we also document the requirement for
+                        // resources to be properly bound? What exactly are the
+                        // requirements though, and when does Metal automatically
+                        // bind resources?
+
+                        // `MTLBuffer` is effectively a `Box<[u8]>` stored on the
+                        // GPU (and depending on the storage mode, optionally also
+                        // on the CPU). Type-safety of the contents is left
+                        // completely up to the user.
+                        if protocol.id.name == "MTLBuffer" {
+                            safety.merge(TypeSafety::unknown_in_argument(
+                                "contents should be of the correct type",
+                            ))
+                        } else {
+                            safety
+                        }
+                    }
+                    // Other `ProtocolObject<dyn MyProtocol>`s are treated as
+                    // proper types. (An example here is delegate protocols).
+                    [_] => TypeSafety::SAFE,
+                    // FIXME: Only a single protocol is properly supported,
+                    // multiple protocol restrictions are currently `AnyObject`.
+                    _ => TypeSafety::unknown_in_argument("should be of the correct type"),
+                };
+
+                if *sendable {
+                    safety = safety.merge(TypeSafety::unsafe_in_argument("must be thread-safe"));
+                }
+
+                safety
+            }
+            // Object generic parameters are safe.
+            // TODO: NSDictionary's KeyType perhaps isn't really?
+            Self::GenericParam {
+                object_like: true, ..
+            } => TypeSafety::SAFE,
+            Self::GenericParam {
+                object_like: false, ..
+            } => PointeeTy::CFOpaque.safety(),
+            // Self types have all generics specified on the impl, so they are
+            // basically `Class { generics: vec![GenericParam...] }`.
+            Self::Self_ => TypeSafety::SAFE,
+            Self::CFTypeDef {
+                id,
+                generics,
+                num_declaration_generics,
+                to: _,
+            } => {
+                let mut safety = if id.is_cftype() {
+                    // `CFType`, like `AnyObject`, is not known to be safe.
+                    TypeSafety::unknown_in_argument("should be of the correct type")
+                } else {
+                    // `&CFString` and similar are safe, but types like
+                    // `&CFArray` are not safe, since their generic can be
+                    // anything (including `usize`, i.e. they don't even have
+                    // to be objects).
+                    let padded =
+                        pad_generics(generics, &PointeeTy::CFOpaque, *num_declaration_generics);
+                    padded.fold(TypeSafety::SAFE, |safety, generic| {
+                        safety.merge(generic.safety().context("generic"))
+                    })
+                };
+
+                if id.name.contains("Mutable") {
+                    // Same as in `Self::Class` above.
+                    safety = TypeSafety {
+                        in_argument: safety.in_argument.clone(),
+                        in_return: safety.in_return.merge(safety.in_argument),
+                    };
+                }
+
+                safety
+            }
+            Self::CFOpaque => TypeSafety::unsafe_in_argument("must be of the correct type"),
+            // Dispatch objects have strong type-safety, and are thus
+            // safe in both positions.
+            Self::DispatchTypeDef { .. } => TypeSafety::SAFE,
+            // Same for Network types.
+            Self::NetworkTypeDef { .. } => TypeSafety::SAFE,
+            // The user might be manually freeing opaque types, so we can't
+            // know for certain that `&T` is valid.
+            Self::OpaqueTypeDef { .. } => {
+                TypeSafety::unknown_in_argument("might need manual memory-management")
+            }
+            // Taking `&AnyClass` can be perilous if the method tries to
+            // assume it can e.g. create new instances of the class. Some uses
+            // are safe though, such as `NSStringFromClass`.
+            Self::AnyClass { protocols } => {
+                if protocols.is_empty() {
+                    TypeSafety::unknown_in_argument("probably has further requirements")
+                } else {
+                    TypeSafety::unsafe_in_argument(format!(
+                        "must implement {}",
+                        separate_with_comma_and(protocols.iter().map(|(p, _)| &p.id.name))
+                    ))
+                }
+            }
+            // Same with `&AnyProtocol`.
+            Self::AnyProtocol => {
+                TypeSafety::unknown_in_argument("possibly has further requirements")
+            }
+            Self::Block {
+                sendable: _,
+                arguments,
+                result_type,
+                no_escape: _, // Doesn't have an effect on this
+            } => {
+                let argument_safety =
+                    arguments
+                        .iter()
+                        .enumerate()
+                        .fold(TypeSafety::SAFE, |safety, (i, arg)| {
+                            // We don't currently handle lifetimes in blocks, so
+                            // let's be conservative here for now.
+                            safety.merge(arg.safety().context(if i == 0 && arguments.len() == 1 {
+                                "block's argument".to_string()
+                            } else {
+                                format!("block's argument {}", i + 1)
+                            }))
+                        });
+
+                // Currently conservative, since blocks doesn't handle memory
+                // management, and thus currently return raw pointers.
+                let result_ty_safety = result_type.safety().context("block's return");
+
+                TypeSafety {
+                    // Blocks in arguments have a sort of flipped view; they
+                    // require that the result type is safe as an argument,
+                    // since the user provides this from the block. And they
+                    // require that the arguments are as safe as if they were
+                    // returned, since they are passed to into the block.
+                    in_argument: result_ty_safety
+                        .in_argument
+                        .merge(argument_safety.in_return),
+                    // Returning blocks is the opposite; the returned block's
+                    // arguments must be safe to call from user code, and the
+                    // result type must be safe to use afterwards.
+                    in_return: argument_safety
+                        .in_argument
+                        .merge(result_ty_safety.in_return),
+                }
+            }
+            Self::Fn { .. } => {
+                // Function pointers are emitted as `unsafe fn`, so they are
+                // never safe in argument position.
+                //
+                // That fact cuts both ways though: when being returned, they
+                // are safe, since the user must uphold their safety
+                // guarantees if they want to call the function.
+                TypeSafety::unsafe_in_argument("must be implemented correctly")
+            }
+            Self::TypeDef { to, .. } => to.safety(),
+        }
+    }
+
     pub(crate) fn implementable(&self) -> Option<ItemTree> {
         match self {
-            Self::CFTypeDef { id } | Self::Class { id, .. } | Self::DispatchTypeDef { id } => {
-                Some(ItemTree::from_id(id.clone()))
-            }
+            Self::CFTypeDef { id, to, .. } => Some(ItemTree::new(
+                id.clone(),
+                to.iter().flat_map(|to| to.implementable()),
+            )),
+            Self::Class { id, .. }
+            | Self::DispatchTypeDef { id }
+            | Self::NetworkTypeDef { id }
+            | Self::OpaqueTypeDef { id } => Some(ItemTree::from_id(id.clone())),
             // We shouldn't encounter this here, since `Self` is only on
             // Objective-C methods, but if we do, it's very unclear how we
             // should translate it.
@@ -644,42 +1467,139 @@ impl PointeeTy {
     }
 
     fn is_static_object(&self) -> bool {
-        match self {
-            // Recurse into typedefs
-            Self::TypeDef { to, .. } => to.is_static_object(),
-            Self::AnyClass { .. } => true,
-            _ => false,
-        }
+        matches!(self.through_typedef(), Self::AnyClass { .. })
     }
 
     fn is_objc_type(&self) -> bool {
         matches!(
-            self,
+            self.through_typedef(),
             Self::Class { .. }
-                | Self::GenericParam { .. }
+                | Self::GenericParam {
+                    object_like: true,
+                    ..
+                }
                 | Self::AnyObject { .. }
                 | Self::AnyProtocol
                 | Self::AnyClass { .. }
                 | Self::Self_
-                | Self::TypeDef { .. }
         )
     }
 
     fn is_cf_type(&self) -> bool {
-        match self {
-            // Recurse into typedefs
-            Self::TypeDef { to, .. } => to.is_cf_type(),
-            Self::CFTypeDef { .. } => true,
-            _ => false,
-        }
+        matches!(self.through_typedef(), Self::CFTypeDef { .. })
     }
 
     fn is_dispatch_type(&self) -> bool {
-        match self {
-            // Recurse into typedefs
-            Self::TypeDef { to, .. } => to.is_dispatch_type(),
-            Self::DispatchTypeDef { .. } => true,
-            _ => false,
+        matches!(self.through_typedef(), Self::DispatchTypeDef { .. })
+    }
+
+    fn is_network_type(&self) -> bool {
+        matches!(self.through_typedef(), Self::NetworkTypeDef { .. })
+    }
+
+    fn is_opaque_type(&self) -> bool {
+        matches!(self.through_typedef(), Self::OpaqueTypeDef { .. })
+    }
+
+    fn is_block_type(&self) -> bool {
+        matches!(self.through_typedef(), Self::Block { .. })
+    }
+
+    fn is_subtype_of(&self, other: &Self) -> bool {
+        /// Ensure that the other protocols are upheld by our protocols.
+        fn protocols_is_subtype_of(
+            this: &[(ProtocolRef, ThreadSafety)],
+            other: &[(ProtocolRef, ThreadSafety)],
+        ) -> bool {
+            other.iter().all(|(other_protocol, _)| {
+                this.iter()
+                    .any(|(p, _)| p.is_subprotocol_of(&other_protocol.id.name))
+            })
+        }
+
+        // Again, typedefness doesn't matter for subtyping.
+        match (self.through_typedef(), other.through_typedef()) {
+            // Classes are subtypes if they are subclasses.
+            (
+                Self::Class {
+                    id,
+                    thread_safety: _,
+                    superclasses,
+                    generics,
+                    declaration_generics,
+                    protocols,
+                    sendable,
+                },
+                Self::Class {
+                    id: other_id,
+                    thread_safety: _,
+                    superclasses: _,
+                    generics: other_generics,
+                    declaration_generics: other_declaration_generics,
+                    protocols: other_protocols,
+                    sendable: other_sendable,
+                },
+            ) => {
+                // Inexhaustive list of types with __covariant generics.
+                let generics_are_subtypes = if matches!(
+                    &*id.name,
+                    "NSArray" | "NSDictionary" | "NSSet" | "NSOrderedSet" | "NSFetchRequest"
+                ) {
+                    let len = generics
+                        .len()
+                        .max(other_generics.len())
+                        .max(declaration_generics.len())
+                        .max(other_declaration_generics.len());
+                    const ANYOBJECT: PointeeTy = PointeeTy::AnyObject {
+                        protocols: vec![],
+                        sendable: false,
+                    };
+                    pad_generics(generics, &ANYOBJECT, len)
+                        .zip(pad_generics(other_generics, &ANYOBJECT, len))
+                        .all(|(this, other)| this.is_subtype_of(other))
+                } else {
+                    generics == other_generics
+                };
+
+                generics_are_subtypes
+                    && protocols_is_subtype_of(protocols, other_protocols)
+                    && (id == other_id || superclasses.contains(other_id))
+                    && *sendable == *other_sendable
+            }
+
+            // All classes are subtypes of a plain `AnyObject`.
+            //
+            // TODO: Handle classes with `protocols` set.
+            (
+                Self::Class {
+                    sendable: false, ..
+                },
+                Self::AnyObject {
+                    protocols,
+                    sendable: false,
+                },
+            ) if protocols.is_empty() => true,
+
+            // Protocol objects are subtypes of protocol objects with fewer
+            // requirements.
+            (
+                Self::AnyObject {
+                    protocols,
+                    sendable,
+                },
+                Self::AnyObject {
+                    protocols: other_protocols,
+                    sendable: other_sendable,
+                },
+            ) => {
+                protocols_is_subtype_of(protocols, other_protocols) && *sendable == *other_sendable
+            }
+
+            // TODO: Track the type of `Self` instead!
+            (Self::Self_, _) | (_, Self::Self_) => true,
+
+            // Everything else is invariant for now.
+            (this, other) => this == other,
         }
     }
 }
@@ -698,22 +1618,21 @@ pub enum Ty {
     },
     Pointer {
         nullability: Nullability,
-        is_const: bool,
+        /// Whether this pointer may be read through.
+        read: bool,
+        /// Whether this pointer may be written to.
+        written: bool,
         lifetime: Lifetime,
+        bounds: PointerBounds,
         pointee: Box<Self>,
     },
     TypeDef {
         id: ItemIdentifier,
         to: Box<Self>,
     },
-    IncompleteArray {
-        nullability: Nullability,
-        is_const: bool,
-        pointee: Box<Self>,
-    },
     Array {
         element_type: Box<Self>,
-        num_elements: usize,
+        num_elements: Option<usize>,
     },
     Enum {
         id: ItemIdentifier,
@@ -724,41 +1643,61 @@ pub enum Ty {
     Struct {
         id: ItemIdentifier,
         /// FIXME: This does not work for recursive structs.
-        fields: Vec<Ty>,
+        fields: Vec<(String, Ty)>,
         /// Whether the struct's declaration has a bridge attribute.
         is_bridged: bool,
     },
     Union {
         id: ItemIdentifier,
         /// FIXME: This does not work for recursive structs.
-        fields: Vec<Ty>,
+        fields: Vec<(String, Ty)>,
+    },
+    /// `Result<T, E>`
+    Result {
+        /// If this is `c_void`, the result type is `Result<(), E>`
+        ty: Box<Self>,
+        err: Box<Self>,
+        /// The inner / original return type. Useful for e.g. knowing if we're
+        /// converting `Boolean` or `Bool`.
+        original_ty: Box<Self>,
     },
 }
 
 impl Ty {
-    fn parse(attributed_ty: Type<'_>, mut lifetime: Lifetime, context: &Context<'_>) -> Self {
+    fn parse(
+        attributed_ty: Type<'_>,
+        array_decays_to_pointer: bool,
+        context: &Context<'_>,
+    ) -> Self {
         let mut ty = attributed_ty;
-        let _span = debug_span!("ty", ?ty, ?lifetime).entered();
+        let _span = debug_span!("Ty::parse", ?ty).entered();
+        let mut spans = VecDeque::new();
 
         let mut attributed_name = attributed_ty.get_display_name();
         let mut name = ty.get_display_name();
-        let mut unexposed_nullability = None;
         let mut no_escape = false;
+        let mut sendable = None;
 
+        let mut is_const = false;
+        let mut attributed_or_unexposed_nullability = None;
+
+        // Unexposed and attributed types may come in any order, and we want
+        // to strip both.
         while let TypeKind::Unexposed | TypeKind::Attributed = ty.get_kind() {
-            if let TypeKind::Attributed = ty.get_kind() {
-                ty = ty
-                    .get_modified_type()
-                    .expect("attributed type to have modified type");
-                name = ty.get_display_name();
-                continue;
+            // Grab const-ness and nullability from attributed/unexposed type.
+            is_const |= ty.is_const_qualified();
+            if let Some(new) = ty.get_nullability() {
+                // Always update, it's the innermost attribute that counts.
+                // (At least it seems to be, I only know of one place where
+                // this happens: `VNFaceLandmarkRegion2D::normalizedPoints`).
+                attributed_or_unexposed_nullability = Some(new);
             }
 
-            if let Some(nullability) = ty.get_nullability() {
-                if unexposed_nullability.is_some() {
-                    error!("unexposed nullability already set");
-                }
-                unexposed_nullability = Some(nullability);
+            if let TypeKind::Attributed = ty.get_kind() {
+                ty = ty.get_modified_type().expect("attributed modified");
+                spans.push_back(debug_span!("attributed", ?ty).entered());
+                name = ty.get_display_name();
+                continue;
             }
 
             let (new_attributed_name, attributed_attr) = parse_unexposed_tokens(&attributed_name);
@@ -774,24 +1713,25 @@ impl Ty {
             }
 
             match attr {
-                Some(
-                    UnexposedAttr::NonIsolated
-                    | UnexposedAttr::UIActor
-                    | UnexposedAttr::Sendable
-                    | UnexposedAttr::NonSendable,
-                ) => {
-                    // Ignored for now; these are usually also emitted on the method/property,
-                    // which is where they will be useful in any case.
+                Some(UnexposedAttr::Sendable) => {
+                    sendable = Some(true);
                 }
-                Some(UnexposedAttr::ReturnsRetained) => {
-                    lifetime = Lifetime::Strong;
+                Some(UnexposedAttr::NonSendable) => {
+                    sendable = Some(false);
                 }
-                Some(UnexposedAttr::ReturnsNotRetained) => {
-                    lifetime = Lifetime::Autoreleasing;
+                Some(UnexposedAttr::NonIsolated | UnexposedAttr::UIActor) => {
+                    // Ignored for now.
                 }
                 Some(UnexposedAttr::NoEscape) => {
-                    // TODO: Use this on Pointer and BlockPointer
                     no_escape = true;
+                }
+                Some(UnexposedAttr::FullyUnavailable) => {
+                    // Irrelevant on types.
+                }
+                Some(UnexposedAttr::ReturnsRetained | UnexposedAttr::ReturnsNotRetained) => {
+                    // A `CF_RETURNS_RETAINED` or similar that is known by
+                    // Clang to be part of the type is also converted properly
+                    // into `__strong`. So we don't need to do anything here.
                 }
                 Some(attr) => error!(?attr, "unknown attribute on type"),
                 None => {}
@@ -800,43 +1740,37 @@ impl Ty {
             attributed_name = new_attributed_name;
             name = new_name;
 
-            if let Some(modified) = ty.get_modified_type() {
-                ty = modified;
-            } else {
-                error!("expected unexposed / attributed type to have modified type");
-                ty = ty.get_canonical_type();
-                name = ty.get_display_name();
-                break;
-            }
+            ty = ty.get_modified_type().expect("unexposed modified");
+            spans.push_back(debug_span!("unexposed", ?ty).entered());
         }
 
-        let _span = debug_span!("ty after unexposed/attributed", ?ty).entered();
+        let is_const = is_const || ty.is_const_qualified();
 
-        let elaborated_ty = ty;
+        let nullability = attributed_or_unexposed_nullability
+            .or_else(|| ty.get_nullability())
+            .unwrap_or(Nullability::Unspecified);
 
+        // We generally don't care about whether a type is elaborated or not.
+        // (Elaborated means the `struct` or `enum` qualifier in a type such
+        // as `struct Foo*`).
         if let Some(true) = ty.is_elaborated() {
             ty = ty.get_elaborated_type().expect("elaborated");
+            spans.push_back(debug_span!("elaborated", ?ty).entered());
         }
 
-        let _span = debug_span!("ty after elaborated", ?ty).entered();
-
-        let get_is_const = |new: bool| {
-            if new {
-                if !attributed_ty.is_const_qualified() || ty.is_const_qualified() {
-                    warn!("unnecessarily stripped const");
-                }
-                true
-            } else {
-                if attributed_ty.is_const_qualified() {
-                    warn!("type was const but that could not be stripped");
-                }
-                // Some type kinds have `const` directly on them, instead of
-                // storing it inside `Attributed`.
-                //
-                // TODO: Remove the need for this.
-                ty.is_const_qualified()
-            }
-        };
+        if sendable.is_some()
+            && !matches!(
+                ty.get_kind(),
+                TypeKind::BlockPointer
+                    | TypeKind::ObjCObjectPointer
+                    | TypeKind::ObjCId
+                    | TypeKind::ObjCObject
+                    | TypeKind::ObjCInterface
+                    | TypeKind::Typedef
+            )
+        {
+            error!(?ty, sendable, "unused sendable marker on type");
+        }
 
         match ty.get_kind() {
             TypeKind::Void => Self::Primitive(Primitive::Void),
@@ -858,6 +1792,7 @@ impl Ty {
                 // https://github.com/rust-lang/rust/issues/116909
                 error!("long double is not yet supported in Rust");
                 Self::Pointee(PointeeTy::GenericParam {
+                    object_like: false,
                     name: "UnknownLongDouble".to_string(),
                 })
             }
@@ -876,19 +1811,28 @@ impl Ty {
                             | "MIDISysexSendRequestUMP"
                             | "MIDIDriverInterface"
                             | "cssm_list_element"
+                            | "malloc_zone_t"
+                            | "_malloc_zone_t"
+                            | "GDevice"
+                            | "TERec"
+                            | "NMRec"
                     )
                 ) {
                     // Fake fields, we'll have to define it ourselves
-                    vec![Self::Pointee(PointeeTy::Self_)]
+                    vec![("foo".to_string(), Self::Pointee(PointeeTy::Self_))]
                 } else {
                     ty.get_fields()
                         .expect("struct fields")
                         .into_iter()
                         .map(|field| {
-                            Self::parse(
-                                field.get_type().expect("struct field type"),
-                                Lifetime::Unspecified,
-                                context,
+                            let field_name = field.get_name().unwrap();
+                            (
+                                field_name,
+                                Self::parse(
+                                    field.get_type().expect("struct field type"),
+                                    false,
+                                    context,
+                                ),
                             )
                         })
                         .collect()
@@ -901,7 +1845,7 @@ impl Ty {
                                 .unwrap_or_else(|| "UnknownStruct".into())
                         }),
                         fields,
-                        is_bridged: is_bridged(&declaration, context),
+                        is_bridged: bridged_to(&declaration, context).is_some(),
                     },
                     EntityKind::UnionDecl => Self::Union {
                         id: id.map_name(|name| {
@@ -913,6 +1857,7 @@ impl Ty {
                     _ => {
                         error!(?declaration, "unknown record type decl");
                         Self::Pointee(PointeeTy::GenericParam {
+                            object_like: false,
                             name: "UnknownRecord".into(),
                         })
                     }
@@ -926,59 +1871,45 @@ impl Ty {
                         declaration
                             .get_enum_underlying_type()
                             .expect("enum underlying type"),
-                        Lifetime::Unspecified,
+                        false,
                         context,
                     )),
                 }
             }
             TypeKind::ObjCId => {
+                // The `ObjCId` itself may also contain attributes.
                 let mut parser = AttributeParser::new(&attributed_name, "id");
-
-                lifetime.update(parser.lifetime(ParsePosition::Prefix));
-
-                let is_const = get_is_const(parser.is_const(ParsePosition::Suffix));
-                lifetime.update(parser.lifetime(ParsePosition::Suffix));
-
-                // TODO: Use _Nullable_result
-                let _nullable_result = parser.nullable_result(ParsePosition::Suffix);
-
-                let nullability = if let Some(nullability) = unexposed_nullability {
-                    nullability
-                } else {
-                    check_nullability(&attributed_ty, parser.nullability(ParsePosition::Suffix))
-                };
+                let lifetime = parser.lifetime();
+                parser.check();
 
                 Self::Pointer {
                     nullability,
-                    is_const,
+                    read: true,
+                    written: !is_const,
                     lifetime,
-                    pointee: Box::new(Self::Pointee(PointeeTy::AnyObject { protocols: vec![] })),
+                    bounds: PointerBounds::Single,
+                    pointee: Box::new(Self::Pointee(PointeeTy::AnyObject {
+                        protocols: vec![],
+                        sendable: only_positive_sendable(sendable),
+                    })),
                 }
             }
             TypeKind::ObjCClass => {
-                let mut parser = AttributeParser::new(&attributed_name, &name);
-                let lifetime = parser.lifetime(ParsePosition::Suffix);
-                let nullability = unexposed_nullability
-                    .or(parser.nullability(ParsePosition::Suffix))
-                    .or(ty.get_nullability())
-                    .unwrap_or(Nullability::Unspecified);
+                // The `ObjCClass` itself may also contain attributes.
+                let mut parser = AttributeParser::new(&attributed_name, "Class");
+                let lifetime = parser.lifetime();
+                parser.check();
 
                 Self::Pointer {
                     nullability,
-                    is_const: true,
+                    read: true,
+                    written: false,
                     lifetime,
+                    bounds: PointerBounds::Single,
                     pointee: Box::new(Self::Pointee(PointeeTy::AnyClass { protocols: vec![] })),
                 }
             }
-            TypeKind::ObjCSel => {
-                let mut parser = AttributeParser::new(&attributed_name, &name);
-                let nullability = if let Some(nullability) = unexposed_nullability {
-                    nullability
-                } else {
-                    check_nullability(&attributed_ty, parser.nullability(ParsePosition::Suffix))
-                };
-                Self::Sel { nullability }
-            }
+            TypeKind::ObjCSel => Self::Sel { nullability },
             TypeKind::ObjCInterface => {
                 let declaration = ty.get_declaration().expect("ObjCInterface declaration");
 
@@ -992,9 +1923,10 @@ impl Ty {
                 if name == "Protocol" {
                     Self::Pointee(PointeeTy::AnyProtocol)
                 } else {
-                    let (id, thread_safety, superclasses) = get_class_data(&declaration, context);
+                    let (id, declaration_generics, thread_safety, superclasses) =
+                        get_class_data(&declaration, context);
                     if id.name != name.strip_prefix("const ").unwrap_or(&name) {
-                        error!(?name, "invalid interface name");
+                        warn!(?name, "invalid interface name");
                     }
                     Self::Pointee(PointeeTy::Class {
                         id,
@@ -1002,6 +1934,8 @@ impl Ty {
                         superclasses,
                         protocols: vec![],
                         generics: vec![],
+                        declaration_generics,
+                        sendable: only_positive_sendable(sendable),
                     })
                 }
             }
@@ -1014,7 +1948,19 @@ impl Ty {
                 let generics: Vec<_> = ty
                     .get_objc_type_arguments()
                     .into_iter()
-                    .map(|param| Self::parse(param, Lifetime::Unspecified, context))
+                    .map(|param| Self::parse(param, false, context))
+                    .map(|generic| match generic {
+                        Self::Pointer { pointee, .. } => {
+                            pointee.into_pointee().unwrap_or_else(|| {
+                                error!(?name, "unknown generic in class");
+                                PointeeTy::Self_
+                            })
+                        }
+                        generic => {
+                            error!(?name, ?generic, "unknown generic in class");
+                            PointeeTy::Self_
+                        }
+                    })
                     .collect();
 
                 let protocols: Vec<_> = ty
@@ -1031,13 +1977,16 @@ impl Ty {
                             panic!("generics not empty: {ty:?}, {generics:?}");
                         }
 
-                        PointeeTy::AnyObject { protocols }
+                        PointeeTy::AnyObject {
+                            protocols,
+                            sendable: only_positive_sendable(sendable),
+                        }
                     }
                     TypeKind::ObjCInterface => {
                         let declaration = base_ty
                             .get_declaration()
                             .expect("ObjCObject -> ObjCInterface declaration");
-                        let (id, thread_safety, superclasses) =
+                        let (id, declaration_generics, thread_safety, superclasses) =
                             get_class_data(&declaration, context);
                         if id.name != name {
                             error!(?name, "ObjCObject -> ObjCInterface invalid name");
@@ -1046,9 +1995,11 @@ impl Ty {
                         if !generics.is_empty() && !protocols.is_empty() {
                             panic!("got object with both protocols and generics: {name:?}, {protocols:?}, {generics:?}");
                         }
-
                         if generics.is_empty() && protocols.is_empty() {
                             panic!("got object with empty protocols and generics: {name:?}");
+                        }
+                        if declaration_generics.len() < generics.len() {
+                            panic!("got class with more generics than declaration: {name:?}");
                         }
 
                         PointeeTy::Class {
@@ -1056,7 +2007,9 @@ impl Ty {
                             thread_safety,
                             superclasses,
                             generics,
+                            declaration_generics,
                             protocols,
+                            sendable: only_positive_sendable(sendable),
                         }
                     }
                     TypeKind::ObjCClass => {
@@ -1068,56 +2021,75 @@ impl Ty {
                 })
             }
             TypeKind::Pointer => {
-                let mut parser = AttributeParser::new(&attributed_name, &name);
                 let pointee = ty.get_pointee_type().expect("pointer to have pointee");
-                if let TypeKind::FunctionPrototype | TypeKind::FunctionNoPrototype =
-                    pointee.get_kind()
-                {
-                    parser.set_fn_ptr();
+
+                let pointee_name = pointee.get_display_name();
+                let mut parser = AttributeParser::new(&attributed_name, &pointee_name);
+                // TODO: Use this
+                // (Swift's @Sendable = Send + Sync, Swift's sending = move).
+                let _sending = parser.sending();
+                parser.parse("*");
+                if matches!(
+                    pointee.get_kind(),
+                    TypeKind::FunctionPrototype | TypeKind::FunctionNoPrototype
+                ) {
+                    parser.parse("(");
+                    parser.parse(")");
                 }
+                parser.check();
 
-                let is_const = ty.is_const_qualified() || pointee.is_const_qualified();
-                let nullability = if let Some(nullability) = unexposed_nullability {
-                    nullability
+                let is_const = is_const || pointee.is_const_qualified();
+
+                // Only top-level arrays decay to pointers.
+                let pointee = Self::parse(pointee, false, context);
+                let bounds = if matches!(pointee, Ty::Pointee(_)) {
+                    // Object-like pointers default to being a pointer to a
+                    // single object.
+                    PointerBounds::Single
                 } else {
-                    check_nullability(&attributed_ty, parser.nullability(ParsePosition::Suffix))
+                    PointerBounds::Unspecified
                 };
-
-                let pointee = Self::parse(pointee, Lifetime::Unspecified, context);
                 Self::Pointer {
                     nullability,
-                    is_const,
-                    lifetime,
+                    // Assuming the pointer may be read from is the safe default.
+                    read: true,
+                    // Assuming the pointer may be written to is a safe default,
+                    // but we can probably relax this if the pointer is `const`.
+                    written: !is_const, // Heuristic
+                    lifetime: Lifetime::Unspecified,
+                    bounds,
                     pointee: Box::new(pointee),
                 }
             }
             TypeKind::BlockPointer => {
-                let mut parser = AttributeParser::new(&attributed_name, &name);
-                parser.set_fn_ptr();
+                let pointee = ty.get_pointee_type().expect("pointer type to have pointee");
 
-                let is_const = get_is_const(parser.is_const(ParsePosition::Suffix));
-                lifetime.update(parser.lifetime(ParsePosition::Suffix));
-                let nullability = parser.nullability(ParsePosition::Suffix);
-                let nullability = if let Some(nullability) = unexposed_nullability {
-                    nullability
-                } else {
-                    check_nullability(&attributed_ty, nullability)
-                };
+                // `BlockPointer` itself can contain lifetime, so let's parse
+                // the pointee.
+                let pointee_name = pointee.get_display_name();
+                let mut parser = AttributeParser::new(&attributed_name, &pointee_name);
+                let lifetime = parser.lifetime();
+                parser.parse("^");
+                parser.parse("(");
+                parser.parse(")");
+                parser.check();
 
-                let ty = ty.get_pointee_type().expect("pointer type to have pointee");
-                match Self::parse(ty, Lifetime::Unspecified, context) {
+                match Self::parse(pointee, false, context) {
                     Self::Pointee(PointeeTy::Fn {
                         is_variadic: false,
-                        no_escape,
+                        no_escape: fn_no_escape,
                         arguments,
                         result_type,
                     }) => Self::Pointer {
                         nullability,
-                        is_const,
+                        read: true,
+                        // TODO: What does `const` mean on block pointers?
+                        written: !is_const,
                         lifetime,
+                        bounds: PointerBounds::Single,
                         pointee: Box::new(Self::Pointee(PointeeTy::Block {
-                            sendable: None,
-                            no_escape,
+                            sendable,
+                            no_escape: fn_no_escape || no_escape,
                             arguments,
                             result_type,
                         })),
@@ -1126,80 +2098,37 @@ impl Ty {
                 }
             }
             TypeKind::ObjCObjectPointer => {
-                let mut parser = AttributeParser::new(&attributed_name, &name);
-                let is_kindof = parser.is_kindof(ParsePosition::Prefix);
-
-                let is_const = parser.is_const(ParsePosition::Suffix) || ty.is_const_qualified();
-                lifetime.update(parser.lifetime(ParsePosition::Suffix));
-
-                // TODO: Use _Nullable_result
-                let _nullable_result = parser.nullable_result(ParsePosition::Suffix);
-
-                let mut nullability = if let Some(nullability) = unexposed_nullability {
-                    nullability
-                } else {
-                    check_nullability(&attributed_ty, parser.nullability(ParsePosition::Suffix))
-                };
-
-                lifetime.update(parser.lifetime(ParsePosition::Suffix));
-                drop(parser);
-
-                let pointer_name = ty.get_display_name();
                 let pointee = ty.get_pointee_type().expect("pointer type to have pointee");
 
-                let mut ty = pointee;
-                while let TypeKind::Attributed = ty.get_kind() {
-                    ty = ty
-                        .get_modified_type()
-                        .expect("attributed type to have modified type");
-                }
-                let attributed_name = pointee.get_display_name();
-                let name = ty.get_display_name();
+                // The pointer part of ObjCObjectPointer contains lifetime
+                // information too, so let's also extract that.
+                let pointee_name = pointee.get_display_name();
+                let mut parser = AttributeParser::new(&attributed_name, &pointee_name);
+                let lifetime = parser.lifetime();
+                parser.parse("*");
+                parser.parse("UI_APPEARANCE_SELECTOR");
+                parser.parse("ITLIB_AVAILABLE");
+                parser.parse("COREMOTION_EXPORT");
+                parser.check();
 
-                let mut parser = AttributeParser::new(&attributed_name, &name);
+                let mut pointee = Self::parse(pointee, false, context);
 
-                let mut _is_kindof = is_kindof || parser.is_kindof(ParsePosition::Prefix);
-
-                let pointee_is_const = parser.is_const(ParsePosition::Suffix);
-                lifetime.update(parser.lifetime(ParsePosition::Suffix));
-                let new = parser.nullability(ParsePosition::Suffix);
-                if new != pointee.get_nullability() {
-                    error!("failed parsing nullability");
-                }
-                update_nullability(&mut nullability, new);
-                lifetime.update(parser.lifetime(ParsePosition::Suffix));
-
-                if !is_const && pointee_is_const {
-                    warn!(?ty, "pointee was const while ObjCObjectPointer was not");
-                }
-                drop(parser);
-
-                let pointee_name = ty.get_display_name();
-                let mut parser = AttributeParser::new(&pointer_name, &pointee_name);
-
-                _is_kindof = parser.is_kindof(ParsePosition::Prefix);
-                lifetime.update(parser.lifetime(ParsePosition::Prefix));
-                lifetime.update(parser.lifetime(ParsePosition::Suffix));
-                // Ignore const for now
-                _ = parser.is_const(ParsePosition::Suffix);
-                if !matches!(
-                    pointee.get_objc_object_base_type().map(|ty| ty.get_kind()),
-                    Some(TypeKind::ObjCId | TypeKind::ObjCClass)
-                ) {
-                    parser.set_inner_pointer();
-                }
-                drop(parser);
-
-                // TODO: Maybe do something with the information in the elaborated type?
-                if let Some(true) = ty.is_elaborated() {
-                    ty = ty.get_elaborated_type().expect("elaborated");
+                // Apply sendability attribute to inner.
+                if only_positive_sendable(sendable) {
+                    if let Self::Pointee(PointeeTy::Class { sendable, .. }) = &mut pointee {
+                        *sendable = true;
+                    } else {
+                        error!(?ty, "unused sendable marker on object pointer");
+                    }
                 }
 
                 Self::Pointer {
                     nullability,
-                    is_const,
+                    read: true,
+                    written: !is_const,
                     lifetime,
-                    pointee: Box::new(Self::parse(ty, lifetime, context)),
+                    bounds: PointerBounds::Single,
+                    pointee: Box::new(pointee),
                 }
             }
             TypeKind::Typedef => {
@@ -1215,43 +2144,12 @@ impl Ty {
                 let _span = debug_span!("typedef", ?typedef_name, ?declaration, ?inner).entered();
 
                 let mut parser = AttributeParser::new(&attributed_name, &typedef_name);
-                let mut _is_kindof = parser.is_kindof(ParsePosition::Prefix);
-                let mut _is_volatile = parser.is_volatile(ParsePosition::Prefix);
-                let is_const1 = parser.is_const(ParsePosition::Prefix);
-                lifetime.update(parser.lifetime(ParsePosition::Prefix));
+                let _is_volatile = parser.is_volatile();
+                let lifetime = parser.lifetime();
+                parser.check();
 
-                let is_const2 = parser.is_const(ParsePosition::Suffix);
-                lifetime.update(parser.lifetime(ParsePosition::Suffix));
-                let nullability = unexposed_nullability
-                    .or(parser.nullability(ParsePosition::Suffix))
-                    .unwrap_or(Nullability::Unspecified);
-                drop(parser);
-
-                let is_const = if is_const1 || is_const2 {
-                    if !attributed_ty.is_const_qualified()
-                        && !elaborated_ty.is_const_qualified()
-                        && !ty.is_const_qualified()
-                    {
-                        warn!(
-                            ?attributed_ty,
-                            ?elaborated_ty,
-                            ?ty,
-                            ?typedef_name,
-                            ?is_const1,
-                            ?is_const2,
-                            attr = ?attributed_ty.is_const_qualified(),
-                            elaborated = ?elaborated_ty.is_const_qualified(),
-                            ty = ?ty.is_const_qualified(),
-                            "typedef unnecessarily stripped const",
-                        );
-                    }
-                    true
-                } else {
-                    if ty.is_const_qualified() {
-                        warn!("typedef was const but that could not be stripped");
-                    }
-                    false
-                };
+                let id = ItemIdentifier::new(&declaration, context);
+                let data = context.library(&id).get(&declaration);
 
                 match &*typedef_name {
                     "BOOL" => return Self::Primitive(Primitive::ObjcBool),
@@ -1367,7 +2265,7 @@ impl Ty {
                     // Workaround for this otherwise requiring libc.
                     "dispatch_qos_class_t" => {
                         return Self::TypeDef {
-                            id: ItemIdentifier::new(&declaration, context),
+                            id,
                             to: Box::new(Self::Primitive(Primitive::Int)),
                         }
                     }
@@ -1386,51 +2284,48 @@ impl Ty {
                         }
                     }
 
-                    // HACK: Prevent OSLog from requiring dependency on os
-                    "os_activity_id_t" | "os_signpost_id_t" => {
-                        return Self::TypeDef {
-                            id: ItemIdentifier::builtin(typedef_name),
-                            to: Box::new(Self::Primitive(Primitive::I64)),
-                        }
-                    }
-
                     "NSInteger" => return Self::Primitive(Primitive::NSInteger),
                     "NSUInteger" => return Self::Primitive(Primitive::NSUInteger),
 
                     "instancetype" => {
                         return Self::Pointer {
                             nullability,
-                            is_const,
+                            read: true,
+                            written: !is_const,
                             lifetime,
+                            bounds: PointerBounds::Single,
                             pointee: Box::new(Self::Pointee(PointeeTy::Self_)),
                         }
-                    }
-
-                    // Emit `dispatch_object_t` as a raw pointer (at least for now,
-                    // since we currently treat `DispatchObject` as a trait).
-                    "dispatch_object_t" => {
-                        return Self::Pointer {
-                            nullability,
-                            is_const,
-                            lifetime,
-                            pointee: Box::new(Self::TypeDef {
-                                id: ItemIdentifier::builtin("dispatch_object_s"),
-                                to: Box::new(Self::Primitive(Primitive::PtrDiff)),
-                            }),
-                        };
                     }
 
                     // Handle other Dispatch Objective-C objects.
                     name if name.starts_with("dispatch_")
                         && inner.get_kind() == TypeKind::ObjCObjectPointer =>
                     {
-                        let id = ItemIdentifier::new(&declaration, context);
                         let id = context.replace_typedef_name(id, false);
                         let pointee = Box::new(Self::Pointee(PointeeTy::DispatchTypeDef { id }));
                         return Self::Pointer {
                             nullability,
-                            is_const,
+                            read: true,
+                            written: !is_const,
                             lifetime,
+                            bounds: PointerBounds::Single,
+                            pointee,
+                        };
+                    }
+
+                    // Handle other Network Objective-C objects.
+                    name if name.starts_with("nw_")
+                        && inner.get_kind() == TypeKind::ObjCObjectPointer =>
+                    {
+                        let id = context.replace_typedef_name(id, false);
+                        let pointee = Box::new(Self::Pointee(PointeeTy::NetworkTypeDef { id }));
+                        return Self::Pointer {
+                            nullability,
+                            read: true,
+                            written: !is_const,
+                            lifetime,
+                            bounds: PointerBounds::Single,
                             pointee,
                         };
                     }
@@ -1441,17 +2336,24 @@ impl Ty {
                 if let EntityKind::TemplateTypeParameter = declaration.get_kind() {
                     return Self::Pointer {
                         nullability,
-                        is_const,
+                        read: true,
+                        written: !is_const,
                         lifetime,
+                        bounds: PointerBounds::Single,
                         pointee: Box::new(Self::Pointee(PointeeTy::GenericParam {
+                            object_like: true,
                             name: typedef_name,
                         })),
                     };
                 }
 
-                let mut inner = Self::parse(inner, Lifetime::Unspecified, context);
+                let mut inner = Self::parse(inner, false, context);
 
-                let id = ItemIdentifier::new(&declaration, context);
+                if let Some(sendable) = sendable {
+                    if data.sendable != Some(sendable) {
+                        error!(?ty, "mismatch between sendable attributes on typedef");
+                    }
+                }
 
                 // "Push" the typedef into an inner object pointer.
                 //
@@ -1477,10 +2379,14 @@ impl Ty {
                 // Which needs us to "see" the `__autoreleasing` on
                 // `MTLAutoreleasedArgument` all the way to the `reflection`
                 // parameter.
+                //
+                // See also `Ty::typedef`.
                 if let Self::Pointer {
                     nullability: inner_nullability,
-                    is_const: inner_is_const,
+                    read: _,
+                    written: inner_writes,
                     lifetime: inner_lifetime,
+                    bounds: inner_bounds,
                     pointee,
                 } = &mut inner
                 {
@@ -1493,34 +2399,68 @@ impl Ty {
                         *inner_nullability = nullability;
                     }
                     if is_const {
-                        *inner_is_const = is_const;
+                        *inner_writes = !is_const;
                     }
                     if lifetime != Lifetime::Unspecified {
                         *inner_lifetime = lifetime;
                     }
+                    *inner_bounds = PointerBounds::Single;
 
-                    if pointee.is_direct_cf_type(&id.name, is_bridged(&declaration, context)) {
+                    if id.is_cfallocator() {
+                        // CFAllocatorRef is safely nullable, the default
+                        // allocator is a typedef to NULL.
+                        if *inner_nullability == Nullability::Unspecified {
+                            *inner_nullability = Nullability::Nullable;
+                        }
+                    }
+
+                    // Propagate sendability from typedef.
+                    if let Some(sendable_override) = data.sendable {
+                        if let Self::Pointee(PointeeTy::Block { sendable, .. }) = &mut **pointee {
+                            *sendable = Some(sendable_override);
+                        } else {
+                            error!(?id, "tried to set sendable on non-block typedef");
+                        }
+                    }
+
+                    if pointee
+                        .is_direct_cf_type(&id.name, bridged_to(&declaration, context).is_some())
+                    {
+                        let declaration_generics = data.generics.clone().unwrap_or_default();
+                        let to = if let Self::Pointee(pointee @ PointeeTy::CFTypeDef { .. }) =
+                            &**pointee
+                        {
+                            Some(Box::new(pointee.clone()))
+                        } else {
+                            None
+                        };
+
                         // A bit annoying that we replace the typedef name
                         // here, as that's also what determines whether the
                         // type is a CF type or not... But that's how it is
                         // currently.
                         let id = context.replace_typedef_name(id, true);
-                        *pointee = Box::new(Self::Pointee(PointeeTy::CFTypeDef { id }));
+                        **pointee = Self::Pointee(PointeeTy::CFTypeDef {
+                            id,
+                            generics: vec![],
+                            num_declaration_generics: declaration_generics.len(),
+                            to,
+                        });
                         return inner;
-                    } else if pointee.is_object_like() {
-                        if let Self::Pointee(pointee_ty) = &mut **pointee {
-                            let id = context.replace_typedef_name(id, pointee_ty.is_cf_type());
-                            // Replace with a dummy type (will be re-replaced
-                            // on the line below).
-                            let to = Box::new(mem::replace(pointee_ty, PointeeTy::Self_));
-                            *pointee = Box::new(Self::Pointee(PointeeTy::TypeDef { id, to }));
-                            return inner;
-                        } else {
-                            error!(
-                                ?pointee,
-                                "is_object_like/is_cf_type/is_os_type but not Pointee"
-                            );
-                        }
+                    } else if data
+                        .opaque
+                        .unwrap_or_else(|| pointee.is_direct_opaque(&id.name))
+                    {
+                        let id = context.replace_typedef_name(id, true);
+                        **pointee = Self::Pointee(PointeeTy::OpaqueTypeDef { id });
+                        return inner;
+                    } else if let Self::Pointee(pointee_ty) = &mut **pointee {
+                        let id = context.replace_typedef_name(id, pointee_ty.is_cf_type());
+                        // Replace with a dummy type (will be re-replaced
+                        // on the line below).
+                        let to = Box::new(mem::replace(pointee_ty, PointeeTy::Self_));
+                        **pointee = Self::Pointee(PointeeTy::TypeDef { id, to });
+                        return inner;
                     }
                 } else {
                     // Ignore properties that are set here, we can't use the
@@ -1531,9 +2471,29 @@ impl Ty {
                     // typedef NSArray<NSNumber*> MPSShape;
                 }
 
-                Self::TypeDef {
-                    id,
-                    to: Box::new(inner),
+                // Unsized types like `struct Foo { int arr[]; }` also decays
+                // to a pointer.
+                if array_decays_to_pointer && (inner.is_array() || inner.is_unsized()) {
+                    Self::Pointer {
+                        nullability,
+                        read: true,
+                        written: !is_const,
+                        lifetime,
+                        bounds: if inner.is_unsized() {
+                            PointerBounds::CountedBy("Unknown".to_string())
+                        } else {
+                            PointerBounds::Single
+                        },
+                        pointee: Box::new(Self::TypeDef {
+                            id,
+                            to: Box::new(inner),
+                        }),
+                    }
+                } else {
+                    Self::TypeDef {
+                        id,
+                        to: Box::new(inner),
+                    }
                 }
             }
             // Assume that functions without a prototype simply have 0 arguments.
@@ -1549,11 +2509,11 @@ impl Ty {
                     .get_argument_types()
                     .expect("fn type to have argument types")
                     .into_iter()
-                    .map(|ty| Self::parse(ty, Lifetime::Unspecified, context))
+                    .map(|ty| Self::parse(ty, true, context))
                     .collect();
 
                 let result_type = ty.get_result_type().expect("fn type to have result type");
-                let result_type = Self::parse(result_type, Lifetime::Unspecified, context);
+                let result_type = Self::parse(result_type, false, context);
 
                 Self::Pointee(PointeeTy::Fn {
                     is_variadic: ty.get_kind() == TypeKind::FunctionPrototype && ty.is_variadic(),
@@ -1562,55 +2522,77 @@ impl Ty {
                     result_type: Box::new(result_type),
                 })
             }
-            TypeKind::IncompleteArray => {
+            TypeKind::IncompleteArray | TypeKind::ConstantArray => {
                 let mut parser = AttributeParser::new(&attributed_name, &name);
-                parser.set_incomplete_array();
+                let lifetime = parser.lifetime();
+                parser.check();
 
-                let is_const = get_is_const(parser.is_const(ParsePosition::Suffix));
-                lifetime.update(parser.lifetime(ParsePosition::Suffix));
-                let nullability = if let Some(nullability) = unexposed_nullability {
-                    nullability
-                } else {
-                    check_nullability(&attributed_ty, parser.nullability(ParsePosition::Suffix))
-                };
-
-                let ty = ty
-                    .get_element_type()
-                    .expect("incomplete array to have element type");
-
-                let pointee = Self::parse(ty, lifetime, context);
-                Self::IncompleteArray {
-                    nullability,
-                    is_const,
-                    pointee: Box::new(pointee),
-                }
-            }
-            TypeKind::ConstantArray => {
-                let mut parser = AttributeParser::new(&attributed_name, &name);
-                parser.set_constant_array();
-                let _is_const = get_is_const(parser.is_const(ParsePosition::Suffix));
-                let _nullability = if let Some(nullability) = unexposed_nullability {
-                    nullability
-                } else {
-                    check_nullability(&attributed_ty, parser.nullability(ParsePosition::Suffix))
-                };
-
+                // Only top-level arrays decay to pointers. E.g.
+                // int[4][2] -> int(*)[2]
                 let element = ty.get_element_type().expect("array to have element type");
-                let element_type = Self::parse(element, lifetime, context);
-                let num_elements = ty
-                    .get_size()
-                    .expect("constant array to have element length");
-                Self::Array {
-                    element_type: Box::new(element_type),
+                let element_type = Box::new(Self::parse(element, false, context));
+
+                let num_elements = ty.get_size();
+                debug_assert_eq!(
+                    num_elements.is_none(),
+                    ty.get_kind() == TypeKind::IncompleteArray
+                );
+
+                let arr = Self::Array {
+                    element_type,
                     num_elements,
+                };
+
+                if array_decays_to_pointer {
+                    Self::Pointer {
+                        nullability,
+                        read: true,
+                        written: !is_const,
+                        lifetime,
+                        // The ABI of Rust arrays is such that
+                        // `&[T; N]` -> `*const T`.
+                        //
+                        // So in that sense, since the array already contains
+                        // bounds information in its type, this is a "single"
+                        // object.
+                        //
+                        // See also:
+                        // <https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=5a75ef9f07259901c4a220bb09001f44>
+                        //
+                        // Note that C does not support returning arrays
+                        // directly, they must be either wrapped in a struct,
+                        // or given as a parameter. So we don't have to handle
+                        // that.
+                        bounds: if arr.is_unsized() {
+                            PointerBounds::CountedBy("Unknown".into())
+                        } else {
+                            PointerBounds::Single
+                        },
+                        pointee: Box::new(arr),
+                    }
+                } else {
+                    if lifetime != Lifetime::Unspecified {
+                        error!(?lifetime, "unknown lifetime on array");
+                    }
+                    arr
                 }
             }
             _ => {
                 error!(?ty, "unknown type kind");
                 Self::Pointee(PointeeTy::GenericParam {
+                    object_like: false,
                     name: "Unknown".to_string(),
                 })
             }
+        }
+    }
+
+    /// Recurse into typedefs and `Result<(), E>` (at the topmost layer).
+    fn through_wrapper(&self) -> &Self {
+        match self {
+            Self::TypeDef { to, .. } => to.through_wrapper(),
+            Self::Result { ty, err, .. } if **ty == Self::VOID => err.through_wrapper(),
+            _ => self,
         }
     }
 
@@ -1624,17 +2606,20 @@ impl Ty {
                 .collect(),
             Self::Sel { .. } => vec![ItemTree::objc("Sel")],
             Self::Pointer {
-                pointee,
                 nullability,
-                ..
-            }
-            | Self::IncompleteArray {
+                read,
+                written: _,  // `&mut` doesn't require any imports.
+                lifetime: _, // `'static` doesn't require any imports.
+                bounds,
                 pointee,
-                nullability,
-                ..
             } => pointee
                 .required_items()
                 .chain((*nullability == Nullability::NonNull).then(ItemTree::core_ptr_nonnull))
+                .chain((!read).then(ItemTree::core_mem_maybeuninit))
+                .chain(
+                    (*bounds == PointerBounds::NullTerminated && pointee.is_pointee_cstr())
+                        .then(|| ItemTree::core_ffi("CStr")),
+                )
                 .collect(),
             Self::TypeDef { id, to, .. } => vec![ItemTree::new(id.clone(), to.required_items())],
             Self::Array { element_type, .. } => element_type.required_items().collect(),
@@ -1642,9 +2627,19 @@ impl Ty {
                 vec![ItemTree::new(id.clone(), ty.required_items())]
             }
             Self::Struct { id, fields, .. } | Self::Union { id, fields, .. } => {
-                let fields = fields.iter().flat_map(|field| field.required_items());
+                let fields = fields.iter().flat_map(|(_, field)| field.required_items());
                 vec![ItemTree::new(id.clone(), fields)]
             }
+            Self::Result {
+                ty,
+                original_ty,
+                err,
+                ..
+            } => ty
+                .required_items()
+                .chain(original_ty.required_items())
+                .chain(err.required_items())
+                .collect(),
         };
         items.into_iter()
     }
@@ -1657,9 +2652,6 @@ impl Ty {
             Self::Simd { .. } => false,
             Self::Sel { .. } => false,
             Self::Pointer { pointee, .. } => pointee.requires_mainthreadmarker(self_requires),
-            Self::IncompleteArray { pointee, .. } => {
-                pointee.requires_mainthreadmarker(self_requires)
-            }
             Self::TypeDef { to, .. } => to.requires_mainthreadmarker(self_requires),
             Self::Array { element_type, .. } => {
                 element_type.requires_mainthreadmarker(self_requires)
@@ -1667,7 +2659,11 @@ impl Ty {
             Self::Enum { ty, .. } => ty.requires_mainthreadmarker(self_requires),
             Self::Struct { fields, .. } | Self::Union { fields, .. } => fields
                 .iter()
-                .any(|field| field.requires_mainthreadmarker(self_requires)),
+                .any(|(_, field)| field.requires_mainthreadmarker(self_requires)),
+            Self::Result { ty, err, .. } => {
+                ty.requires_mainthreadmarker(self_requires)
+                    || err.requires_mainthreadmarker(self_requires)
+            }
         }
     }
 
@@ -1678,8 +2674,9 @@ impl Ty {
         match self {
             Self::Pointee(pointee_ty) => pointee_ty.provides_mainthreadmarker(self_provides),
             Self::Pointer {
-                // Only visit non-null pointers
+                // Only visit non-null single pointers.
                 nullability: Nullability::NonNull,
+                bounds: PointerBounds::Single,
                 pointee,
                 ..
             } => pointee.provides_mainthreadmarker(self_provides),
@@ -1687,12 +2684,214 @@ impl Ty {
             Self::Enum { ty, .. } => ty.provides_mainthreadmarker(self_provides),
             Self::Struct { fields, .. } => fields
                 .iter()
-                .any(|field| field.provides_mainthreadmarker(self_provides)),
+                .any(|(_, field)| field.provides_mainthreadmarker(self_provides)),
             Self::Union { fields, .. } => fields
                 .iter()
-                .all(|field| field.provides_mainthreadmarker(self_provides)),
+                .all(|(_, field)| field.provides_mainthreadmarker(self_provides)),
+            Self::Result { ty, err, .. } => {
+                ty.provides_mainthreadmarker(self_provides)
+                    && err.provides_mainthreadmarker(self_provides)
+            }
             _ => false,
         }
+    }
+
+    /// The (conservative) safety properties of the type.
+    fn safety(&self) -> TypeSafety {
+        match self {
+            Self::Primitive(prim) => prim.safety(),
+            Self::Pointee(pointee) => pointee.safety(),
+            // Most SIMD functions are unsafe, but the type itself must be
+            // initialized and is by perfectly safe.
+            Self::Simd { .. } => TypeSafety::SAFE,
+            // Rarely safe, selectors can point to anything, and it's hard to
+            // specify threading requirements.
+            Self::Sel { .. } => TypeSafety::unsafe_in_argument("must be a valid selector"),
+            // Function pointers have validity requirements, and are therefore
+            // always safe. Note though that we still defer to the actual
+            // function pointee to figure out if it's safe in that particular
+            // situation.
+            Self::Pointer {
+                bounds: PointerBounds::Single,
+                pointee,
+                ..
+            } if self.is_fn_ptr() => pointee.safety(),
+            // By default, all other pointers aren't safe in arguments, though
+            // they are generally safe to return (at least if the pointee is).
+            Self::Pointer {
+                nullability,
+                pointee,
+                ..
+            } => {
+                let reason = if matches!(
+                    *nullability,
+                    Nullability::Nullable | Nullability::NullableResult
+                ) {
+                    "must be a valid pointer or null"
+                } else {
+                    "must be a valid pointer"
+                };
+                TypeSafety::unsafe_in_argument(reason).merge(pointee.safety().ignore_in_argument())
+            }
+            // Sized arrays are safe as long as the inner element type is.
+            Self::Array { element_type, .. } => {
+                let mut safety = element_type.safety().context("array element");
+
+                // Unsized arrays are not yet soundly representable in Rust.
+                if self.is_unsized() {
+                    safety = safety.merge(TypeSafety::unknown_in_argument("has unclear size"));
+                }
+
+                safety
+            }
+            // Enums are safe in both positions.
+            //
+            // Note that enums don't strictly prevent passing invalid
+            // enumeration values, but this is fine, C code (and by extension
+            // Objective-C code) is written with that in mind.
+            Self::Enum { .. } => TypeSafety::SAFE,
+            // Structs inherit the safety of all their fields.
+            Self::Struct { fields, .. } => {
+                fields
+                    .iter()
+                    .fold(TypeSafety::SAFE, |safety, (field_name, field)| {
+                        let mut field_safety = field.safety();
+                        if field_name == "version" {
+                            // Setting the right version in e.g.
+                            // `CFRunLoopObserverContext` is important.
+                            field_safety = field_safety
+                                .merge(TypeSafety::unsafe_in_argument("must be set correctly"));
+                        }
+
+                        safety.merge(field_safety.context(format!("struct field `{field_name}`")))
+                    })
+            }
+            // Conservative.
+            Self::Union { .. } => TypeSafety::always_unsafe("must be correctly initialized"),
+            Self::TypeDef { id, .. } if id.name == "CFStringEncoding" => {
+                TypeSafety::unknown_in_argument("should be set correctly")
+            }
+            Self::TypeDef { to, .. } => to.safety(),
+            Self::Result { ty, err, .. } => ty.safety().merge(err.safety()),
+        }
+    }
+
+    fn safety_in_fn(&self) -> TypeSafety {
+        match self {
+            // At the top-level of functions/methods, pointers to object-like
+            // things and block/fn pointers are generally emitted as `&$Ty`
+            // and returned as `Retained<$Ty>` (possibly in an `Option`).
+            //
+            // This is safe if the pointee is.
+            Self::Pointer {
+                bounds: PointerBounds::Single,
+                nullability,
+                pointee,
+                ..
+            } if !pointee.is_unsized() => {
+                let mut safety = pointee.safety();
+                if *nullability == Nullability::Unspecified {
+                    // Mark as unknown in argument, to avoid situations where
+                    // an API does not actually support taking a nullable
+                    // value (i.e. cases where we might be emitting the wrong
+                    // binding).
+                    //
+                    // See also https://github.com/madsmtm/objc2/issues/695.
+                    safety =
+                        safety.merge(TypeSafety::unknown_in_argument("might not allow `None`"));
+                }
+                safety
+            }
+            // `&CStr`.
+            Self::Pointer {
+                bounds: PointerBounds::NullTerminated,
+                nullability,
+                pointee,
+                ..
+            } if pointee.is_pointee_cstr() => {
+                let mut safety = pointee.safety();
+                if *nullability == Nullability::Unspecified {
+                    safety =
+                        safety.merge(TypeSafety::unknown_in_argument("might not allow `None`"));
+                }
+                // TODO: Allow setting correct lifetime bounds (currently we
+                // assume that the pointer won't escape in argument position).
+                safety = safety.merge(TypeSafety::unsafe_in_return("must bound the lifetime"));
+                safety
+            }
+            _ => self.safety(),
+        }
+    }
+
+    pub(crate) fn safety_in_method_argument(&self, arg_name: &str) -> SafetyProperty {
+        // Out pointers
+        if let Some((nullability, pointee, inner_nullability, Lifetime::Autoreleasing)) =
+            self.out_pointer_data()
+        {
+            let safety = pointee.safety();
+
+            // Out pointers are both inputs and outputs, and thus they
+            // have requirements in both directions.
+            //
+            // TODO: Actual usage is often for outputs only, so we might
+            // be able to relax this? Maybe just allow
+            // `SafetyProperty::Unknown` in arguments?
+            let mut safety = safety.in_argument.merge(safety.in_return);
+
+            // TODO: Remove the `inner_nullability` check, it's probably not
+            // necessary? Basically all out pointers allow a value of `None`.
+            if nullability == Nullability::Unspecified
+                || inner_nullability == Nullability::Unspecified
+            {
+                safety = safety.merge(SafetyProperty::new_unknown("might not allow `None`"));
+            }
+
+            safety.preface(format!("`{arg_name}`"))
+        } else {
+            self.safety_in_fn()
+                .in_argument
+                .preface(format!("`{arg_name}`"))
+        }
+    }
+
+    pub(crate) fn safety_in_fn_argument(&self, arg_name: &str) -> SafetyProperty {
+        // Out pointers, see `fn_argument_converter`.
+        if let Some((
+            nullability,
+            pointee,
+            Nullability::Unspecified | Nullability::Nullable | Nullability::NullableResult,
+            Lifetime::Autoreleasing | Lifetime::Strong,
+        )) = self.out_pointer_data()
+        {
+            // Contrary to methods, functions only allow `None` as input, so
+            // there we don't need to ensure that the input is correct.
+            let mut safety = pointee.safety().in_return;
+
+            if nullability == Nullability::Unspecified {
+                safety = safety.merge(SafetyProperty::new_unknown("might not allow `None`"));
+            }
+
+            safety.preface(format!("`{arg_name}`"))
+        } else {
+            self.safety_in_fn()
+                .in_argument
+                .preface(format!("`{arg_name}`"))
+        }
+    }
+
+    pub(crate) fn safety_in_fn_return(&self) -> SafetyProperty {
+        self.safety_in_fn().in_return.preface("The returned")
+    }
+
+    pub(crate) fn is_primitive_or_record(&self) -> bool {
+        matches!(
+            self.through_wrapper(),
+            Self::Primitive(_)
+                | Self::Simd { .. }
+                | Self::Enum { .. }
+                | Self::Struct { .. }
+                | Self::Union { .. }
+        )
     }
 
     /// Return the `ItemTree` for the nearest implement-able type, if any.
@@ -1700,12 +2899,8 @@ impl Ty {
         match self {
             Self::Primitive(_) | Self::Simd { .. } | Self::Sel { .. } => None,
             Self::Pointee(pointee) => pointee.implementable(),
-            Self::Pointer { pointee, .. }
-            | Self::IncompleteArray { pointee, .. }
-            | Self::Array {
-                element_type: pointee,
-                ..
-            } => pointee.implementable(),
+            Self::Pointer { pointee, .. } => pointee.implementable(),
+            Self::Array { element_type, .. } => element_type.implementable(),
             // TypeDefs aren't implement-able, even if their underlying type
             // is, since the type might come from another crate.
             //
@@ -1716,9 +2911,44 @@ impl Ty {
                 .filter(|implementor| implementor.id() == id),
             Self::Enum { id, ty } => Some(ItemTree::new(id.clone(), ty.required_items())),
             Self::Struct { id, fields, .. } | Self::Union { id, fields } => {
-                let fields = fields.iter().flat_map(|field| field.required_items());
+                let fields = fields.iter().flat_map(|(_, field)| field.required_items());
                 Some(ItemTree::new(id.clone(), fields))
             }
+            Self::Result { ty, .. } => ty.implementable(),
+        }
+    }
+
+    fn is_array(&self) -> bool {
+        matches!(self.through_wrapper(), Self::Array { .. })
+    }
+
+    /// Whether the type doesn't have a statically known size.
+    ///
+    /// These requires `extern type` in some shape or form to emit correctly.
+    pub(crate) fn is_unsized(&self) -> bool {
+        match self.through_wrapper() {
+            Self::Array {
+                num_elements: None, ..
+            } => true,
+            // The only time where you'd realistically use a 0- or 1-sized
+            // array in C (apart from in macro-heavy code) would be if you
+            // cannot express actual size in the type system.
+            //
+            // These uses _should_ just use incomplete arrays (i.e. the size
+            // shouldn't be specified), but Apple's headers don't seem to do
+            // that very often.
+            //
+            // As such, we assume that 0- and 1-sized arrays are "unsized".
+            Self::Array {
+                num_elements: Some(0) | Some(1),
+                ..
+            } => true,
+            Self::Array { element_type, .. } => element_type.is_unsized(),
+            Self::Union { fields, .. } => fields.iter().any(|(_, field)| field.is_unsized()),
+            // Sized-ness is "infectious", so structs are unsized if just one
+            // of their fields are.
+            Self::Struct { fields, .. } => fields.iter().any(|(_, field)| field.is_unsized()),
+            _ => false,
         }
     }
 
@@ -1729,45 +2959,73 @@ impl Ty {
     /// the runtime is keeping track of, so forgetting to `release` those
     /// would leak resources.
     fn is_static_object(&self) -> bool {
-        match self {
-            // Recurse into typedefs
-            Self::TypeDef { to, .. } => to.is_static_object(),
-            Self::Pointee(pointee_ty) => pointee_ty.is_static_object(),
-            _ => false,
+        if let Self::Pointee(pointee_ty) = self.through_wrapper() {
+            pointee_ty.is_static_object()
+        } else {
+            false
         }
     }
 
     fn is_object_like(&self) -> bool {
-        self.is_objc_type() || self.is_cf_type() || self.is_dispatch_type()
+        self.is_objc_type()
+            || self.is_cf_type()
+            || self.is_dispatch_type()
+            || self.is_network_type()
+            || self.is_opaque_type()
+            || self.is_block_type()
     }
 
     /// Determine whether the inner type of a `Pointer` is object-like.
     fn is_objc_type(&self) -> bool {
-        match self {
-            // Recurse into typedefs
-            Self::TypeDef { to, .. } => to.is_objc_type(),
-            Self::Pointee(pointee_ty) => pointee_ty.is_objc_type(),
-            _ => false,
+        if let Self::Pointee(pointee_ty) = self.through_wrapper() {
+            pointee_ty.is_objc_type()
+        } else {
+            false
         }
     }
 
     /// Determine whether the pointee inside a `Pointer` is a CF-like type.
     fn is_cf_type(&self) -> bool {
-        match self {
-            // Recurse into typedefs
-            Self::TypeDef { to, .. } => to.is_cf_type(),
-            Self::Pointee(pointee_ty) => pointee_ty.is_cf_type(),
-            _ => false,
+        if let Self::Pointee(pointee_ty) = self.through_wrapper() {
+            pointee_ty.is_cf_type()
+        } else {
+            false
         }
     }
 
     /// Determine whether the pointee inside a `Pointer` is a Dispatch-like type.
     fn is_dispatch_type(&self) -> bool {
-        match self {
-            // Recurse into typedefs
-            Self::TypeDef { to, .. } => to.is_dispatch_type(),
-            Self::Pointee(pointee_ty) => pointee_ty.is_dispatch_type(),
-            _ => false,
+        if let Self::Pointee(pointee_ty) = self.through_wrapper() {
+            pointee_ty.is_dispatch_type()
+        } else {
+            false
+        }
+    }
+
+    /// Determine whether the pointee inside a `Pointer` is a Network-like type.
+    fn is_network_type(&self) -> bool {
+        if let Self::Pointee(pointee_ty) = self.through_wrapper() {
+            pointee_ty.is_network_type()
+        } else {
+            false
+        }
+    }
+
+    /// Determine whether the pointee inside a `Pointer` is an explicitly Opaque type.
+    fn is_opaque_type(&self) -> bool {
+        if let Self::Pointee(pointee_ty) = self.through_wrapper() {
+            pointee_ty.is_opaque_type()
+        } else {
+            false
+        }
+    }
+
+    /// Determine whether the inner type of a `Pointer` is a block.
+    fn is_block_type(&self) -> bool {
+        if let Self::Pointee(pointee_ty) = self.through_wrapper() {
+            pointee_ty.is_block_type()
+        } else {
+            false
         }
     }
 
@@ -1802,7 +3060,54 @@ impl Ty {
             Self::Primitive(Primitive::Void) => {
                 typedef_is_bridged || KNOWN_CF_TYPES.contains(&typedef_name)
             }
+            // Typedefs to other CF types are themselves CF types.
+            // Example: `CFPropertyList` is a typedef to CFType, but we want
+            // it to be it's own type. Similar for `SecTransformRef`.
+            Self::Pointee(PointeeTy::CFTypeDef { .. }) => {
+                // We don't want these two types to be newtypes quite yet though.
+                if matches!(
+                    typedef_name,
+                    "CMClockOrTimebaseRef" | "SecTransformStringOrAttributeRef"
+                ) {
+                    return false;
+                }
+                // Also unsure if we should do this (at least yet), see:
+                // https://github.com/madsmtm/objc2/issues/735
+                if typedef_name == "CFPropertyListRef" {
+                    return false;
+                }
+                // For these, we kinda wanna make them superclasses of the
+                // thing they represent? Unsure yet.
+                if matches!(typedef_name, "CMBufferRef" | "VTSessionRef") {
+                    return false;
+                }
+                typedef_is_bridged || KNOWN_CF_TYPES.contains(&typedef_name)
+            }
             _ => false,
+        }
+    }
+
+    fn is_direct_opaque(&self, typedef_name: &str) -> bool {
+        match self {
+            Self::Struct { .. } => typedef_name.ends_with("Ref"),
+            Self::Primitive(Primitive::Void) => typedef_name.ends_with("Ref"),
+            _ => false,
+        }
+    }
+
+    pub(crate) fn is_cf_type_typedef(&self, typedef_name: &str, typedef_is_bridged: bool) -> bool {
+        if let Self::Pointer { pointee, .. } = self {
+            pointee.is_direct_cf_type(typedef_name, typedef_is_bridged)
+        } else {
+            false
+        }
+    }
+
+    pub(crate) fn is_opaque_typedef(&self, typedef_name: &str) -> bool {
+        if let Self::Pointer { pointee, .. } = self {
+            pointee.is_direct_opaque(typedef_name)
+        } else {
+            false
         }
     }
 
@@ -1814,11 +3119,10 @@ impl Ty {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn is_cf_allocator(&self) -> bool {
         if let Self::Pointer { pointee, .. } = self {
-            if let Ty::Pointee(PointeeTy::CFTypeDef { id }) = &**pointee {
-                if id.name == "CFAllocator" {
+            if let Ty::Pointee(PointeeTy::CFTypeDef { id, .. }) = &**pointee {
+                if id.is_cfallocator() {
                     return true;
                 }
             }
@@ -1828,7 +3132,7 @@ impl Ty {
 
     pub(crate) fn is_object_like_ptr(&self) -> bool {
         if let Self::Pointer { pointee, .. } = self {
-            pointee.is_objc_type()
+            pointee.is_object_like()
         } else {
             false
         }
@@ -1838,48 +3142,140 @@ impl Ty {
         matches!(self, Self::TypeDef { id, .. } if id.name == "CFTypeID")
     }
 
+    pub(crate) fn is_class_with_mutable_in_name(&self) -> bool {
+        if let Self::Pointer { pointee, .. } = self.through_wrapper() {
+            if let Self::Pointee(pointee) = pointee.through_wrapper() {
+                matches!(pointee.through_typedef(), PointeeTy::Class { id, .. } | PointeeTy::CFTypeDef { id, .. } if id.name.contains("Mutable"))
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    /// Whether the type, if behind a pointer, is allowed to be converted
+    /// to/from `CStr`.
+    fn is_pointee_cstr(&self) -> bool {
+        // Only check `char`; `unsigned char` or `signed char` are not
+        // converted to `CStr` automatically.
+        match self.through_wrapper() {
+            Self::Primitive(Primitive::Char) => true,
+            // `[c_char; N]` arrays work similar to `*c_char` in that we want
+            // to map them to `&CStr` when possible.
+            Self::Array { element_type, .. } => {
+                matches!(**element_type, Self::Primitive(Primitive::Char))
+            }
+            _ => false,
+        }
+    }
+
     pub(crate) fn contains_union(&self) -> bool {
         match self {
             Self::Union { .. } => true,
             Self::TypeDef { id, .. }
-                if matches!(&*id.name, "MPSPackedFloat3" | "MTLPackedFloat3") =>
+                if matches!(
+                    &*id.name,
+                    "MPSPackedFloat3" | "MTLPackedFloat3" | "WideChar"
+                ) =>
             {
                 // These are custom-defined to not contain the internal union.
                 false
             }
             Self::TypeDef { to, .. } => to.contains_union(),
-            Self::Struct { fields, .. } => fields.iter().any(|field| field.contains_union()),
+            Self::Struct { fields, .. } => fields.iter().any(|(_, field)| field.contains_union()),
+            Self::Array { element_type, .. } => element_type.contains_union(),
             _ => false,
         }
     }
 
-    pub(crate) fn directly_contains_fn_ptr(&self) -> bool {
-        match self {
-            Self::Pointer { pointee, .. }
-                if matches!(&**pointee, Ty::Pointee(PointeeTy::Fn { .. })) =>
-            {
-                true
+    pub(crate) fn is_fn_ptr(&self) -> bool {
+        if let Self::Pointer { pointee, .. } = self.through_wrapper() {
+            if let Ty::Pointee(pointee) = &**pointee {
+                matches!(pointee.through_typedef(), PointeeTy::Fn { .. })
+            } else {
+                false
             }
-            Self::TypeDef { to, .. } => to.directly_contains_fn_ptr(),
-            _ => false,
+        } else {
+            false
         }
     }
 
     pub(crate) fn is_objc_bool(&self) -> bool {
+        matches!(self.through_wrapper(), Self::Primitive(Primitive::ObjcBool))
+    }
+
+    fn has_zero_niche(&self) -> bool {
+        matches!(
+            self,
+            Self::Pointer {
+                nullability: Nullability::NonNull,
+                ..
+            } | Self::Sel {
+                nullability: Nullability::NonNull,
+            }
+        )
+    }
+
+    pub(crate) fn has_zero_default(&self) -> bool {
         match self {
-            Self::Primitive(Primitive::ObjcBool) => true,
-            Self::TypeDef { to, .. } => to.is_objc_bool(),
+            Self::Primitive(Primitive::Void | Primitive::VaList) => false,
+            Self::Primitive(_) => true,
+            Self::Simd { .. } => true,
+            Self::Sel {
+                nullability: Nullability::Nullable | Nullability::NullableResult,
+            } => true,
+            Self::Pointer {
+                // Conservative, we could add `Nullability::Unspecified` here
+                // too, but not emitting a `Default` impl for those makes it
+                // less of a breaking change if we change the fields to be
+                // `NonNull` in the future.
+                nullability: Nullability::Nullable | Nullability::NullableResult,
+                ..
+                // TODO: Return `true` here always once MSRV is 1.88, that's
+                // when pointer types started implementing `Default` (which
+                // allows us to derive the `Default`).
+                //
+                // Alternatively, we could implement `Default` manually on
+                // these, but that's a bit of a hassle, so we won't bother for
+                // now.
+            } => self.is_fn_ptr(),
+            // Only arrays up to size 32 implement Default.
+            Self::Array {
+                element_type,
+                num_elements: Some(0..=32),
+            } => element_type.has_zero_default(),
+            // Almost all enums have a default, and the type-system will catch
+            // errors here, so let's keep the check simple.
+            Self::Enum { id, ty } if id.name != "MIDINotificationMessageID" => {
+                ty.has_zero_default()
+            }
+            // NOTE: `MTLResourceID` is not `Default` for now, since we still
+            // need to figure out if creating it from invalid IDs is safe.
+            Self::Struct { id, .. } if id.name == "MTLResourceID" => false,
+            // HACK: MTLPackedFloat3 is redefined as a simple struct, which
+            // implements `Default`.
+            Self::Struct { id, .. } if matches!(&*id.name, "_MTLPackedFloat3" | "_MPSPackedFloat3") => true,
+            Self::Struct {
+                fields,
+                is_bridged: false,
+                ..
+            } => fields.iter().all(|(_, field)| field.has_zero_default()),
+            Self::TypeDef { to, .. } => to.has_zero_default(),
+            Self::Result { ty, err, .. } if **ty == Self::VOID => {
+                err.has_zero_niche()
+            },
             _ => false,
         }
     }
 
-    fn plain(&self) -> impl fmt::Display + '_ {
+    fn plain(&self, allow_generic_param: bool) -> impl fmt::Display + '_ {
         FormatterFn(move |f| {
             match self {
                 Self::Primitive(prim) => write!(f, "{prim}"),
-                Self::Pointee(_) => {
+                Self::Pointee(pointee) => {
                     error!(?self, "must be behind pointer");
-                    write!(f, "{}", self.behind_pointer())
+                    write!(f, "{}", pointee.behind_pointer(allow_generic_param))
                 }
                 Self::Simd { ty, size } => write!(f, "Simd<{ty}, {size}>"),
                 Self::Sel { nullability } => {
@@ -1891,72 +3287,55 @@ impl Ty {
                 }
                 Self::Pointer {
                     nullability,
-                    is_const,
+                    read,
+                    written,
                     // Ignore
                     lifetime: _,
+                    bounds,
                     pointee,
                 } => match &**pointee {
-                    Self::Pointee(PointeeTy::Fn {
-                        is_variadic,
-                        no_escape: _,
-                        arguments,
-                        result_type,
-                    }) => {
+                    Self::Pointee(pointee)
+                        if self.is_fn_ptr() && *bounds == PointerBounds::Single =>
+                    {
                         if *nullability != Nullability::NonNull {
                             write!(f, "Option<")?;
                         }
-                        // Allow pointers that the user provides to unwind.
-                        //
-                        // This is not _necessarily_ safe, though in practice
-                        // it will be for all of Apple's frameworks.
-                        write!(f, "unsafe extern \"C-unwind\" fn(")?;
-                        for arg in arguments {
-                            write!(f, "{},", arg.plain())?;
-                        }
-                        if *is_variadic {
-                            write!(f, "...")?;
-                        }
-                        write!(f, ")")?;
-                        write!(f, "{}", result_type.fn_type_return())?;
+                        write!(f, "{}", pointee.fn_ptr(allow_generic_param, false))?;
                         if *nullability != Nullability::NonNull {
                             write!(f, ">")?;
                         }
                         Ok(())
                     }
                     pointee => {
+                        let pointee =
+                            maybemaybeuninit(*read, pointee.behind_pointer(allow_generic_param));
                         if *nullability == Nullability::NonNull {
-                            write!(f, "NonNull<{}>", pointee.behind_pointer())
-                        } else if *is_const {
-                            write!(f, "*const {}", pointee.behind_pointer())
+                            write!(f, "NonNull<{pointee}>")
+                        } else if *written {
+                            write!(f, "*mut {pointee}")
                         } else {
-                            write!(f, "*mut {}", pointee.behind_pointer())
+                            write!(f, "*const {pointee}")
                         }
                     }
                 },
                 Self::TypeDef { id, .. } => {
                     write!(f, "{}", id.path())
                 }
-                Self::IncompleteArray {
-                    nullability,
-                    is_const,
-                    pointee,
-                } => {
-                    if *nullability == Nullability::NonNull {
-                        write!(f, "NonNull<{}>", pointee.behind_pointer())
-                    } else if *is_const {
-                        write!(f, "*const {}", pointee.behind_pointer())
-                    } else {
-                        write!(f, "*mut {}", pointee.behind_pointer())
-                    }
-                }
                 Self::Array {
                     element_type,
                     num_elements,
-                } => write!(
-                    f,
-                    "ArrayUnknownABI<[{}; {num_elements}]>",
-                    element_type.plain()
-                ),
+                } => {
+                    // TODO: Use `extern type` here when `self.is_unsized()`.
+                    //
+                    // For now, we emit unsized types as `[T; N]`, and instead
+                    // require the user to offset the pointer correctly by
+                    // making unsized types only accessible through pointers.
+                    //
+                    // Note that incomplete arrays fall back to a 0-sized
+                    // array here, this is the same as done in type-encodings.
+                    let n = num_elements.unwrap_or(0);
+                    write!(f, "[{}; {n}]", element_type.plain(allow_generic_param))
+                }
                 Self::Struct { id, .. } => {
                     write!(f, "{}", id.path())
                 }
@@ -1966,423 +3345,577 @@ impl Ty {
                 Self::Enum { id, .. } => {
                     write!(f, "{}", id.path())
                 }
+                Self::Result { ty, err, .. } => {
+                    write!(
+                        f,
+                        "Result<{}, {}>",
+                        ty.plain(allow_generic_param),
+                        err.plain(allow_generic_param)
+                    )
+                }
             }
         })
     }
 
-    fn behind_pointer(&self) -> impl fmt::Display + '_ {
+    fn behind_pointer(&self, allow_generic_param: bool) -> impl fmt::Display + '_ {
         FormatterFn(move |f| match self {
-            Self::Pointee(pointee) => match pointee {
-                PointeeTy::Class {
-                    id,
-                    thread_safety: _,
-                    superclasses: _,
-                    generics,
-                    protocols: _,
-                } => {
-                    write!(f, "{}", id.path())?;
-                    if !generics.is_empty() {
-                        write!(f, "<")?;
-                        for generic in generics {
-                            if let Self::Pointer { pointee, .. } = generic {
-                                write!(f, "{},", pointee.behind_pointer())?;
-                            } else {
-                                error!(?self, ?generic, "unknown generic");
-                                write!(f, "{},", generic.behind_pointer())?;
+            Self::Primitive(Primitive::Void) => write!(f, "c_void"),
+            Self::Pointee(pointee) => write!(f, "{}", pointee.behind_pointer(allow_generic_param)),
+            _ => write!(f, "{}", self.plain(allow_generic_param)),
+        })
+    }
+
+    fn argument(&self, allow_generic_param: bool) -> impl fmt::Display + '_ {
+        FormatterFn(move |f| match self {
+            Self::Pointer {
+                nullability,
+                read,
+                written,
+                lifetime: _,
+                bounds: _,
+                pointee,
+            } if pointee.is_unsized() => {
+                let pointee = maybemaybeuninit(
+                    *read,
+                    FormatterFn(|f| {
+                        match &**pointee {
+                            // Unsized arrays in fn pointer arguments are just emitted as
+                            // the element type.
+                            Self::Array { element_type, .. } => {
+                                write!(f, "{}", element_type.behind_pointer(allow_generic_param))
                             }
+                            _ => write!(f, "{}", pointee.behind_pointer(allow_generic_param)),
                         }
-                        write!(f, ">")?;
-                    }
-                    Ok(())
+                    }),
+                );
+                if *nullability == Nullability::NonNull {
+                    write!(f, "NonNull<{pointee}>")
+                } else if *written {
+                    write!(f, "*mut {pointee}")
+                } else {
+                    write!(f, "*const {pointee}")
                 }
-                PointeeTy::GenericParam { name } => write!(f, "{name}"),
-                PointeeTy::AnyObject { protocols } => match &**protocols {
-                    [] => write!(f, "AnyObject"),
-                    [(protocol, _)] => write!(f, "ProtocolObject<dyn {}>", protocol.id.path()),
-                    // TODO: Handle this better
-                    [(first, _), rest @ ..] => {
-                        write!(f, "AnyObject /* {}", first.id.path())?;
-                        for (protocol, _) in rest {
-                            write!(f, "+ {}", protocol.id.path())?;
-                        }
-                        write!(f, " */")?;
-                        Ok(())
-                    }
-                },
-                PointeeTy::AnyProtocol => write!(f, "AnyProtocol"),
-                PointeeTy::AnyClass { protocols } => match &**protocols {
-                    [] => write!(f, "AnyClass"),
-                    // TODO: Handle this better
-                    _ => write!(f, "AnyClass"),
-                },
-                PointeeTy::Self_ => write!(f, "Self"),
-                // TODO: Handle this better.
-                PointeeTy::Fn { .. } => {
-                    write!(f, "core::ffi::c_void /* TODO: Should be a function. */")
-                }
-                PointeeTy::Block {
-                    sendable: _,
-                    no_escape,
-                    arguments,
-                    result_type,
-                } => {
-                    write!(f, "block2::DynBlock<dyn Fn(")?;
-                    for arg in arguments {
-                        write!(f, "{}, ", arg.plain())?;
-                    }
-                    write!(f, ")")?;
-                    write!(f, "{}", result_type.fn_type_return())?;
-                    if *no_escape {
-                        write!(f, " + '_")?;
-                    } else {
-                        // `dyn Fn()` in function parameters implies `+ 'static`,
-                        // so no need to specify that.
-                        //
-                        // write!(f, " + 'static")?;
-                    }
-                    write!(f, ">")
-                }
-                PointeeTy::CFTypeDef { id } => write!(f, "{}", id.path()),
-                PointeeTy::DispatchTypeDef { id } => write!(f, "{}", id.path()),
-                PointeeTy::TypeDef { id, .. } => write!(f, "{}", id.path()),
-                PointeeTy::CStr => write!(f, "CStr"),
-            },
-            _ => write!(f, "{}", self.plain()),
+            }
+            _ => write!(f, "{}", self.plain(allow_generic_param)),
+        })
+    }
+
+    /// Prefix the inner value with ` -> ` if needed.
+    ///
+    /// If the type is `c_void`, we don't print anything at all.
+    pub(crate) fn prefix_return<'a>(
+        &'a self,
+        inner: impl fmt::Display + 'a,
+    ) -> impl fmt::Display + 'a {
+        FormatterFn(move |f| match self {
+            // Don't output anything here.
+            Self::Primitive(Primitive::Void) => Ok(()),
+            _ => write!(f, " -> {inner}"),
         })
     }
 
     pub(crate) fn method_return(&self) -> impl fmt::Display + '_ {
         FormatterFn(move |f| match self {
-            // Don't output anything here.
-            Self::Primitive(Primitive::Void) => Ok(()),
             Self::Pointer {
                 nullability,
                 pointee,
+                bounds: PointerBounds::Single,
                 ..
             } if pointee.is_static_object() => {
                 if *nullability == Nullability::NonNull {
                     // TODO: Add runtime nullability check here.
-                    write!(f, " -> &'static {}", pointee.behind_pointer())
+                    write!(f, "&'static {}", pointee.behind_pointer(true))
                 } else {
-                    write!(f, " -> Option<&'static {}>", pointee.behind_pointer())
+                    write!(f, "Option<&'static {}>", pointee.behind_pointer(true))
                 }
+            }
+            Self::Pointer {
+                nullability: _,
+                lifetime: _, // TODO
+                bounds: PointerBounds::Single,
+                pointee,
+                ..
+            } if pointee.is_block_type() => {
+                // TODO: Emit `RcBlock` or similar.
+                write!(f, "{}", self.plain(true))
             }
             Self::Pointer {
                 nullability,
                 lifetime: _, // TODO: Use this somehow?
+                bounds: PointerBounds::Single,
                 pointee,
                 ..
-            } if pointee.is_object_like() && !pointee.is_static_object() => {
+            } if pointee.is_object_like() && !pointee.is_opaque_type() => {
                 // NOTE: We return CF types as `Retained` for now, since we
                 // don't have support for the CF wrapper in msg_send! yet.
                 if *nullability == Nullability::NonNull {
-                    write!(f, " -> Retained<{}>", pointee.behind_pointer())
+                    write!(f, "Retained<{}>", pointee.behind_pointer(true))
                 } else {
-                    write!(f, " -> Option<Retained<{}>>", pointee.behind_pointer())
+                    write!(f, "Option<Retained<{}>>", pointee.behind_pointer(true))
+                }
+            }
+            Self::Pointer {
+                nullability,
+                lifetime: _, // TODO
+                bounds: PointerBounds::NullTerminated,
+                pointee,
+                ..
+            } if pointee.is_pointee_cstr() => {
+                if *nullability == Nullability::NonNull {
+                    write!(f, "&CStr")
+                } else {
+                    write!(f, "Option<&CStr>")
                 }
             }
             Self::Primitive(Primitive::C99Bool) => {
                 warn!("C99's bool as Objective-C method return is ill supported");
-                write!(f, " -> bool")
+                write!(f, "bool")
             }
-            Self::Primitive(Primitive::ObjcBool) => write!(f, " -> bool"),
-            _ => write!(f, " -> {}", self.plain()),
+            Self::Primitive(Primitive::ObjcBool) => write!(f, "bool"),
+            Self::Result { ty, err, .. } => {
+                // Using `Result<Option<X>, Y>` will be detected by `objc2`,
+                // so we don't bother with checking validity here.
+                write!(f, "Result<{}, {}>", ty.method_return(), err.method_return())
+            }
+            _ => write!(f, "{}", self.plain(true)),
         })
     }
 
-    pub(crate) fn method_return_with_error(&self) -> impl fmt::Display + '_ {
-        FormatterFn(move |f| {
-            match self {
-                Self::Pointer {
-                    nullability: Nullability::Nullable,
-                    lifetime: Lifetime::Unspecified,
-                    pointee,
-                    ..
-                } if pointee.is_static_object() => {
-                    // NULL -> error
-                    write!(
-                        f,
-                        " -> Result<&'static {}, Retained<{}>>",
-                        pointee.behind_pointer(),
-                        ItemIdentifier::nserror().path(),
-                    )
-                }
-                Self::Pointer {
-                    nullability: Nullability::Nullable,
-                    lifetime: Lifetime::Unspecified,
-                    pointee,
-                    ..
-                } if pointee.is_object_like() => {
-                    // NULL -> error
-                    write!(
-                        f,
-                        " -> Result<Retained<{}>, Retained<{}>>",
-                        pointee.behind_pointer(),
-                        ItemIdentifier::nserror().path(),
-                    )
-                }
-                Self::Primitive(Primitive::ObjcBool) => {
-                    // NO -> error
-                    write!(
-                        f,
-                        " -> Result<(), Retained<{}>>",
-                        ItemIdentifier::nserror().path()
-                    )
-                }
-                _ => {
-                    error!("unknown error result type {self:?}");
-                    write!(f, "{}", self.method_return())
-                }
+    pub fn method_return_inner_pointer(&self) -> impl fmt::Display + '_ {
+        // TODO(breaking): Return "self.plain()" here instead.
+        self.method_return()
+    }
+
+    /// Attempt to convert the type to a `Result<T, Retained<NSError>>`.
+    pub(crate) fn convert_to_result(&self, err: Ty) -> Option<Self> {
+        // We allow return values with unspecified nullability, because that's
+        // what Swift seems to do as well. Note that non-null return values
+        // cannot be mapped as `Result<T, E>`, because the return value `T`
+        // would always be present.
+        match self {
+            Self::Pointer {
+                nullability:
+                    Nullability::Nullable | Nullability::NullableResult | Nullability::Unspecified,
+                read,
+                written,
+                lifetime,
+                bounds,
+                pointee,
+                // TODO: Remove this check?
+            } if pointee.is_object_like() && !pointee.is_block_type() => {
+                Some(Self::Result {
+                    ty: Box::new(Self::Pointer {
+                        // NULL -> error
+                        nullability: Nullability::NonNull,
+                        read: *read,
+                        written: *written,
+                        lifetime: *lifetime,
+                        bounds: bounds.clone(),
+                        pointee: pointee.clone(),
+                    }),
+                    err: Box::new(err),
+                    original_ty: Box::new(self.clone()),
+                })
             }
-        })
+            Self::Primitive(Primitive::C99Bool) | Self::Primitive(Primitive::ObjcBool) => {
+                if *self == Self::Primitive(Primitive::C99Bool) {
+                    warn!("C99's bool as Objective-C method return is ill supported");
+                }
+                // NO -> error
+                Some(Self::Result {
+                    ty: Box::new(Self::Primitive(Primitive::Void)),
+                    err: Box::new(err),
+                    original_ty: Box::new(self.clone()),
+                })
+            }
+            _ => None,
+        }
     }
 
     pub(crate) fn method_return_encoding_type(&self) -> impl fmt::Display + '_ {
         FormatterFn(move |f| match self {
-            Self::Primitive(Primitive::Void) => write!(f, "()"),
             Self::Primitive(Primitive::C99Bool) => write!(f, "Bool"),
             Self::Pointer { pointee, .. } if **pointee == Self::Pointee(PointeeTy::Self_) => {
                 write!(f, "*mut This")
             }
-            _ => write!(f, "{}", self.plain()),
+            _ => write!(f, "{}", self.plain(true)),
         })
     }
 
     fn fn_type_return(&self) -> impl fmt::Display + '_ {
+        let allow_generic_param = true; // Might not be entirely correct?
         FormatterFn(move |f| match self {
-            // Don't output anything here.
-            Self::Primitive(Primitive::Void) => Ok(()),
             Self::Pointer {
                 nullability,
                 pointee,
+                bounds: PointerBounds::Single,
                 ..
             } if pointee.is_static_object() => {
                 if *nullability == Nullability::NonNull {
                     // TODO: Add runtime nullability check here (can we even
                     // do that?).
-                    write!(f, " -> &'static {}", pointee.behind_pointer())
+                    write!(
+                        f,
+                        "&'static {}",
+                        pointee.behind_pointer(allow_generic_param)
+                    )
                 } else {
-                    write!(f, " -> Option<&'static {}>", pointee.behind_pointer())
+                    write!(
+                        f,
+                        "Option<&'static {}>",
+                        pointee.behind_pointer(allow_generic_param)
+                    )
                 }
             }
-            _ => write!(f, " -> {}", self.plain()),
+            _ => write!(f, "{}", self.plain(allow_generic_param)),
+        })
+    }
+
+    fn retain_wrapper(&self) -> Option<RetainWrapper> {
+        if self.is_objc_type() && !self.is_static_object() {
+            Some(RetainWrapper::Retained)
+        } else if self.is_cf_type() {
+            Some(RetainWrapper::CFRetained)
+        } else if self.is_dispatch_type() {
+            Some(RetainWrapper::DispatchRetained)
+        } else if self.is_network_type() {
+            Some(RetainWrapper::NWRetained)
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn is_retained_return(&self) -> bool {
+        matches!(
+            self,
+            Self::Pointer {
+                bounds: PointerBounds::Single,
+                pointee,
+                ..
+            } if pointee.retain_wrapper().is_some()
+        )
+    }
+
+    pub(crate) fn fn_return(&self) -> impl fmt::Display + '_ {
+        FormatterFn(move |f| match self {
+            Self::Pointer {
+                nullability,
+                read,
+                written,
+                lifetime: _,
+                bounds,
+                pointee,
+            } if !self.is_fn_ptr() => {
+                // Ignore nullability, always emit a nullable pointer. We will
+                // unwrap it later in `fn_return_converter`.
+                //
+                // This is required because nullability attributes in Clang
+                // are a hint, and not an ABI stable promise.
+                if *bounds == PointerBounds::Single {
+                    if pointee.is_static_object() {
+                        return write!(f, "Option<&'static {}>", pointee.behind_pointer(false));
+                    } else if let Some(wrapper) = pointee.retain_wrapper() {
+                        if wrapper == RetainWrapper::Retained {
+                            return write!(f, "*mut {}", pointee.behind_pointer(false));
+                        } else {
+                            return write!(f, "Option<NonNull<{}>>", pointee.behind_pointer(false));
+                        }
+                    }
+                }
+
+                let pointee = maybemaybeuninit(*read, pointee.behind_pointer(false));
+                if *nullability == Nullability::NonNull {
+                    write!(f, "Option<NonNull<{pointee}>>",)
+                } else if *written {
+                    write!(f, "*mut {pointee}")
+                } else {
+                    write!(f, "*const {pointee}",)
+                }
+            }
+            _ => write!(f, "{}", self.plain(false)),
+        })
+    }
+
+    pub(crate) fn fn_return_converted(&self, returns_retained: bool) -> impl fmt::Display + '_ {
+        FormatterFn(move |f| match self {
+            _ if self.is_objc_bool() => write!(f, "bool"),
+            Self::TypeDef { id, .. } if matches!(&*id.name, "Boolean" | "boolean_t") => {
+                write!(f, "bool")
+            }
+            Self::Pointer {
+                // Null-check only necessary here
+                nullability: Nullability::NonNull,
+                bounds: PointerBounds::Single,
+                pointee,
+                ..
+            } if pointee.is_static_object() => {
+                write!(f, "&'static {}", pointee.behind_pointer(true))
+            }
+            Self::Pointer {
+                nullability,
+                bounds: PointerBounds::Single,
+                pointee,
+                ..
+            } if let Some(wrapper) = pointee.retain_wrapper() => {
+                if *nullability == Nullability::NonNull {
+                    write!(f, "{}<{}>", wrapper.name(), pointee.behind_pointer(true))
+                } else {
+                    write!(
+                        f,
+                        "Option<{}<{}>>",
+                        wrapper.name(),
+                        pointee.behind_pointer(true)
+                    )
+                }
+            }
+            Self::Pointer {
+                nullability,
+                bounds: PointerBounds::NullTerminated,
+                pointee,
+                ..
+            } if pointee.is_pointee_cstr() && !returns_retained => {
+                // TODO: Return `Box<CStr, std::alloc::System>` when `returns_retained`.
+
+                // TODO: Use `'static` here when specified.
+                if *nullability == Nullability::NonNull {
+                    write!(f, "&CStr")
+                } else {
+                    write!(f, "Option<&CStr>")
+                }
+            }
+            Self::Pointer { pointee, .. }
+                if pointee.is_generic_param()
+                    || matches!(&**pointee, Self::Pointer { pointee, .. } if pointee.is_generic_param()) =>
+            {
+                write!(f, "{}", self.plain(true))
+            }
+            Self::Pointer {
+                nullability: Nullability::NonNull,
+                read,
+                pointee,
+                ..
+            } if !self.is_fn_ptr() => {
+                let pointee = maybemaybeuninit(*read, pointee.behind_pointer(true));
+                write!(f, "NonNull<{pointee}>")
+            }
+            _ => write!(f, "{}", self.fn_return()),
         })
     }
 
     pub(crate) fn fn_return_required_items(&self) -> impl Iterator<Item = ItemTree> {
         let mut items: Vec<_> = self.required_items().collect();
         match self {
-            Self::Pointer { pointee, .. } if pointee.is_cf_type() => {
-                items.push(ItemTree::cf("CFRetained"));
-                items.push(ItemTree::core_ptr_nonnull());
-            }
-            Self::Pointer { pointee, .. }
-                if pointee.is_objc_type() && !pointee.is_static_object() =>
-            {
-                items.push(ItemTree::objc("Retained"));
-            }
-            Self::Pointer { pointee, .. } if pointee.is_dispatch_type() => {
-                items.push(ItemTree::dispatch("DispatchRetained"));
+            Self::Pointer {
+                bounds: PointerBounds::Single,
+                pointee,
+                ..
+            } if let Some(wrapper) = pointee.retain_wrapper() => {
+                items.push(wrapper.item());
+                if pointee.is_cf_type() {
+                    items.push(ItemTree::core_ptr_nonnull());
+                }
             }
             _ => {}
         }
         items.into_iter()
     }
 
-    pub(crate) fn fn_return(
-        &self,
+    pub(crate) fn fn_return_converter<'s: 'r, 'a: 'r, 'r>(
+        &'s self,
         returns_retained: bool,
-    ) -> (
-        impl fmt::Display + '_,
-        Option<(
-            impl fmt::Display + '_,
-            impl fmt::Display + '_,
-            impl fmt::Display + '_,
-        )>,
-    ) {
-        let start = "let ret = ";
-        // SAFETY: The function is marked with the correct retain semantics,
-        // otherwise it'd be invalid to use from Obj-C with ARC and Swift too.
-        let end_cf = |nullability| {
-            match (nullability, returns_retained) {
-                // TODO: Avoid NULL check, and let CFRetain do that instead?
-                (Nullability::NonNull, true) => ";\nlet ret = ret.expect(\"function was marked as returning non-null, but actually returned NULL\");\nunsafe { CFRetained::from_raw(ret) }",
-                (Nullability::NonNull, false) => ";\nlet ret = ret.expect(\"function was marked as returning non-null, but actually returned NULL\");\nunsafe { CFRetained::retain(ret) }",
-                // CFRetain aborts on NULL pointers, so there's not really a more
-                // efficient way to do this (except if we were to use e.g.
-                // `CGColorRetain`/`CVOpenGLBufferRetain`/..., but that's a huge
-                // hassle).
-                (_, true) => ";\nret.map(|ret| unsafe { CFRetained::from_raw(ret) })",
-                (_, false) => ";\nret.map(|ret| unsafe { CFRetained::retain(ret) })",
-            }
-        };
-        let end_dispatch = |nullability| {
-            match (nullability, returns_retained) {
-                (Nullability::NonNull, true) => ";\nlet ret = ret.expect(\"function was marked as returning non-null, but actually returned NULL\");\nunsafe { DispatchRetained::from_raw(ret) }",
-                (Nullability::NonNull, false) => ";\nlet ret = ret.expect(\"function was marked as returning non-null, but actually returned NULL\");\nunsafe { DispatchRetained::retain(ret) }",
-                (_, true) => ";\nret.map(|ret| unsafe { DispatchRetained::from_raw(ret) })",
-                (_, false) => ";\nret.map(|ret| unsafe { DispatchRetained::retain(ret) })",
-            }
-        };
-        let end_objc = |nullability| {
-            match (nullability, returns_retained) {
-                (Nullability::NonNull, true) => {
-                    ";\nunsafe { Retained::from_raw(ret) }.expect(\"function was marked as returning non-null, but actually returned NULL\")"
+        fn_call: impl fmt::Display + 'a,
+    ) -> impl fmt::Display + 'r {
+        FormatterFn(move |f| {
+            match self {
+                _ if self.is_objc_bool() => write!(f, "{fn_call}.as_bool()"),
+                Self::TypeDef { id, .. } if matches!(&*id.name, "Boolean" | "boolean_t") => {
+                    write!(f, "let ret = {fn_call};\nret != 0")
                 }
-                (Nullability::NonNull, false) => {
-                    ";\nunsafe { Retained::retain_autoreleased(ret) }.expect(\"function was marked as returning non-null, but actually returned NULL\")"
+                Self::Pointer {
+                    // Null-check only necessary here
+                    nullability: Nullability::NonNull,
+                    bounds: PointerBounds::Single,
+                    pointee,
+                    ..
+                } if pointee.is_static_object() => {
+                    write!(f, "let ret = {fn_call};")?;
+                    write!(f, "ret.expect(\"function was marked as returning non-null, but actually returned NULL\")")?;
+                    Ok(())
                 }
-                (_, true) => ";\nunsafe { Retained::from_raw(ret) }",
-                (_, false) => ";\nunsafe { Retained::retain_autoreleased(ret) }",
-            }
-        };
+                Self::Pointer {
+                    nullability,
+                    lifetime,
+                    bounds: PointerBounds::Single,
+                    pointee,
+                    ..
+                } if let Some(wrapper) = pointee.retain_wrapper() => {
+                    match lifetime {
+                        Lifetime::Autoreleasing if !returns_retained => {}
+                        Lifetime::Strong if returns_retained => {}
+                        Lifetime::Unspecified => {}
+                        _ => error!(?lifetime, returns_retained, "invalid lifetime"),
+                    }
 
-        let ret = FormatterFn(move |f| match self {
-            // Don't output anything here.
-            Self::Primitive(Primitive::Void) => Ok(()),
-            Self::Pointer {
-                nullability,
-                is_const,
-                pointee,
-                ..
-            } => {
-                // Ignore nullability, always emit a nullable pointer. We will
-                // unwrap it later in `fn_return_converter`.
-                //
-                // This is required because nullability attributes in Clang
-                // are a hint, and not an ABI stable promise.
-                if pointee.is_static_object() {
-                    write!(f, "-> Option<&'static {}>", pointee.behind_pointer())
-                } else if pointee.is_cf_type() || pointee.is_dispatch_type() {
-                    write!(f, "-> Option<NonNull<{}>>", pointee.behind_pointer())
-                } else if pointee.is_objc_type() {
-                    write!(f, "-> *mut {}", pointee.behind_pointer())
-                } else {
-                    if *nullability == Nullability::NonNull {
-                        write!(f, "-> Option<NonNull<{}>>", pointee.behind_pointer())
-                    } else if *is_const {
-                        write!(f, " -> *const {}", pointee.behind_pointer())
-                    } else {
-                        write!(f, " -> *mut {}", pointee.behind_pointer())
-                    }
-                }
-            }
-            _ => write!(f, " -> {}", self.plain()),
-        });
-        let converter = match self {
-            _ if self.is_objc_bool() => Some((" -> bool".to_string(), "", ".as_bool()")),
-            Self::TypeDef { id, .. } if matches!(&*id.name, "Boolean" | "boolean_t") => {
-                Some((" -> bool".to_string(), start, ";\nret != 0"))
-            }
-            Self::Pointer {
-                nullability,
-                lifetime,
-                pointee,
-                ..
-            } => {
-                match lifetime {
-                    Lifetime::Autoreleasing if !returns_retained => {}
-                    Lifetime::Strong if returns_retained => {}
-                    Lifetime::Unspecified => {}
-                    _ => error!(?lifetime, returns_retained, "invalid lifetime"),
-                }
+                    let needs_cast = matches!(
+                        &**pointee,
+                        Self::Pointee(PointeeTy::CFTypeDef { generics, .. })
+                            if generics.iter().any(|generic| matches!(generic, PointeeTy::GenericParam { .. })
+                        )
+                    );
 
-                if pointee.is_static_object() {
-                    if *nullability == Nullability::NonNull {
-                        let res = format!(" -> &'static {}", pointee.behind_pointer());
-                        Some((res, start, ";\nret.expect(\"function was marked as returning non-null, but actually returned NULL\")"))
-                    } else {
-                        // No conversion necessary
-                        None
-                    }
-                } else if pointee.is_cf_type() {
-                    let res = if *nullability == Nullability::NonNull {
-                        format!(" -> CFRetained<{}>", pointee.behind_pointer())
-                    } else {
-                        format!(" -> Option<CFRetained<{}>>", pointee.behind_pointer())
-                    };
-                    Some((res, start, end_cf(*nullability)))
-                } else if pointee.is_dispatch_type() {
-                    let res = if *nullability == Nullability::NonNull {
-                        format!(" -> DispatchRetained<{}>", pointee.behind_pointer())
-                    } else {
-                        format!(" -> Option<DispatchRetained<{}>>", pointee.behind_pointer())
-                    };
-                    Some((res, start, end_dispatch(*nullability)))
-                } else if pointee.is_objc_type() && !pointee.is_static_object() {
-                    let res = if *nullability == Nullability::NonNull {
-                        format!(" -> Retained<{}>", pointee.behind_pointer())
-                    } else {
-                        format!(" -> Option<Retained<{}>>", pointee.behind_pointer())
-                    };
-                    Some((res, start, end_objc(*nullability)))
-                } else {
-                    if *nullability == Nullability::NonNull {
-                        let res = format!(" -> NonNull<{}>", pointee.behind_pointer());
-                        Some((res, start, ";\nret.expect(\"function was marked as returning non-null, but actually returned NULL\")"))
-                    } else {
-                        None
-                    }
+                    write!(
+                        f,
+                        "{}",
+                        wrapper.fn_return(*nullability, returns_retained, needs_cast, &fn_call)
+                    )?;
+
+                    Ok(())
                 }
+                Self::Pointer {
+                    nullability,
+                    written,
+                    bounds: PointerBounds::NullTerminated,
+                    pointee,
+                    ..
+                } if pointee.is_pointee_cstr() && !returns_retained => {
+                    writeln!(f, "let ret = {fn_call};")?;
+
+                    if *nullability == Nullability::NonNull {
+                        writeln!(f, "let ret = ret.expect(\"function was marked as returning non-null, but actually returned NULL\");")?;
+                        writeln!(f, "unsafe {{ CStr::from_ptr(ret.as_ptr()) }}")?;
+                    } else {
+                        if *written {
+                            writeln!(f, "NonNull::new(ret).map(|ret| unsafe {{ CStr::from_ptr(ret.as_ptr()) }})")?;
+                        } else {
+                            writeln!(f, "NonNull::new(ret.cast_mut()).map(|ret| unsafe {{ CStr::from_ptr(ret.as_ptr()) }})")?;
+                        }
+                    }
+                    Ok(())
+                }
+                Self::Pointer { pointee, .. }
+                    if pointee.is_generic_param()
+                        || matches!(&**pointee, Self::Pointer { pointee, .. } if pointee.is_generic_param()) =>
+                {
+                    write!(f, "{fn_call}.cast()")
+                }
+                Self::Pointer {
+                    nullability: Nullability::NonNull,
+                    ..
+                } => {
+                    writeln!(f, "let ret = {fn_call};")?;
+                    write!(f, "ret.expect(\"function was marked as returning non-null, but actually returned NULL\")")?;
+                    Ok(())
+                }
+                _ => write!(f, "{fn_call}"),
             }
-            _ => None,
-        };
-        (ret, converter)
+        })
     }
 
     pub(crate) fn var(&self) -> impl fmt::Display + '_ {
+        // Might not be correct, but probably doesn't matter.
+        let allow_generic_param = true;
         FormatterFn(move |f| match self {
             Self::Pointer {
                 nullability,
+                read,
                 // `const` is irrelevant in statics since they're always
                 // constant.
-                is_const: _,
+                written: _,
                 lifetime: Lifetime::Strong | Lifetime::Unspecified,
+                bounds: PointerBounds::Single,
                 pointee,
-            } if pointee.is_object_like() || **pointee == Ty::Pointee(PointeeTy::CStr) => {
-                if *nullability == Nullability::NonNull {
-                    write!(f, "&'static {}", pointee.behind_pointer())
-                } else {
-                    write!(f, "Option<&'static {}>", pointee.behind_pointer())
+            } if pointee.is_object_like() => {
+                let pointee = maybemaybeuninit(*read, pointee.behind_pointer(allow_generic_param));
+                match *nullability {
+                    Nullability::NonNull => write!(f, "&'static {pointee}"),
+                    // NOTE: The sound option here would be to emit these as
+                    // `Option<&T>`, since we don't know the nullability.
+                    //
+                    // In practice though, it's much very common that statics
+                    // don't have a nullability applied (especially in CF),
+                    // and we want to emit these as non-null too whenever we
+                    // can.
+                    //
+                    // We test that all non-null statics are actually non-null
+                    // in `test-frameworks` with `check_static_nonnull`, so
+                    // there shouldn't be any danger from doing this
+                    //
+                    // (I guess the value of a static changes from one OS
+                    // version to another to become nullable, but that'd be an
+                    // observable change, so I strongly doubt it will happen).
+                    //
+                    // Swift seems to do a similar thing, e.g.
+                    // `NSExtensionJavaScriptPreprocessingResultsKey` is
+                    // mapped as `String`, not `String!`.
+                    Nullability::Unspecified => write!(f, "&'static {pointee}"),
+                    Nullability::Nullable | Nullability::NullableResult => {
+                        write!(f, "Option<&'static {pointee}>")
+                    }
                 }
             }
-            _ => write!(f, "{}", self.behind_pointer()),
+            _ => write!(f, "{}", self.behind_pointer(allow_generic_param)),
         })
     }
 
     pub(crate) fn const_(&self) -> impl fmt::Display + '_ {
+        // Might not be correct, but probably doesn't matter.
+        let allow_generic_param = true;
         FormatterFn(move |f| match self {
             Self::Pointer {
                 nullability,
+                read,
                 // `const` is irrelevant in constants since they're always
                 // constant.
-                is_const: _,
+                written: _,
                 lifetime: Lifetime::Strong | Lifetime::Unspecified,
+                bounds: PointerBounds::Single,
                 pointee,
-            } if pointee.is_object_like() || **pointee == Ty::Pointee(PointeeTy::CStr) => {
+            } if pointee.is_object_like() => {
+                let pointee = maybemaybeuninit(*read, pointee.behind_pointer(allow_generic_param));
                 if *nullability == Nullability::NonNull {
-                    write!(f, "&{}", pointee.behind_pointer())
+                    write!(f, "&{pointee}")
                 } else {
-                    write!(f, "Option<&{}>", pointee.behind_pointer())
+                    write!(f, "Option<&{pointee}>")
                 }
             }
-            _ => write!(f, "{}", self.plain()),
+            Self::Pointer {
+                nullability,
+                read: _,
+                // `const` is irrelevant in constants since they're always
+                // constant.
+                written: _,
+                lifetime: Lifetime::Unspecified, // TODO
+                bounds: PointerBounds::NullTerminated,
+                pointee,
+            } if pointee.is_pointee_cstr() => {
+                if *nullability == Nullability::NonNull {
+                    write!(f, "&CStr")
+                } else {
+                    write!(f, "Option<&CStr>")
+                }
+            }
+            _ => write!(f, "{}", self.plain(allow_generic_param)),
         })
     }
 
     pub(crate) fn typedef(&self) -> impl fmt::Display + '_ {
+        let allow_generic_param = true; // Might not be correct?
         FormatterFn(move |f| match self {
+            // "push" pointers in typedefs out into the usage site.
+            // See `Ty::parse` for details.
             Self::Pointer {
                 nullability: _,
-                is_const: _,
+                read: _,
+                written: _,
                 lifetime: _,
+                bounds: _,
                 pointee,
-            } if pointee.is_object_like() => {
-                write!(f, "{}", pointee.behind_pointer())
-            }
-            Self::IncompleteArray { .. } => {
-                error!("incomplete array in typedef");
-                write!(f, "{}", self.behind_pointer())
+            } if let Self::Pointee(pointee) = &**pointee => {
+                if self.is_fn_ptr() {
+                    write!(f, "{}", pointee.fn_ptr(allow_generic_param, false))
+                } else {
+                    write!(f, "{}", pointee.behind_pointer(allow_generic_param))
+                }
             }
             // We mark `typedefs` as-if behind a pointer, as even though
             // typedefs are _usually_ to a pointer of the type (handled
@@ -2391,49 +3924,351 @@ impl Ty {
             // Examples:
             // typedef NSDictionary<NSString *, MPSGraphExecutable *> MPSGraphCallableMap;
             // typedef void NSUncaughtExceptionHandler(NSException *exception);
-            _ => write!(f, "{}", self.behind_pointer()),
+            _ => write!(f, "{}", self.behind_pointer(allow_generic_param)),
         })
     }
 
-    pub(crate) fn fn_argument(&self) -> impl fmt::Display + '_ {
+    fn fn_argument(&self, allow_generic_param: bool) -> impl fmt::Display + '_ {
         FormatterFn(move |f| match self {
             Self::Pointer {
                 nullability,
-                is_const: _,
+                read,
+                written,
                 lifetime,
+                bounds: PointerBounds::Single,
                 pointee,
-            } if pointee.is_object_like()
-                || matches!(
-                    **pointee,
-                    Self::Pointee(PointeeTy::AnyClass { .. } | PointeeTy::Block { .. })
-                ) =>
-            {
+            } if !self.is_fn_ptr() && !pointee.is_unsized() => {
                 if *lifetime == Lifetime::Autoreleasing {
                     error!(?self, "autoreleasing in fn argument");
                 }
-                if *nullability == Nullability::NonNull {
-                    write!(f, "&{}", pointee.behind_pointer())
+
+                let inner = maybemaybeuninit(*read, pointee.behind_pointer(allow_generic_param));
+                // We don't care if `PointeeTy` pointers may be written to,
+                // since those use interior mutability anyhow.
+                let mut_ = if !written || matches!(pointee.through_wrapper(), Self::Pointee(_)) {
+                    ""
                 } else {
-                    write!(f, "Option<&{}>", pointee.behind_pointer())
+                    "mut "
+                };
+                if *nullability == Nullability::NonNull {
+                    write!(f, "&{mut_}{inner}")
+                } else {
+                    write!(f, "Option<&{mut_}{inner}>")
                 }
             }
-            _ => write!(f, "{}", self.plain()),
+            _ => write!(f, "{}", self.argument(allow_generic_param)),
         })
     }
 
-    pub(crate) fn fn_argument_converter(
-        &self,
-    ) -> Option<(
-        impl fmt::Display + '_,
-        impl fmt::Display + '_,
-        impl fmt::Display + '_,
-    )> {
-        match self {
-            _ if self.is_objc_bool() => Some(("bool", "Bool::new(", ")")),
-            Self::TypeDef { id, .. } if matches!(&*id.name, "Boolean" | "boolean_t") => {
-                Some(("bool", "", " as _"))
+    pub(crate) fn fn_argument_unconverted(&self) -> impl fmt::Display + '_ {
+        FormatterFn(move |f| match self {
+            _ if let Some((
+                nullability,
+                pointee,
+                Nullability::Unspecified | Nullability::Nullable | Nullability::NullableResult,
+                Lifetime::Autoreleasing | Lifetime::Strong,
+            )) = self.out_pointer_data() =>
+            {
+                // Emitting signatures with incomplete semantics like this for
+                // FFI functions is a bit of a cardinal sin, but it'll be
+                // fiiine, everything here is behind a pointer, so there's no
+                // risk of the compiler asserting anything.
+                let name = pointee.retain_wrapper().unwrap().name();
+                let behind_pointer = pointee.behind_pointer(true);
+                if nullability == Nullability::NonNull {
+                    write!(f, "&mut Option<{name}<{behind_pointer}>>")
+                } else {
+                    write!(f, "Option<&mut Option<{name}<{behind_pointer}>>>")
+                }
             }
-            // TODO: Support out / autoreleasing pointers?
+            _ => write!(f, "{}", self.fn_argument(false)),
+        })
+    }
+
+    pub(crate) fn fn_argument_converted(&self) -> impl fmt::Display + '_ {
+        FormatterFn(move |f| match self {
+            _ if self.is_objc_bool() => write!(f, "bool"),
+            Self::TypeDef { id, .. } if matches!(&*id.name, "Boolean" | "boolean_t") => {
+                write!(f, "bool")
+            }
+            _ if let Some((
+                nullability,
+                pointee,
+                Nullability::Unspecified | Nullability::Nullable | Nullability::NullableResult,
+                Lifetime::Autoreleasing | Lifetime::Strong,
+            )) = self.out_pointer_data() =>
+            {
+                let name = pointee.retain_wrapper().unwrap().name();
+                let behind_pointer = pointee.behind_pointer(true);
+                if nullability == Nullability::NonNull {
+                    write!(f, "&mut Option<{name}<{behind_pointer}>>")
+                } else {
+                    write!(f, "Option<&mut Option<{name}<{behind_pointer}>>>")
+                }
+            }
+            Self::Pointer {
+                nullability,
+                read: _,
+                written: false,
+                lifetime: Lifetime::Unspecified, // TODO
+                bounds: PointerBounds::NullTerminated,
+                pointee,
+            } if pointee.is_pointee_cstr() => {
+                if *nullability == Nullability::NonNull {
+                    write!(f, "&CStr")
+                } else {
+                    write!(f, "Option<&CStr>")
+                }
+            }
+            _ => write!(f, "{}", self.fn_argument(true)),
+        })
+    }
+
+    pub(crate) fn fn_argument_required_items(&self) -> impl Iterator<Item = ItemTree> {
+        let mut items: Vec<_> = self.required_items().collect();
+        match self {
+            _ if let Some((
+                _,
+                pointee,
+                Nullability::Unspecified | Nullability::Nullable | Nullability::NullableResult,
+                Lifetime::Autoreleasing | Lifetime::Strong,
+            )) = self.out_pointer_data() =>
+            {
+                let wrapper = pointee.retain_wrapper().unwrap();
+                items.push(wrapper.item());
+            }
+            _ => {}
+        }
+        items.into_iter()
+    }
+
+    pub(crate) fn fn_argument_converter<'s: 'r, 'a: 'r, 'r>(
+        &'s self,
+        arg: &'a str,
+        arg_to: &'a str,
+    ) -> impl fmt::Display + 'r {
+        FormatterFn(move |f| match self {
+            _ if self.is_objc_bool() => writeln!(f, "let {arg_to} = Bool::new({arg});"),
+            Self::TypeDef { id, .. } if matches!(&*id.name, "Boolean" | "boolean_t") => {
+                writeln!(f, "let {arg_to} = {arg} as _;")
+            }
+            _ if let Some((
+                nullability,
+                pointee,
+                // The inner type has to be nullable, see below.
+                Nullability::Unspecified | Nullability::Nullable | Nullability::NullableResult,
+                lifetime @ (Lifetime::Autoreleasing | Lifetime::Strong),
+            )) = self.out_pointer_data() =>
+            {
+                assert_eq!(arg, arg_to);
+                let wrapper = pointee.retain_wrapper().unwrap();
+                let name = wrapper.name();
+
+                // Both `CF_RETURNS_RETAINED` and `CF_RETURNS_NOT_RETAINED`
+                // work similarly: If the given pointer is nullable they check
+                // it, and then they write the return value to the pointer.
+                //
+                // I.e. basically `if (ptr) *ptr = CreateOrGetValue();`.
+                //
+                // When the value is not retained (autoreleased), we need to
+                // retain it ourselves after the function returns (if a value
+                // was set).
+                //
+                // Unfortunately, callees don't check if there's a value
+                // already in `ptr` and release that, which is counter to how
+                // `&mut Option<CFRetained<T>>` works (and I don't know of a
+                // better way to describe it)?
+                //
+                // This means that we can only support input values that are
+                // `None`, and is why we require the inner type is nullable.
+
+                // Assert that the given inner value is `NULL`; it is invalid
+                // usage of the API to pass anything else, because that value
+                // will get leaked, see above.
+                let assert_is_null = |f: &mut fmt::Formatter<'_>| {
+                    writeln!(f, "assert!({arg}.is_none(), \"parameter `{arg}` must point to `None` on entry\");")
+                };
+
+                // Retain at the end of the function.
+                //
+                // "Autoreleasing" is a bit of a misnomer here, it's
+                // not actually autorelease semantics, it's rather "getter",
+                // where the lifetime is tied to the object we're getting from
+                // (which we don't know in general, thus we must retain).
+                if lifetime == Lifetime::Autoreleasing {
+                    let retain_on_drop = format!(
+                        "Retain{}OnDrop",
+                        heck::ToUpperCamelCase::to_upper_camel_case(arg)
+                    );
+
+                    // We retain inside `Drop` to support functions that
+                    // unwind after setting the out pointer.
+                    let t = pointee.behind_pointer(true);
+                    writeln!(
+                        f,
+                        "struct {retain_on_drop}<'a>(&'a mut Option<{name}<{t}>>);"
+                    )?;
+                    writeln!(f, "impl Drop for {retain_on_drop}<'_> {{")?;
+                    writeln!(f, "    #[inline]")?;
+                    writeln!(f, "    fn drop(&mut self) {{")?;
+                    // Read the pointer and retain it if it was set. Don't
+                    // release it; this will be done in the user's frame.
+                    //
+                    // Note: We rely on `Option<T>: Clone` here. It would be a
+                    // bit more efficient for Objective-C types to use
+                    // `Retained::retain`, but it's miniscule, so we won't
+                    // bother.
+                    writeln!(f, "        let _ = core::mem::ManuallyDrop::<Option<_>>::new(self.0.clone());")?;
+                    writeln!(f, "    }}")?;
+                    writeln!(f, "}}")?;
+
+                    if nullability == Nullability::NonNull {
+                        assert_is_null(f)?;
+
+                        // Get and reborrow.
+                        writeln!(f, "let {arg} = &mut *{retain_on_drop}({arg}).0;")?;
+
+                        // Retains at end of function.
+                    } else {
+                        writeln!(f, "let mut {arg} = if let Some({arg}) = {arg} {{")?;
+                        assert_is_null(f)?;
+                        writeln!(f, "    Some({retain_on_drop}({arg}))")?;
+                        writeln!(f, "}} else {{")?;
+                        writeln!(f, "    None")?;
+                        writeln!(f, "}};")?;
+
+                        // Reborrow.
+                        writeln!(f, "let {arg} = {arg}.as_mut().map(|arg| &mut *arg.0);")?;
+
+                        // Retains at end of function after checking drop flag.
+                    }
+                } else {
+                    if nullability == Nullability::NonNull {
+                        assert_is_null(f)?;
+                    } else {
+                        writeln!(f, "if let Some({arg}) = {arg}.as_ref() {{")?;
+                        assert_is_null(f)?;
+                        writeln!(f, "}};")?;
+                    }
+
+                    // We don't need to do anything else for functions with
+                    // `CF_RETURNS_RETAINED`; we're given ownership over the
+                    // returned value, which is the same as we'd expect with
+                    // `&mut Option<CFRetained<T>>`.
+                }
+
+                Ok(())
+            }
+            Self::Pointer {
+                nullability,
+                read: _,
+                // Only map `const char*` to `&CStr`
+                written: false,
+                lifetime: Lifetime::Unspecified, // TODO
+                bounds: PointerBounds::NullTerminated,
+                pointee,
+            } if pointee.is_pointee_cstr() => {
+                // We could emit a length check here for `char[N]`, to ensure
+                // that the user doesn't pass a string that is too long.
+                //
+                // But in practice, at least for the places that this is
+                // relevant (namely IOKit), it doesn't matter, the length is
+                // gotten via. `strlen`, and passing a string that is too long
+                // (seemingly) doesn't change the behaviour.
+
+                writeln!(f, "let {arg_to} = ")?;
+                if *nullability == Nullability::NonNull {
+                    writeln!(f, "NonNull::new({arg}.as_ptr().cast_mut()).unwrap()")?;
+                } else {
+                    writeln!(
+                        f,
+                        "{arg}.map(|ptr| ptr.as_ptr()).unwrap_or_else(core::ptr::null)"
+                    )?;
+                }
+                if !matches!(pointee.through_wrapper(), Self::Primitive(Primitive::Char)) {
+                    writeln!(f, ".cast()")?;
+                }
+                writeln!(f, ";")?;
+
+                Ok(())
+            }
+            // HACK to support CFArray<T>.
+            Self::Pointer {
+                nullability,
+                pointee,
+                bounds,
+                ..
+            } => {
+                if matches!(&**pointee, Self::Pointee(PointeeTy::GenericParam { .. }))
+                    || matches!(&**pointee, Self::Pointer { pointee, .. }
+                        if matches!(&**pointee, Self::Pointee(PointeeTy::GenericParam { .. }))
+                    )
+                {
+                    if *nullability == Nullability::NonNull {
+                        if *bounds == PointerBounds::Single {
+                            writeln!(
+                                f,
+                                "let {arg_to} = unsafe {{ core::mem::transmute({arg}) }};"
+                            )
+                        } else {
+                            writeln!(f, "let {arg_to} = {arg}.map(|x| x.cast());")
+                        }
+                    } else {
+                        if *bounds == PointerBounds::Single {
+                            writeln!(f, "let {arg_to} = {arg}.map(|x| unsafe {{ core::mem::transmute(x) }});")
+                        } else {
+                            writeln!(f, "let {arg_to} = {arg}.cast();")
+                        }
+                    }
+                } else if let Self::Pointee(PointeeTy::CFTypeDef { generics, .. }) = &**pointee {
+                    if generics
+                        .iter()
+                        .any(|generic| matches!(generic, PointeeTy::GenericParam { .. }))
+                    {
+                        if *nullability == Nullability::NonNull {
+                            writeln!(f, "let {arg_to} = unsafe {{ {arg}.cast_unchecked() }};")
+                        } else {
+                            writeln!(f, "let {arg_to} = {arg}.map(|obj| unsafe {{ obj.cast_unchecked() }});")
+                        }
+                    } else {
+                        Ok(())
+                    }
+                } else {
+                    Ok(())
+                }
+            }
+            _ => Ok(()),
+        })
+    }
+
+    fn out_pointer_data(&self) -> Option<(Nullability, &Ty, Nullability, Lifetime)> {
+        match self {
+            Self::Pointer {
+                nullability,
+                read,
+                written: true,
+                lifetime: Lifetime::Unspecified,
+                // TODO: Is this correct?
+                bounds: PointerBounds::Unspecified | PointerBounds::Single,
+                pointee,
+            } => match &**pointee {
+                Self::Pointer {
+                    nullability: inner_nullability,
+                    // Don't care about the const-ness of the inner type.
+                    read: _,
+                    written: _,
+                    lifetime,
+                    bounds: PointerBounds::Single,
+                    pointee,
+                } if pointee.retain_wrapper().is_some() => {
+                    if !read {
+                        // We don't (yet) support `&mut MaybeUninit<Retained<T>>`.
+                        error!("out pointers must currently be readable");
+                    }
+                    Some((*nullability, pointee, *inner_nullability, *lifetime))
+                }
+                _ => None,
+            },
             _ => None,
         }
     }
@@ -2449,75 +4284,121 @@ impl Ty {
             }
             Self::Pointer {
                 nullability,
-                is_const: false,
-                lifetime: Lifetime::Unspecified,
+                read: _,
+                written: false,
+                lifetime: Lifetime::Unspecified, // TODO
+                bounds: PointerBounds::NullTerminated,
                 pointee,
-            } => match &**pointee {
-                Self::Pointer {
-                    nullability: inner_nullability,
-                    // Don't care about the const-ness of the id.
-                    is_const: _,
-                    lifetime: Lifetime::Autoreleasing,
-                    pointee,
-                } => {
-                    let tokens = if *inner_nullability == Nullability::NonNull {
-                        format!("Retained<{}>", pointee.behind_pointer())
+            } if pointee.is_pointee_cstr() => {
+                if *nullability == Nullability::NonNull {
+                    write!(f, "&CStr")
+                } else {
+                    write!(f, "Option<&CStr>")
+                }
+            }
+            _ if let Some((nullability, pointee, inner_nullability, Lifetime::Autoreleasing)) =
+                self.out_pointer_data() =>
+            {
+                let inner = FormatterFn(|f| {
+                    if inner_nullability == Nullability::NonNull {
+                        write!(f, "Retained<{}>", pointee.behind_pointer(true))
                     } else {
-                        format!("Option<Retained<{}>>", pointee.behind_pointer())
-                    };
-                    if *nullability == Nullability::NonNull {
-                        write!(f, "&mut {tokens}")
-                    } else {
-                        write!(f, "Option<&mut {tokens}>")
+                        write!(f, "Option<Retained<{}>>", pointee.behind_pointer(true))
+                    }
+                });
+                if nullability == Nullability::NonNull {
+                    write!(f, "&mut {inner}")
+                } else {
+                    write!(f, "Option<&mut {inner}>")
+                }
+            }
+            Self::Pointer {
+                nullability,
+                pointee,
+                bounds: PointerBounds::Single,
+                ..
+            } if let Self::Pointee(pointee) = &**pointee
+                && self.is_fn_ptr() =>
+            {
+                if *nullability != Nullability::NonNull {
+                    write!(f, "Option<")?;
+                }
+                // Function pointers in method arguments cannot use
+                // references, as those aren't `Encode`-able.
+                write!(f, "{}", pointee.fn_ptr(true, true))?;
+                if *nullability != Nullability::NonNull {
+                    write!(f, ">")?;
+                }
+                Ok(())
+            }
+            _ => write!(f, "{}", self.fn_argument(true)),
+        })
+    }
+
+    /// Is this a function out parameter to a non-error (CFError/NSError) type?
+    pub(crate) fn is_fn_out_param_nonerror(&self) -> bool {
+        if let Some((
+            _,
+            pointee,
+            Nullability::Unspecified | Nullability::Nullable | Nullability::NullableResult,
+            Lifetime::Autoreleasing | Lifetime::Strong,
+        )) = self.out_pointer_data()
+        {
+            match pointee.through_wrapper() {
+                Ty::Pointee(PointeeTy::CFTypeDef { id, .. }) if id.is_cferror() => false,
+                Ty::Pointee(PointeeTy::Class { id, .. }) if id.is_nserror() => false,
+                _ => true,
+            }
+        } else {
+            false
+        }
+    }
+
+    /// Apply various heuristics to out parameter retained-ness.
+    ///
+    /// These aren't perfect, but they should be good enough to get started.
+    pub(crate) fn set_default_retained_out_param(&mut self, follows_create_rule: bool) {
+        if let Self::Pointer { pointee, .. } = self {
+            if let Self::Pointer {
+                lifetime, pointee, ..
+            } = &mut **pointee
+            {
+                if *lifetime == Lifetime::Unspecified {
+                    match pointee.through_wrapper() {
+                        // Error params usually follow the create rule (they
+                        // aren't attached to anything, so they can't really
+                        // be returned in any other way).
+                        Ty::Pointee(PointeeTy::CFTypeDef { id, .. }) if id.is_cferror() => {
+                            *lifetime = Lifetime::Strong;
+                        }
+                        Ty::Pointee(PointeeTy::Class { id, .. }) if id.is_nserror() => {
+                            // Unsure
+                        }
+                        _ if pointee.retain_wrapper().is_some() && follows_create_rule => {
+                            *lifetime = Lifetime::Strong;
+                        }
+                        _ => {}
                     }
                 }
-                _ => write!(f, "{}", self.fn_argument()),
-            },
-            _ => write!(f, "{}", self.fn_argument()),
-        })
+            }
+        }
     }
 
     pub(crate) fn method_argument_encoding_type(&self) -> impl fmt::Display + '_ {
         FormatterFn(move |f| match self {
-            Self::Primitive(Primitive::C99Bool) => write!(f, "Bool"),
-            _ => write!(f, "{}", self.plain()),
+            Self::Primitive(Primitive::C99Bool | Primitive::ObjcBool) => write!(f, "Bool"),
+            // Make most-pointers use `plain` encoding (e.g. don't try
+            // anything fancy with `&` etc.), except for function pointers,
+            // for which we want to use the `method_argument` override.
+            Self::Pointer { pointee, .. } if !self.is_fn_ptr() => {
+                write!(f, "{}", self.argument(true))
+            }
+            _ => write!(f, "{}", self.method_argument()),
         })
     }
 
     pub(crate) fn record(&self) -> impl fmt::Display + '_ {
-        FormatterFn(move |f| match self {
-            Self::Array {
-                element_type,
-                num_elements,
-            } => write!(f, "[{}; {num_elements}]", element_type.plain()),
-            _ => write!(f, "{}", self.plain()),
-        })
-    }
-
-    fn fn_contains_bool(&self) -> bool {
-        match self {
-            Self::Pointer { pointee, .. } => {
-                if let Self::Pointee(PointeeTy::Fn {
-                    arguments,
-                    result_type,
-                    ..
-                }) = &**pointee
-                {
-                    if arguments
-                        .iter()
-                        .any(|arg| matches!(arg, Self::Primitive(Primitive::C99Bool)))
-                    {
-                        return true;
-                    }
-                    if matches!(**result_type, Self::Primitive(Primitive::C99Bool)) {
-                        return true;
-                    }
-                }
-                false
-            }
-            Self::TypeDef { to, .. } => to.fn_contains_bool(),
-            _ => false,
-        }
+        self.plain(true)
     }
 
     pub(crate) fn record_encoding(&self) -> impl fmt::Display + '_ {
@@ -2525,16 +4406,15 @@ impl Ty {
             Self::Primitive(Primitive::C99Bool) => write!(f, "Encoding::Bool"),
             Self::Primitive(Primitive::Long) => write!(f, "Encoding::C_LONG"),
             Self::Primitive(Primitive::ULong) => write!(f, "Encoding::C_ULONG"),
-            // TODO: Make all function pointers be encode, regardless of arguments
-            _ if self.fn_contains_bool() => {
-                write!(f, "Encoding::Pointer(&Encoding::Unknown)")
-            }
+            // Make all function pointers encodable in structs, regardless of
+            // their arguments (this is not feasible to do in `objc2`).
+            _ if self.is_fn_ptr() => write!(f, "Encoding::Pointer(&Encoding::Unknown)"),
             _ => write!(f, "<{}>::ENCODING", self.record()),
         })
     }
 
     pub(crate) fn enum_(&self) -> impl fmt::Display + '_ {
-        FormatterFn(move |f| write!(f, "{}", self.plain()))
+        FormatterFn(move |f| write!(f, "{}", self.plain(true)))
     }
 
     pub(crate) fn enum_encoding(&self) -> impl fmt::Display + '_ {
@@ -2557,49 +4437,95 @@ impl Ty {
         })
     }
 
-    pub(crate) const VOID_RESULT: Self = Self::Primitive(Primitive::Void);
+    pub(crate) const VOID: Self = Self::Primitive(Primitive::Void);
 
-    pub(crate) fn parse_method_argument(
+    pub(crate) fn parse_function_argument(
         ty: Type<'_>,
         _qualifier: Option<MethodArgumentQualifier>,
-        mut arg_sendable: Option<bool>,
-        mut arg_no_escape: bool,
+        mut param_sendable: Option<bool>,
+        mut param_no_escape: bool,
+        mut param_out_pointer_retained: Option<bool>,
+        might_manage_memory: bool,
         context: &Context<'_>,
     ) -> Self {
-        let mut ty = Self::parse(ty, Lifetime::Unspecified, context);
+        let mut ty = Self::parse(ty, true, context);
+
+        if might_manage_memory {
+            if let Self::Pointer { bounds, .. } = &mut ty {
+                // Default pointer bounds to `unsafe` for memory management functions.
+                *bounds = PointerBounds::Unsafe;
+            }
+        }
 
         match &mut ty {
             Self::Pointer { pointee, .. } => match &mut **pointee {
+                Self::Pointer { lifetime, .. } => {
+                    // Sometimes, if the `CF_RETURNS_RETAINED` is put in the
+                    // wrong location, Clang doesn't know (or at least doesn't
+                    // act like it knows) where to add the lifetime specifier,
+                    // instead the attribute ends up on the `ParmDecl`. So we
+                    // have to pass it through here.
+                    //
+                    // E.g. `CF_RETURNS_RETAINED CFStringRef * foo` doesn't
+                    // get a `__strong` modifier automatically by Clang, while
+                    // `CFStringRef * CF_RETURNS_RETAINED foo` does.
+                    //
+                    // (This is probably a bug in libClang).
+                    if let Some(out_pointer_retained) = param_out_pointer_retained.take() {
+                        *lifetime = if out_pointer_retained {
+                            Lifetime::Strong
+                        } else {
+                            Lifetime::Autoreleasing
+                        };
+                    }
+                }
                 Self::Pointee(PointeeTy::Block {
                     sendable,
                     no_escape,
                     ..
                 }) => {
-                    *sendable = arg_sendable;
-                    *no_escape = arg_no_escape;
-                    arg_sendable = None;
-                    arg_no_escape = false;
+                    if let Some(param_sendable) = param_sendable.take() {
+                        *sendable = Some(param_sendable);
+                    }
+                    *no_escape = param_no_escape;
+                    param_no_escape = false;
+                }
+                Self::Pointee(
+                    PointeeTy::Class { sendable, .. } | PointeeTy::AnyObject { sendable, .. },
+                ) => {
+                    if only_positive_sendable(param_sendable.take()) {
+                        *sendable = true;
+                    }
                 }
                 Self::Pointee(PointeeTy::Fn { no_escape, .. }) => {
-                    *no_escape = arg_no_escape;
-                    arg_no_escape = false;
+                    *no_escape = param_no_escape;
+                    param_no_escape = false;
+                }
+                // Ignore `param_no_escape` on typedefs for now.
+                Self::Pointee(PointeeTy::TypeDef { .. }) => {
+                    param_no_escape = false;
                 }
                 _ => {}
             },
-            // Ignore typedefs for now
+            // Ignore `param_no_escape` on typedefs for now.
             Self::TypeDef { .. } => {
-                arg_sendable = None;
-                arg_no_escape = false;
+                param_no_escape = false;
             }
             _ => {}
         }
 
-        if arg_sendable.is_some() {
-            warn!(?ty, "did not consume sendable in argument");
+        if param_sendable.is_some() {
+            // Important for soundness.
+            error!(?ty, "did not consume sendable in argument");
         }
 
-        if arg_no_escape {
+        if param_no_escape {
             warn!(?ty, "did not consume no_escape in argument");
+        }
+
+        if param_out_pointer_retained.is_some() {
+            // Important for soundness.
+            error!(?ty, "did not consume out_pointer_retained in argument");
         }
 
         // TODO: Is the qualifier useful for anything?
@@ -2612,7 +4538,7 @@ impl Ty {
         default_nonnull: bool,
         context: &Context<'_>,
     ) -> Self {
-        let mut ty = Self::parse(ty, Lifetime::Unspecified, context);
+        let mut ty = Self::parse(ty, false, context);
 
         // As in `parse_property_return`, the nullability is not guaranteed by
         // the method, and can also fail in OOM situations, but that is
@@ -2631,84 +4557,39 @@ impl Ty {
         ty
     }
 
-    pub(crate) fn parse_function_argument(
-        ty: Type<'_>,
-        attr: Option<UnexposedAttr>,
-        context: &Context<'_>,
-    ) -> Self {
-        match attr {
-            Some(UnexposedAttr::NoEscape) => {
-                // TODO: Use this if mapping `fn + context ptr` to closure.
-            }
-            Some(UnexposedAttr::ReturnsRetained | UnexposedAttr::ReturnsNotRetained) => {
-                // TODO: Massage this into a lifetime
-            }
-            Some(attr) => {
-                error!(?attr, "unknown attribute in function argument");
-            }
-            None => {}
-        }
-        Self::parse_method_argument(ty, None, None, false, context)
-    }
-
     pub(crate) fn parse_function_return(ty: Type<'_>, context: &Context<'_>) -> Self {
         Self::parse_method_return(ty, false, context)
     }
 
-    pub(crate) fn parse_typedef(ty: Type<'_>, context: &Context<'_>) -> Self {
-        Self::parse(ty, Lifetime::Unspecified, context)
-    }
+    pub(crate) fn parse_typedef(
+        ty: Type<'_>,
+        context: &Context<'_>,
+        override_sendable: Option<bool>,
+    ) -> Self {
+        let mut ty = Self::parse(ty, false, context);
 
-    pub(crate) fn pointer_to_opaque_struct_or_void(
-        &self,
-        typedef_name: &str,
-        typedef_is_bridged: bool,
-    ) -> Option<(bool, Option<&str>)> {
-        if let Self::Pointer {
-            pointee,
-            is_const: _, // const-ness doesn't matter when defining the type
-            nullability,
-            lifetime,
-        } = self
-        {
-            let is_cf = pointee.is_direct_cf_type(typedef_name, typedef_is_bridged);
-            if let Self::Struct { id, fields, .. } = &**pointee {
-                if fields.is_empty() {
-                    // Extra checks to ensure we don't loose information
-                    if *nullability != Nullability::Unspecified {
-                        error!(?id, ?nullability, "opaque pointer had nullability");
-                    }
-                    if *lifetime != Lifetime::Unspecified {
-                        error!(?id, ?lifetime, "opaque pointer had lifetime");
-                    }
-
-                    return Some((is_cf, Some(&id.name)));
+        if let Some(override_sendable) = override_sendable {
+            if let Self::Pointer { pointee, .. } = &mut ty {
+                if let Self::Pointee(PointeeTy::Block { sendable, .. }) = &mut **pointee {
+                    *sendable = Some(override_sendable);
+                } else {
+                    error!(?ty, "invalid typedef sendable override");
                 }
-            }
-            if let Self::Primitive(Primitive::Void) = &**pointee {
-                return Some((is_cf, None));
+            } else {
+                error!(?ty, "invalid typedef sendable override");
             }
         }
-        None
+
+        ty
     }
 
-    pub(crate) fn parse_property(
-        ty: Type<'_>,
-        // Ignored; see `parse_property_return`
-        _is_copy: bool,
-        _sendable: Option<bool>,
-        context: &Context<'_>,
-    ) -> Self {
-        Self::parse(ty, Lifetime::Unspecified, context)
-    }
-
-    pub(crate) fn parse_property_return(
+    pub(crate) fn parse_property_getter(
         ty: Type<'_>,
         is_copy: bool,
         _sendable: Option<bool>,
         context: &Context<'_>,
     ) -> Self {
-        let mut ty = Self::parse(ty, Lifetime::Unspecified, context);
+        let mut ty = Self::parse(ty, false, context);
 
         // `@property(copy)` is expected to always return a nonnull instance
         // (e.g. for strings it returns the empty string, while
@@ -2744,22 +4625,45 @@ impl Ty {
         ty
     }
 
+    pub(crate) fn parse_property_setter(
+        ty: Type<'_>,
+        is_copy: bool,
+        _sendable: Option<bool>,
+        context: &Context<'_>,
+    ) -> Self {
+        let mut ty = Self::parse(ty, true, context);
+
+        // See `parse_property_getter` above.
+        if is_copy {
+            match &mut ty {
+                Self::Pointer { nullability, .. } => {
+                    if *nullability == Nullability::Unspecified {
+                        *nullability = Nullability::Nullable;
+                    }
+                }
+                Self::TypeDef { .. } => {}
+                _ => warn!(?ty, "property(copy) which is not an object"),
+            }
+        }
+
+        ty
+    }
+
     pub(crate) fn parse_record_field(ty: Type<'_>, context: &Context<'_>) -> Self {
-        Self::parse(ty, Lifetime::Unspecified, context)
+        Self::parse(ty, false, context)
     }
 
     pub fn is_signed(&self) -> Option<bool> {
-        match self {
+        match self.through_wrapper() {
             Self::Primitive(prim) => prim.is_signed(),
             Self::Simd { ty, .. } => ty.is_signed(),
             Self::Enum { ty, .. } => ty.is_signed(),
-            Self::TypeDef { to, .. } => to.is_signed(),
             _ => None,
         }
     }
 
     pub(crate) fn parse_enum(ty: Type<'_>, context: &Context<'_>) -> Self {
-        Self::parse(ty, Lifetime::Unspecified, context)
+        Self::parse(ty, false, context)
     }
 
     pub(crate) fn is_simple_uint(&self) -> bool {
@@ -2767,61 +4671,55 @@ impl Ty {
     }
 
     pub(crate) fn parse_static(ty: Type<'_>, context: &Context<'_>) -> Self {
-        Self::parse(ty, Lifetime::Unspecified, context)
+        Self::parse(ty, false, context)
     }
 
-    pub(crate) fn argument_is_error_out(&self) -> bool {
-        if let Self::Pointer {
+    pub(crate) fn argument_as_error_out(&self) -> Option<Ty> {
+        if let Some((
             // We always pass a place to write the error information,
             // so doesn't matter whether it's optional or not.
-            nullability: Nullability::Nullable | Nullability::NonNull,
-            is_const,
-            lifetime: Lifetime::Unspecified,
+            _,
             pointee,
-        } = self
+            Nullability::Nullable | Nullability::NullableResult | Nullability::Unspecified,
+            lifetime @ (Lifetime::Autoreleasing | Lifetime::Strong),
+        )) = self.out_pointer_data()
         {
-            if let Self::Pointer {
-                nullability: inner_nullability,
-                is_const: inner_is_const,
-                lifetime,
-                pointee,
-            } = &**pointee
-            {
-                if let Self::Pointee(PointeeTy::Class {
-                    id,
-                    generics,
-                    protocols,
-                    ..
-                }) = &**pointee
-                {
-                    if !id.is_nserror() {
-                        return false;
-                    }
-                    assert!(!is_const, "expected error not const {self:?}");
+            let is_error = match pointee {
+                // Error params usually follow the create rule (they
+                // aren't attached to anything, so they can't really
+                // be returned in any other way).
+                Ty::Pointee(PointeeTy::CFTypeDef { id, .. }) if id.is_cferror() => true,
+                Ty::Pointee(PointeeTy::Class { id, .. }) if id.is_nserror() => {
                     assert_eq!(
-                        *inner_nullability,
-                        Nullability::Nullable,
-                        "invalid inner error nullability {self:?}"
-                    );
-                    assert!(!inner_is_const, "expected inner error not const {self:?}");
-
-                    assert_eq!(generics, &[], "invalid error generics {self:?}");
-                    assert_eq!(protocols, &[], "invalid error protocols {self:?}");
-                    assert_eq!(
-                        *lifetime,
+                        lifetime,
                         Lifetime::Autoreleasing,
                         "invalid error lifetime {self:?}"
                     );
-                    return true;
+                    true
                 }
+                _ => false,
+            };
+            if is_error {
+                return Some(Ty::Pointer {
+                    nullability: Nullability::NonNull,
+                    read: true,
+                    written: true,
+                    lifetime,
+                    bounds: PointerBounds::Single,
+                    pointee: Box::new(pointee.clone()),
+                });
             }
         }
-        false
+        None
     }
 
     pub(crate) fn is_retainable(&self) -> bool {
         if let Self::Pointer { pointee, .. } = self {
-            pointee.is_object_like() && !pointee.is_static_object()
+            // Unsure if static items and blocks should be considered retainable?
+            pointee.is_object_like()
+                && !pointee.is_static_object()
+                && !pointee.is_block_type()
+                && !pointee.is_opaque_type()
         } else {
             false
         }
@@ -2839,38 +4737,75 @@ impl Ty {
         matches!(self, Self::Struct { id, .. } | Self::Union { id, .. } if id.name == s)
     }
 
+    fn is_generic_param(&self) -> bool {
+        matches!(self, Self::Pointee(PointeeTy::GenericParam { .. }))
+    }
+
     pub(crate) fn is_enum_through_typedef(&self) -> bool {
-        match self {
-            Self::Enum { .. } => true,
-            Self::TypeDef { to, .. } => to.is_enum_through_typedef(),
-            _ => false,
-        }
+        matches!(self.through_wrapper(), Self::Enum { .. })
     }
 
     pub(crate) fn is_floating_through_typedef(&self) -> bool {
-        match self {
-            Self::Primitive(
-                Primitive::F32 | Primitive::F64 | Primitive::Float | Primitive::Double,
-            ) => true,
-            Self::TypeDef { to, .. } => to.is_floating_through_typedef(),
-            _ => false,
+        matches!(
+            self.through_wrapper(),
+            Self::Primitive(Primitive::F32 | Primitive::F64 | Primitive::Float | Primitive::Double)
+        )
+    }
+
+    pub(crate) fn is_block_returning_void(&self) -> bool {
+        matches!(
+            self.through_wrapper(),
+            Self::Pointer { pointee, .. } if matches!(
+                pointee.through_wrapper(),
+                Self::Pointee(pointee) if matches!(
+                    pointee.through_typedef(),
+                    PointeeTy::Block { result_type, .. } if **result_type == Ty::VOID,
+                ),
+            ),
+        )
+    }
+
+    pub(crate) fn default_block_to_sendable(&mut self) {
+        match &mut *self {
+            Self::Pointer { pointee, .. } => match &mut **pointee {
+                Self::Pointee(pointee) => match pointee {
+                    PointeeTy::Block { sendable, .. } => {
+                        if let Some(_sendable) = sendable {
+                            // Keep explicit value
+                        } else {
+                            // Default to sendable.
+                            *sendable = Some(true);
+                        }
+                    }
+                    PointeeTy::TypeDef { id, to } => {
+                        if matches!(&**to, PointeeTy::Block { sendable: None, .. }) {
+                            error!(
+                                "making blocks sendable doesn't work through typedefs, manually mark the block as sendable!\ntypedef.{}.sendable = true",
+                                id.name,
+                            );
+                        }
+                    }
+                    _ => {}
+                },
+                Self::TypeDef { .. } => unimplemented!("block pointer pointee typedef"),
+                _ => {}
+            },
+            Self::TypeDef { .. } => unimplemented!("block pointer typedef"),
+            _ => {}
         }
     }
 
     /// SIMD is not yet possible in FFI, see:
     /// <https://github.com/rust-lang/rust/issues/63068>
     pub(crate) fn needs_simd(&self) -> bool {
-        match self {
+        match self.through_wrapper() {
             Self::Simd { .. } => true,
-            Self::Pointer { pointee, .. } | Self::IncompleteArray { pointee, .. } => {
-                pointee.needs_simd()
-            }
-            Self::TypeDef { to, .. } => to.needs_simd(),
+            Self::Pointer { pointee, .. } => pointee.needs_simd(),
             Self::Array { element_type, .. } => element_type.needs_simd(),
             Self::Struct { fields, .. } | Self::Union { fields, .. } => {
-                fields.iter().any(|field| field.needs_simd())
+                fields.iter().any(|(_, field)| field.needs_simd())
             }
-            Self::Pointee(
+            Self::Pointee(pointee) => match pointee.through_typedef() {
                 PointeeTy::Fn {
                     result_type,
                     arguments,
@@ -2880,15 +4815,20 @@ impl Ty {
                     result_type,
                     arguments,
                     ..
-                },
-            ) => result_type.needs_simd() || arguments.iter().any(|arg| arg.needs_simd()),
+                } => result_type.needs_simd() || arguments.iter().any(|arg| arg.needs_simd()),
+                _ => false,
+            },
             _ => false,
         }
     }
 
     pub(crate) fn try_fix_related_result_type(&mut self) {
         if let Self::Pointer { pointee, .. } = self {
-            if let Self::Pointee(PointeeTy::AnyObject { protocols }) = &**pointee {
+            if let Self::Pointee(PointeeTy::AnyObject {
+                protocols,
+                sendable: false,
+            }) = &**pointee
+            {
                 if !protocols.is_empty() {
                     warn!(?pointee, "related result type with protocols");
                     return;
@@ -2913,13 +4853,14 @@ impl Ty {
             if let Self::Pointee(pointee_ty) = &**pointee {
                 let id = match pointee_ty {
                     PointeeTy::TypeDef { id, to } if to.is_cf_type() => id,
-                    PointeeTy::CFTypeDef { id } => id,
+                    PointeeTy::CFTypeDef { id, .. } => id,
                     _ => return,
                 };
                 let type_name = cf_no_ref(&id.name);
                 // We don't ever want to mark these as non-NULL, as they have NULL
                 // statics (`kCFAllocatorDefault` and `kODSessionDefault`).
-                if fn_name.contains(type_name) && !matches!(type_name, "ODSession" | "CFAllocator")
+                if fn_name.contains(type_name)
+                    && !matches!(type_name, "ODSession" | "ODSessionRef" | "CFAllocator")
                 {
                     // Is likely a getter, so let's mark it as non-null (CF will
                     // usually crash if given an unexpected NULL pointer, but
@@ -2936,6 +4877,7 @@ impl Ty {
                 // Only non-NULL pointers are valid `self` types.
                 // (at least until we get arbitrary self types).
                 nullability: Nullability::NonNull,
+                bounds: PointerBounds::Single,
                 pointee,
                 ..
             } => match &**pointee {
@@ -2960,10 +4902,15 @@ impl Ty {
     pub(crate) fn const_cf_string_ref() -> Self {
         Self::Pointer {
             nullability: Nullability::NonNull,
-            is_const: true,
+            read: true,
+            written: false,
             lifetime: Lifetime::Unspecified,
+            bounds: PointerBounds::Single,
             pointee: Box::new(Self::Pointee(PointeeTy::CFTypeDef {
                 id: ItemIdentifier::cf_string(),
+                generics: vec![],
+                num_declaration_generics: 0,
+                to: None,
             })),
         }
     }
@@ -2971,14 +4918,18 @@ impl Ty {
     pub(crate) fn const_ns_string_ref() -> Self {
         Self::Pointer {
             nullability: Nullability::NonNull,
-            is_const: true,
+            read: true,
+            written: false,
             lifetime: Lifetime::Unspecified,
+            bounds: PointerBounds::Single,
             pointee: Box::new(Self::Pointee(PointeeTy::Class {
                 id: ItemIdentifier::ns_string(),
                 thread_safety: ThreadSafety::dummy(),
                 superclasses: vec![],
                 generics: vec![],
+                declaration_generics: vec![],
                 protocols: vec![],
+                sendable: false,
             })),
         }
     }
@@ -2986,10 +4937,15 @@ impl Ty {
     pub(crate) fn const_cf_uuid_ref() -> Self {
         Self::Pointer {
             nullability: Nullability::NonNull,
-            is_const: true,
+            read: true,
+            written: false,
             lifetime: Lifetime::Unspecified,
+            bounds: PointerBounds::Single,
             pointee: Box::new(Self::Pointee(PointeeTy::CFTypeDef {
                 id: ItemIdentifier::cf_uuid(),
+                generics: vec![],
+                num_declaration_generics: 0,
+                to: None,
             })),
         }
     }
@@ -2997,11 +4953,321 @@ impl Ty {
     pub(crate) fn const_cstr_ref() -> Self {
         Self::Pointer {
             nullability: Nullability::NonNull,
-            is_const: true,
+            read: true,
+            written: false,
             lifetime: Lifetime::Unspecified,
-            pointee: Box::new(Self::Pointee(PointeeTy::CStr)),
+            bounds: PointerBounds::NullTerminated,
+            pointee: Box::new(Self::Primitive(Primitive::Char)),
         }
     }
+
+    pub(crate) fn change_nullability(&mut self, new: Nullability) {
+        match self {
+            Ty::Pointer { nullability, .. } | Ty::Sel { nullability, .. } => {
+                if *nullability == new {
+                    warn!(?nullability, ?new, "nullability already set");
+                }
+                *nullability = new;
+            }
+            ty => error!(?ty, "unexpected type for nullability attribute"),
+        }
+    }
+
+    pub(crate) fn change_generics(&mut self, new: &[ItemGeneric]) {
+        fn to_cf(generic: &ItemGeneric) -> PointeeTy {
+            PointeeTy::CFTypeDef {
+                id: generic.id.clone(),
+                generics: generic.generics.iter().map(to_cf).collect(),
+                // TODO: How would we get this information correctly?
+                num_declaration_generics: generic.generics.len(),
+                // TODO: How would we get this information correctly?
+                to: None,
+            }
+        }
+
+        match self {
+            // Recurse through pointers, e.g. it's unambiguous to change the
+            // generic of `**CFArray` to `**CFArray<CFString>`.
+            Ty::Pointer { pointee, .. } => pointee.change_generics(new),
+            Ty::Pointee(pointee) => match pointee {
+                PointeeTy::CFTypeDef { generics, .. } => {
+                    *generics = new.iter().map(to_cf).collect();
+                }
+                ty => error!(?ty, "unsupported type for generics attribute"),
+            },
+            ty => error!(?ty, "unexpected type for generics attribute"),
+        }
+    }
+
+    pub(crate) fn apply_override(&mut self, override_: &TypeOverride) {
+        if let Some(nullability) = override_.nullability {
+            self.change_nullability(nullability.into());
+        }
+        if let Some(generics) = &override_.generics {
+            self.change_generics(generics);
+        }
+        if override_.bounds != PointerBounds::Unspecified {
+            match &mut *self {
+                Ty::Pointer { bounds, .. } => {
+                    if *bounds == override_.bounds {
+                        warn!(?bounds, new = ?override_.bounds, "bounds already set");
+                    }
+                    *bounds = override_.bounds.clone();
+                }
+                ty => error!(?ty, "unexpected type for bounds attribute"),
+            }
+        }
+        match &override_.lifetime {
+            PointerLifetime::Unspecified => {}
+            new_lifetime @ (PointerLifetime::OutPointerUnsafe
+            | PointerLifetime::OutPointerRetained
+            | PointerLifetime::OutPointerNotRetained) => match &mut *self {
+                Ty::Pointer { pointee, .. } => match &mut **pointee {
+                    Ty::Pointer { lifetime, .. } => {
+                        let new_lifetime = match *new_lifetime {
+                            PointerLifetime::OutPointerUnsafe => Lifetime::Unretained,
+                            PointerLifetime::OutPointerRetained => Lifetime::Strong,
+                            PointerLifetime::OutPointerNotRetained => Lifetime::Autoreleasing,
+                            _ => unreachable!(),
+                        };
+                        if *lifetime == new_lifetime {
+                            warn!(?lifetime, new = ?override_.lifetime, "lifetime already set");
+                        }
+                        *lifetime = new_lifetime;
+                    }
+                    ty => error!(?ty, "unexpected inner type for lifetime attribute"),
+                },
+                ty => error!(?ty, "unexpected type for lifetime attribute"),
+            },
+        }
+        if let Some(new) = override_.read {
+            match &mut *self {
+                Ty::Pointer { read, .. } => {
+                    if *read == new {
+                        warn!(read, new, "read-ness already set");
+                    }
+                    *read = new;
+                }
+                ty => error!(?ty, "unexpected type for read attribute"),
+            }
+        }
+        if let Some(new) = override_.written {
+            match &mut *self {
+                Ty::Pointer { written, .. } => {
+                    if *written == new {
+                        warn!(written, new, "write-ness already set");
+                    }
+                    *written = new;
+                }
+                ty => error!(?ty, "unexpected type for written attribute"),
+            }
+        }
+    }
+
+    /// Replaces `void*` with `name*`.
+    ///
+    /// Returns `true` if a replacement happened.
+    pub(crate) fn try_replace_void_with_generic(&mut self, name: &str) {
+        if let Self::Pointer { pointee, .. } = self {
+            match &mut **pointee {
+                this @ Self::Primitive(Primitive::Void) => {
+                    *this = Self::Pointee(PointeeTy::GenericParam {
+                        object_like: false,
+                        name: name.to_string(),
+                    });
+                }
+                pointee => pointee.try_replace_void_with_generic(name),
+            }
+        }
+    }
+
+    pub(crate) fn add_default_generics_when_matching(
+        &mut self,
+        matching: &ItemIdentifier,
+        new_generics: impl Iterator<Item = String>,
+    ) {
+        match self {
+            Self::Pointer { pointee, .. } => {
+                pointee.add_default_generics_when_matching(matching, new_generics)
+            }
+            Self::Array { element_type, .. } => {
+                element_type.add_default_generics_when_matching(matching, new_generics)
+            }
+            Self::Pointee(pointee) => match pointee {
+                PointeeTy::CFTypeDef { id, generics, .. }
+                    if id == matching && generics.is_empty() =>
+                {
+                    *generics = new_generics
+                        .map(|name| PointeeTy::GenericParam {
+                            object_like: false,
+                            name,
+                        })
+                        .collect();
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+
+    /// Whether the type is valid.
+    ///
+    /// Examples:
+    /// - `&NSString` is a subtype of `&NSObject`.
+    /// - `&NSString` is a subtype of `Option<&NSString>`.
+    /// - `&NSArray<NString>` is a subtype of `&NSArray<NSObject>`
+    ///   (arrays arecovariant).
+    /// - `&NSMutableArray<NString>` is _NOT_ a subtype of
+    ///   `&NSMutableArray<NSObject>` (mutable arrays are invariant).
+    /// - `&ProtocolObject<dyn NSApplicationDelegate>` is a subtype of
+    ///   `&ProtocolObject<dyn NSObjectProtocol>`.
+    pub(crate) fn is_subtype_of(&self, other: &Self) -> bool {
+        /// Non-null pointers are subtypes of nullable pointers.
+        fn nullability_is_subtype(this: &Nullability, other: &Nullability) -> bool {
+            match (this, other) {
+                (Nullability::NonNull, _) => true,
+                (this, other) => this == other,
+            }
+        }
+
+        // Typedefs doesn't matter for subtyping (in that sense, they are covariant).
+        match (self.through_wrapper(), other.through_wrapper()) {
+            (
+                Self::Pointer {
+                    nullability,
+                    read,
+                    written,
+                    lifetime,
+                    bounds,
+                    pointee,
+                },
+                Self::Pointer {
+                    nullability: other_nullability,
+                    read: other_read,
+                    written: other_written,
+                    lifetime: other_lifetime,
+                    bounds: other_bounds,
+                    pointee: other_pointee,
+                },
+            ) => {
+                #[allow(clippy::match_single_binding)]
+                let read_is_subtype = match (read, other_read) {
+                    // (true, false) => true,
+                    (this, other) => this == other,
+                };
+
+                #[allow(clippy::match_single_binding)]
+                let written_is_subtype = match (written, other_written) {
+                    // (true, false) => true,
+                    (this, other) => this == other,
+                };
+
+                let lifetime_is_subtype = match (lifetime, other_lifetime) {
+                    (Lifetime::Unspecified, _) => true,
+                    (this, other) => this == other,
+                };
+
+                // TODO.
+                let bounds_is_subtype = match (bounds, other_bounds) {
+                    (PointerBounds::Unspecified, _) => true,
+                    (this, other) => this == other,
+                };
+
+                nullability_is_subtype(nullability, other_nullability)
+                    && read_is_subtype
+                    && written_is_subtype
+                    && lifetime_is_subtype
+                    && bounds_is_subtype
+                    && pointee.is_subtype_of(other_pointee)
+            }
+            (
+                Self::Sel { nullability },
+                Self::Sel {
+                    nullability: other_nullability,
+                },
+            ) => nullability_is_subtype(nullability, other_nullability),
+            // Arrays are covariant.
+            (
+                Self::Array {
+                    element_type,
+                    num_elements,
+                },
+                Self::Array {
+                    element_type: other_element_type,
+                    num_elements: other_num_elements,
+                },
+            ) => {
+                num_elements == other_num_elements && element_type.is_subtype_of(other_element_type)
+            }
+            // Forward to PointeeTy::is_subtype_of
+            (Self::Pointee(this), Self::Pointee(other)) => this.is_subtype_of(other),
+            // Everything else is invariant (for now at least).
+            (this, other) => this == other,
+        }
+    }
+
+    /// Whether the type could in theory affect the bounds of the receiver.
+    ///
+    /// This is meant to catch `NSInteger`, `NSRange`, `MTL4BufferRange`, `MTLGPUAddress` and
+    /// similar constructs.
+    pub(crate) fn can_affect_bounds(&self) -> bool {
+        match self.through_wrapper() {
+            Self::Pointer { pointee, .. } => pointee.can_affect_bounds(),
+            Self::Array { element_type, .. } => element_type.can_affect_bounds(),
+            Self::Primitive(prim) | Self::Simd { ty: prim, .. } => matches!(
+                prim,
+                // 32-bit and 64-bit integers.
+                Primitive::I32
+                    | Primitive::I64
+                    | Primitive::Int
+                    | Primitive::Long
+                    | Primitive::ISize
+                    | Primitive::NSInteger
+                    | Primitive::U32
+                    | Primitive::U64
+                    | Primitive::UInt
+                    | Primitive::ULong
+                    | Primitive::USize
+                    | Primitive::NSUInteger
+                    | Primitive::PtrDiff
+            ),
+            Self::Struct { fields, .. } | Self::Union { fields, .. } => {
+                fields.iter().any(|(_, field)| field.can_affect_bounds())
+            }
+            // Enumerations are intentionally not bounds-affecting (e.g. not
+            // `MTLIndexType`).
+            Self::Pointee(_) | Self::Enum { .. } | Self::Sel { .. } => false,
+            Self::TypeDef { .. } => unreachable!("using through_typedef"),
+            Self::Result {
+                ty,
+                err,
+                original_ty,
+            } => {
+                ty.can_affect_bounds() || err.can_affect_bounds() || original_ty.can_affect_bounds()
+            }
+        }
+    }
+
+    fn into_pointee(self) -> Option<PointeeTy> {
+        match self {
+            Self::Pointee(pointee) => Some(pointee),
+            Self::TypeDef { id, to } => to.into_pointee().map(|to| PointeeTy::TypeDef {
+                id,
+                to: Box::new(to),
+            }),
+            _ => None,
+        }
+    }
+}
+
+fn maybemaybeuninit(read: bool, inner: impl Display) -> impl Display {
+    FormatterFn(move |f| {
+        if read {
+            write!(f, "{inner}")
+        } else {
+            write!(f, "MaybeUninit<{inner}>")
+        }
+    })
 }
 
 /// Strip macros from unexposed types.
@@ -3016,19 +5282,24 @@ fn parse_unexposed_tokens(s: &str) -> (String, Option<UnexposedAttr>) {
     let mut iter = tokens.into_iter().peekable();
     let attr = if let Some(TokenTree::Ident(ident)) = iter.peek() {
         let ident = ident.to_string();
+        let mut has_advanced = false;
         if let Ok(attr) = UnexposedAttr::from_name(&ident, || {
+            iter.next();
+            has_advanced = true;
             if let Some(TokenTree::Group(_)) = iter.peek() {
                 let Some(TokenTree::Group(group)) = iter.next() else {
                     unreachable!();
                 };
-                Some(group)
+                group.stream()
             } else {
                 // The associated data on the macro is removed since Xcode 16.3.
                 trace!(?ident, "expected group in macro");
-                None
+                TokenStream::new()
             }
         }) {
-            iter.next();
+            if !has_advanced {
+                iter.next();
+            }
             attr
         } else {
             None
@@ -3039,9 +5310,152 @@ fn parse_unexposed_tokens(s: &str) -> (String, Option<UnexposedAttr>) {
     (TokenStream::from_iter(iter).to_string(), attr)
 }
 
+fn separate_with_comma_and<T: Display>(items: impl IntoIterator<Item = T> + Clone) -> impl Display {
+    FormatterFn(move |f| {
+        let mut iter = items.clone().into_iter().peekable();
+
+        if let Some(item) = iter.next() {
+            write!(f, "{item}")?;
+        }
+
+        while let Some(item) = iter.next() {
+            if iter.peek().is_some() {
+                write!(f, ", {item}")?;
+            } else {
+                write!(f, " and {item}")?;
+            }
+        }
+
+        Ok(())
+    })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum RetainWrapper {
+    Retained,
+    CFRetained,
+    DispatchRetained,
+    NWRetained,
+}
+
+impl RetainWrapper {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Retained => "Retained",
+            Self::CFRetained => "CFRetained",
+            Self::DispatchRetained => "DispatchRetained",
+            Self::NWRetained => "NWRetained",
+        }
+    }
+
+    fn item(self) -> ItemTree {
+        match self {
+            Self::Retained => ItemTree::objc("Retained"),
+            Self::CFRetained => ItemTree::cf("CFRetained"),
+            Self::DispatchRetained => ItemTree::dispatch("DispatchRetained"),
+            Self::NWRetained => ItemTree::network("NWRetained"),
+        }
+    }
+
+    fn fn_return<'a>(
+        self,
+        nullability: Nullability,
+        returns_retained: bool,
+        needs_cast: bool,
+        fn_call: impl Display + 'a,
+    ) -> impl Display + 'a {
+        FormatterFn(move |f| {
+            writeln!(f, "let ret = {fn_call};")?;
+
+            let cast = if needs_cast { ".cast()" } else { "" };
+
+            let expect = ".expect(\"function was marked as returning non-null, but actually returned NULL\")";
+
+            // SAFETY: The function is marked with the correct retain
+            // semantics, otherwise it'd be invalid to use from Swift and
+            // Obj-C with ARC too.
+            if self == Self::Retained {
+                if returns_retained {
+                    write!(f, "unsafe {{ Retained::from_raw(ret{cast}) }}")?;
+                } else {
+                    write!(f, "unsafe {{ Retained::retain_autoreleased(ret{cast}) }}")?;
+                }
+                if nullability == Nullability::NonNull {
+                    write!(f, "{expect}")?;
+                }
+            } else {
+                if nullability == Nullability::NonNull {
+                    // TODO: Avoid NULL check, and let CFRetain do that instead?
+                    writeln!(f, "let ret = ret{expect};")?;
+                } else {
+                    write!(f, "ret.map(|ret| ")?;
+                }
+                // CFRetain aborts on NULL pointers, so there's not really a more
+                // efficient way to do this (except if we were to use e.g.
+                // `CGColorRetain`/`CVOpenGLBufferRetain`/..., but that's a huge
+                // hassle).
+                if returns_retained {
+                    write!(f, "unsafe {{ {}::from_raw(ret{cast}) }}", self.name())?;
+                } else {
+                    write!(f, "unsafe {{ {}::retain(ret{cast}) }}", self.name())?;
+                }
+                if nullability != Nullability::NonNull {
+                    write!(f, ")")?;
+                }
+            }
+
+            Ok(())
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use core::slice;
+
     use super::*;
+
+    #[test]
+    fn parse_attributes() {
+        let mut parser = AttributeParser::new("void (^ _Nonnull __strong)(void)", "void (^)(void)");
+        assert_eq!(parser.to_check, ["_Nonnull", "__strong"]);
+        parser.lifetime();
+        parser.parse("_Nonnull");
+        assert!(parser.to_check.is_empty());
+
+        let mut parser =
+            AttributeParser::new("NSArray<Foo> * _Nullable _Nullable", "NSArray<Foo> *");
+        assert_eq!(parser.to_check, ["_Nullable", "_Nullable"]);
+        assert_eq!(parser.parse("_Nullable"), 2);
+        assert!(parser.to_check.is_empty());
+
+        let mut parser = AttributeParser::new(
+            "id<MTLFunctionHandle>  _Nullable const  _Nonnull __unsafe_unretained[]",
+            "id<MTLFunctionHandle>  _Nullable const",
+        );
+        assert_eq!(
+            parser.to_check,
+            ["_Nonnull", "__unsafe_unretained", "[", "]"]
+        );
+        parser.parse("]");
+        parser.parse("[");
+        parser.lifetime();
+        parser.parse("_Nonnull");
+        assert!(parser.to_check.is_empty());
+
+        let mut parser =
+            AttributeParser::new("NSArray<Foo> * foo __attribute__((foo))", "NSArray<Foo> *");
+        assert_eq!(
+            parser.to_check,
+            ["foo", "__attribute__", "(", "(", "foo", ")", ")"]
+        );
+        assert_eq!(
+            parser.parse_sequence(&["__attribute__", "(", "(", "foo", ")", ")"]),
+            1
+        );
+        assert_eq!(parser.parse_sequence(&["foo"]), 1);
+        assert!(parser.to_check.is_empty());
+    }
 
     #[test]
     fn test_parse_unexposed_tokens() {
@@ -3054,6 +5468,10 @@ mod tests {
         check("NS_RETURNS_INNER_POINTER const char *", "const char *");
         check(
             "API_UNAVAILABLE(macos) NSString *const __strong",
+            "NSString * const __strong",
+        );
+        check(
+            "API_UNAVAILABLE NSString *const __strong",
             "NSString * const __strong",
         );
         check("NS_REFINED_FOR_SWIFT NSNumber *", "NSNumber *");
@@ -3089,7 +5507,7 @@ mod tests {
             id: ItemIdentifier::dummy(0),
             to: Box::new(Ty::Struct {
                 id: ItemIdentifier::dummy(1),
-                fields: vec![Ty::Primitive(Primitive::Char)],
+                fields: vec![("foo".to_string(), Ty::Primitive(Primitive::Char))],
                 is_bridged: false,
             }),
         };
@@ -3102,5 +5520,134 @@ mod tests {
         )];
 
         assert_eq!(ty.required_items().collect::<Vec<_>>(), required_items);
+    }
+
+    #[test]
+    fn subtyping() {
+        let nonnull = Ty::Pointer {
+            nullability: Nullability::NonNull,
+            read: true,
+            written: true,
+            lifetime: Lifetime::Unspecified,
+            bounds: PointerBounds::Unspecified,
+            pointee: Box::new(Ty::Primitive(Primitive::Void)),
+        };
+        let nullable = Ty::Pointer {
+            nullability: Nullability::Nullable,
+            read: true,
+            written: true,
+            lifetime: Lifetime::Unspecified,
+            bounds: PointerBounds::Unspecified,
+            pointee: Box::new(Ty::Primitive(Primitive::Void)),
+        };
+
+        // NonNull pointers are subtypes of nullable pointers.
+        assert!(nonnull.is_subtype_of(&nullable));
+        // The reverse isn't true.
+        assert!(!nullable.is_subtype_of(&nonnull));
+
+        fn simple_class(name: &str, superclasses: &[&str]) -> PointeeTy {
+            PointeeTy::Class {
+                id: ItemIdentifier::builtin(name),
+                thread_safety: ThreadSafety::dummy(),
+                superclasses: superclasses
+                    .iter()
+                    .map(|name| ItemIdentifier::builtin(*name))
+                    .collect(),
+                generics: vec![],
+                declaration_generics: vec![],
+                protocols: vec![],
+                sendable: false,
+            }
+        }
+
+        // `NSString` is a subtype of `NSObject`.
+        assert!(
+            simple_class("NSString", &["NSObject"]).is_subtype_of(&simple_class("NSObject", &[]))
+        );
+        // Same with `NSMutableString` and `NSString`.
+        assert!(simple_class("NSMutableString", &["NSString", "NSObject"])
+            .is_subtype_of(&simple_class("NSString", &["NSObject"])));
+        // Not the other direction.
+        assert!(
+            !simple_class("NSObject", &[]).is_subtype_of(&simple_class("NSString", &["NSObject"]))
+        );
+
+        // It is also not enough to simply have a common ancestor.
+        assert!(!simple_class("NSString", &["NSObject"])
+            .is_subtype_of(&simple_class("NSValue", &["NSObject"])));
+
+        fn generic(name: &str, generic: PointeeTy) -> PointeeTy {
+            PointeeTy::Class {
+                id: ItemIdentifier::builtin(name),
+                thread_safety: ThreadSafety::dummy(),
+                superclasses: vec![],
+                generics: vec![generic],
+                declaration_generics: vec![("ObjectType".to_string(), None)],
+                protocols: vec![],
+                sendable: false,
+            }
+        }
+
+        // NSArray is covariant, so this should pass.
+        assert!(generic("NSArray", simple_class("NSString", &["NSObject"]))
+            .is_subtype_of(&generic("NSArray", simple_class("NSObject", &[]))));
+        // Though not in the opposite direction.
+        assert!(!generic("NSArray", simple_class("NSObject", &[]))
+            .is_subtype_of(&generic("NSArray", simple_class("NSString", &[]))));
+
+        // NSMutableArray is invariant, so this shouldn't pass.
+        assert!(
+            !generic("NSMutableArray", simple_class("NSString", &["NSObject"]))
+                .is_subtype_of(&generic("NSMutableArray", simple_class("NSObject", &[])))
+        );
+
+        fn protocol(name: &str, super_protocols: &[ProtocolRef]) -> ProtocolRef {
+            ProtocolRef {
+                id: ItemIdentifier::builtin(name),
+                super_protocols: super_protocols.to_vec(),
+            }
+        }
+
+        let nsobject_protocol = protocol("NSObjectProtocol", &[]);
+
+        let text_field_delegate = protocol(
+            "NSTextFieldDelegate",
+            &[protocol(
+                "NSControlTextEditingDelegate",
+                slice::from_ref(&nsobject_protocol),
+            )],
+        );
+
+        let search_field_delegate = protocol(
+            "NSSearchFieldDelegate",
+            slice::from_ref(&text_field_delegate),
+        );
+
+        let text_field_delegate = PointeeTy::AnyObject {
+            protocols: vec![(text_field_delegate, ThreadSafety::dummy())],
+            sendable: false,
+        };
+        let search_field_delegate = PointeeTy::AnyObject {
+            protocols: vec![(search_field_delegate, ThreadSafety::dummy())],
+            sendable: false,
+        };
+        let nsobject_protocol = PointeeTy::AnyObject {
+            protocols: vec![(nsobject_protocol, ThreadSafety::dummy())],
+            sendable: false,
+        };
+        let anyobject = PointeeTy::AnyObject {
+            protocols: vec![],
+            sendable: false,
+        };
+
+        // Protocol objects are subtypes one way, but not the other.
+        assert!(search_field_delegate.is_subtype_of(&text_field_delegate));
+        assert!(!text_field_delegate.is_subtype_of(&search_field_delegate));
+
+        // Everything is a subtype of AnyObject.
+        assert!(simple_class("NSObject", &[]).is_subtype_of(&anyobject));
+        assert!(search_field_delegate.is_subtype_of(&anyobject));
+        assert!(nsobject_protocol.is_subtype_of(&anyobject));
     }
 }

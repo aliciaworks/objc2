@@ -1,18 +1,21 @@
-//! # Name translation algorithms
+//! # Name translation and parsing algorithms
 //!
 //! See <https://github.com/swiftlang/swift/blob/swift-6.0.3-RELEASE/docs/CToSwiftNameTranslation.md>.
 //!
 //! Kinda ugly and under-tested, may not work for all cases.
 #![allow(clippy::if_same_then_else)]
 
-use std::{
-    collections::{BTreeSet, VecDeque},
-    iter::FusedIterator,
-};
+use std::borrow::Cow;
+use std::collections::VecDeque;
+use std::iter::FusedIterator;
+use std::sync::LazyLock;
 
 use itertools::Itertools;
+use regex::Regex;
 
-use crate::{id::ItemTree, rust_type::Ty, Location};
+use crate::id::ItemTree;
+use crate::rust_type::Ty;
+use crate::Location;
 
 /// Split a string according to Swift's word boundary algorithm.
 ///
@@ -40,10 +43,11 @@ use crate::{id::ItemTree, rust_type::Ty, Location};
 /// >    ("lowercase_example" becomes "lowercase _ example").
 ///
 /// <https://github.com/swiftlang/swift/blob/swift-6.0.3-RELEASE/docs/CToSwiftNameTranslation.md#word-boundaries>
-pub(crate) fn split_words(s: &str) -> impl Iterator<Item = &str> + '_ {
+pub(crate) fn split_words(s: &str) -> impl Iterator<Item = &str> + Clone + '_ {
     Iter { remaining: s }
 }
 
+#[derive(Clone)]
 struct Iter<'a> {
     remaining: &'a str,
 }
@@ -120,7 +124,7 @@ impl<'a> Iterator for Iter<'a> {
 impl FusedIterator for Iter<'_> {}
 
 /// Find the common prefix of a number of names, based on word boundaries.
-pub(crate) fn common_prefix<'a>(items: impl IntoIterator<Item = &'a str>) -> &'a str {
+fn common_prefix<'a>(items: impl IntoIterator<Item = &'a str>) -> &'a str {
     // Algorithm adapted from https://stackoverflow.com/a/6718435.
     let mut items = items.into_iter();
 
@@ -202,23 +206,23 @@ pub(crate) fn enum_prefix<'a>(
     // original C name (rather than its Swift name).
     let mut ep = common_prefix([cp, enum_name]);
 
-    // 5. If the next word of CP after EP is ...
-    let next_word_enum = split_words(enum_name.strip_prefix(ep).unwrap())
-        .next()
-        .unwrap_or("");
-    let next_word_cp = split_words(cp.strip_prefix(ep).unwrap())
-        .next()
-        .unwrap_or("");
-
-    // ...
+    // 5. If the next word of CP after EP is:
     // - the next word of the type's original C name minus "s" ("URL" vs. "URLs")
     // - the next word of the type's original C name minus "es" ("Address" vs. "Addresses")
     // - the next word of the type's original C name with "ies" replaced by "y" ("Property" vs. "Properties")
     // ...
-    if next_word_enum.strip_suffix("s") == Some(next_word_cp)
-        || next_word_enum.strip_suffix("es") == Some(next_word_cp)
-        || (next_word_enum.strip_suffix("ies").is_some()
-            && next_word_enum.strip_suffix("ies") == next_word_cp.strip_suffix("y"))
+    //
+    // NOTE: We differ from the spec in that we use the _last_ word of the
+    // type's original C name, not the next! This is similar to what Swift actually does.
+    let last_word_enum = split_words(enum_name).last().unwrap_or("");
+    let next_word_cp = split_words(cp.strip_prefix(ep).unwrap())
+        .next()
+        .unwrap_or("");
+    if last_word_enum == next_word_cp
+        || last_word_enum.strip_suffix("s") == Some(next_word_cp)
+        || last_word_enum.strip_suffix("es") == Some(next_word_cp)
+        || (last_word_enum.strip_suffix("ies").is_some()
+            && last_word_enum.strip_suffix("ies") == next_word_cp.strip_suffix("y"))
     {
         // ... add the next word of CP to EP.
         ep = cp.split_at(ep.len() + next_word_cp.len()).0;
@@ -243,9 +247,14 @@ pub(crate) fn cf_no_ref(type_name: &str) -> &str {
     type_name.strip_suffix("Ref").unwrap_or(type_name)
 }
 
+fn strip_needless_suffix(type_name: &str) -> &str {
+    let type_name = cf_no_ref(type_name);
+    type_name.strip_suffix("_t").unwrap_or(type_name)
+}
+
 /// Find the type onto whom a function should be inserted.
-pub(crate) fn find_fn_implementor(
-    implementable_mapping: &BTreeSet<ItemTree>,
+pub(crate) fn find_fn_implementor<'a>(
+    implementable_mapping: impl Iterator<Item = &'a ItemTree>,
     fn_name: &str,
     fn_location: &Location,
     arguments: &[(String, Ty)],
@@ -259,15 +268,13 @@ pub(crate) fn find_fn_implementor(
         // Useful for e.g. `CGEventCreateData` and `CFDateFormatterCreateDateFromString`.
         let mut first_arg_ty = first_arg_ty;
         if first_arg_ty.is_cf_allocator() && !fn_name.starts_with("CFAllocator") {
-            // TODO: Consider shuffling around so that the allocator becomes
-            // the second argument?
             if let Some((_, arg_ty)) = arguments.get(1) {
                 first_arg_ty = arg_ty;
             }
         }
 
         if let Some(item) = first_arg_ty.implementable() {
-            let type_name = cf_no_ref(&item.id().name).replace("Mutable", "");
+            let type_name = strip_needless_suffix(&item.id().name).replace("Mutable", "");
             if is_method_candidate(fn_name, &type_name) {
                 // Only emit if in same crate (otherwise it requires a helper trait).
                 if fn_location.library_name() == item.id().library_name() {
@@ -281,7 +288,7 @@ pub(crate) fn find_fn_implementor(
     if let Some(item) = result_type.implementable() {
         // Allowing this means that things like `CGPathCreateMutableCopy`
         // are considered part of `CFMutablePath`.
-        let type_name = cf_no_ref(&item.id().name).replace("Mutable", "");
+        let type_name = strip_needless_suffix(&item.id().name).replace("Mutable", "");
 
         if is_method_candidate(fn_name, &type_name) {
             // Only emit if in same crate (otherwise it requires a helper trait).
@@ -321,7 +328,7 @@ pub(crate) fn find_fn_implementor(
         if fn_name.contains("CTFontManager") {
             continue;
         }
-        if is_method_candidate(fn_name, cf_no_ref(&item.id().name)) {
+        if is_method_candidate(fn_name, strip_needless_suffix(&item.id().name)) {
             candidates.push(item.clone());
         }
     }
@@ -342,7 +349,7 @@ pub(crate) fn find_fn_implementor(
 
 /// Translate CoreFoundation-like function name to a method name.
 ///
-/// To better match  Rust's name scheme: <https://rust-lang.github.io/api-guidelines/naming.html>
+/// To better match Rust's name scheme: <https://rust-lang.github.io/api-guidelines/naming.html>
 ///
 /// Swift does this manually for CoreGraphics, but not in general.
 ///
@@ -350,32 +357,29 @@ pub(crate) fn find_fn_implementor(
 /// <https://github.com/swiftlang/swift/blob/swift-6.1-RELEASE/docs/CToSwiftNameTranslation-OmitNeedlessWords.md>
 ///
 /// See motivation in <https://github.com/madsmtm/objc2/issues/736>.
-pub(crate) fn cf_fn_name(
+pub(crate) fn shorten_name_when_on_parent(
     fn_name: &str,
     type_name: &str,
     is_instance_method: bool,
     omit_memory_management_words: bool,
 ) -> String {
     let is_mutable = type_name.contains("Mutable");
-    let type_name = cf_no_ref(type_name).replace("Mutable", "");
-
-    debug_assert!(is_method_candidate(fn_name, &type_name));
+    let type_name = strip_needless_suffix(type_name).replace("Mutable", "");
 
     let mut type_words = lowercase_words(&type_name);
     let mut words = lowercase_words(fn_name)
-        .skip_while(|fn_word| {
-            if let Some(type_word) = type_words.next() {
-                assert_eq!(*fn_word, type_word);
-                true
-            } else {
+        .filter(|fn_word| {
+            if let Some((count, _)) = type_words
+                .clone()
+                .find_position(|type_word| fn_word == type_word)
+            {
+                type_words.nth(count);
                 false
+            } else {
+                true
             }
         })
         .collect::<VecDeque<_>>();
-
-    if type_words.count() != 0 {
-        panic!("function name must prefix type: {fn_name:?}, {type_name:?}");
-    }
 
     if words.is_empty() {
         return "".to_string();
@@ -423,12 +427,23 @@ pub(crate) fn cf_fn_name(
 
 /// Whether the function is a candidate for being a method.
 fn is_method_candidate(fn_name: &str, type_name: &str) -> bool {
+    // Things shouldn't be implemented on FSRef.
+    if matches!(type_name, "FS" | "FSRef") {
+        return false;
+    }
+
     // Things like CGDisplayModelNumber should not be mapped on CGDisplayMode,
     // so compare on a word-basis instead of just `str::starts_with`.
     //
     // TODO: Maybe make this more like "if all words in type name exists in fn name"?
     // That would allow `CGPDFContextCreate` to be emitted as `CGContext.pdf_create`.
     let mut fn_words = lowercase_words(fn_name);
+
+    // SSLContext methods are kinda weirdly named, they don't start with the
+    // full "SSLContext", only "SSL".
+    if type_name == "SSLContext" && fn_words.next().as_deref() == Some("ssl") {
+        return true;
+    }
 
     for type_word in lowercase_words(type_name) {
         if let Some(fn_word) = fn_words.next() {
@@ -446,7 +461,26 @@ fn is_method_candidate(fn_name: &str, type_name: &str) -> bool {
     true
 }
 
-fn lowercase_words(s: &str) -> impl Iterator<Item = String> + '_ {
+/// Whether a parameter or function name is likely to require a bounds check.
+///
+/// This is only a best-effort heuristic, the library author may have called
+/// this any number of other things.
+pub(crate) fn is_likely_bounds_affecting(name: &str) -> bool {
+    let name = name.to_lowercase();
+    name.contains("idx")
+        || name.contains("index")
+        || name == "i"
+        || name.contains("capacity")
+        || name.contains("range")
+        || name.contains("offset")
+        || name.contains("count")
+        || name.contains("stride")
+        || name.contains("size")
+    // Probably not necessary?
+    // || name.contains("length")
+}
+
+fn lowercase_words(s: &str) -> impl Iterator<Item = String> + Clone + '_ {
     // Removing `_` is desirable everywhere except in the beginning, it makes
     // things like `CGColorCreateGenericGrayGamma2_2` work, and we merge it
     // back with `.join("_")` anyhow.
@@ -461,6 +495,180 @@ fn lowercase_words(s: &str) -> impl Iterator<Item = String> + '_ {
             }
         })
         .map(str::to_lowercase)
+}
+
+pub(crate) fn last_selector_piece(selector: &str) -> &str {
+    selector.rsplit(':').nth(1).unwrap_or(selector)
+}
+
+/// Part of <https://github.com/swiftlang/swift-evolution/blob/main/proposals/0297-concurrency-objc.md#:~:text=If%20the%20method%20has%20a%20single%20parameter>
+///
+/// The given parameter is the final piece of the selector.
+pub(crate) fn strip_completion_handler_suffix(s: &str) -> Option<&str> {
+    // https://github.com/swiftlang/swift/blob/swift-6.3.2-RELEASE/lib/Basic/StringExtras.cpp#L1406-L1433
+    s.strip_suffix("WithCompletion")
+        .or_else(|| s.strip_suffix("WithCompletionHandler"))
+        .or_else(|| s.strip_suffix("WithCompletionBlock"))
+        .or_else(|| s.strip_suffix("WithBlock"))
+        .or_else(|| s.strip_suffix("WithReplyTo"))
+        .or_else(|| s.strip_suffix("WithReply"))
+}
+
+/// Part of <https://github.com/swiftlang/swift-evolution/blob/main/proposals/0297-concurrency-objc.md#:~:text=If%20the%20method%20has%20more%20than%20one%20parameter>
+///
+/// The given parameter is either the final piece of the selector, or a
+/// parameter name.
+pub(crate) fn is_completion_handler_param_name(s: &str) -> bool {
+    // https://github.com/swiftlang/swift/blob/swift-6.3.2-RELEASE/lib/ClangImporter/ImportName.cpp#L1232-L1239
+    matches!(
+        s,
+        "completion"
+            | "withCompletion"
+            | "completionHandler"
+            | "withCompletionHandler"
+            | "completionBlock"
+            | "withCompletionBlock"
+            | "withReply"
+            | "withReplyTo"
+            | "reply"
+            | "replyTo"
+    )
+}
+
+pub(crate) fn to_snake_case(mut input: &str) -> Cow<'_, str> {
+    if !input.contains(|c: char| c.is_ascii_uppercase()) {
+        // No uppercase chars -> assume already snake case
+        Cow::Borrowed(input)
+    } else {
+        // Preserve leading underscores.
+        let mut leading_underscores = 0;
+        while let Some(rest) = input.strip_prefix('_') {
+            leading_underscores += 1;
+            input = rest;
+        }
+        let mut result = heck::ToSnakeCase::to_snake_case(input);
+        for _ in 0..leading_underscores {
+            result.insert(0, '_');
+        }
+        Cow::Owned(result)
+    }
+}
+
+pub(crate) fn param_name(param: &str) -> Cow<'_, str> {
+    let param = to_snake_case(param);
+    if let Some(param) = keyword(&param) {
+        Cow::Borrowed(param)
+    } else {
+        param
+    }
+}
+
+/// Check if a given name is a reserved keyword.
+fn keyword(name: &str) -> Option<&'static str> {
+    // <https://doc.rust-lang.org/reference/keywords.html>
+    Some(match name {
+        // Strict keywords.
+        "_" => "param1", // HACK: Assumes that there are not other fields / parameters with the name `_`.
+        "as" => "r#as",
+        "async" => "r#async",
+        "await" => "r#await",
+        "break" => "r#break",
+        "const" => "r#const",
+        "continue" => "r#continue",
+        "crate" => "crate_", // Cannot be a raw identifier
+        "dyn" => "r#dyn",
+        "else" => "r#else",
+        "enum" => "r#enum",
+        "extern" => "r#extern",
+        "false" => "r#false",
+        "fn" => "r#fn",
+        "for" => "r#for",
+        "if" => "r#if",
+        "impl" => "r#impl",
+        "in" => "r#in",
+        "let" => "r#let",
+        "loop" => "r#loop",
+        "match" => "r#match",
+        "mod" => "r#mod",
+        "move" => "r#move",
+        "mut" => "r#mut",
+        "pub" => "r#pub",
+        "ref" => "r#ref",
+        "return" => "r#return",
+        "self" => "self_", // Cannot be a raw identifier
+        "Self" => "Self_", // Cannot be a raw identifier
+        "static" => "r#static",
+        "struct" => "r#struct",
+        "super" => "super_", // Cannot be a raw identifier
+        "trait" => "r#trait",
+        "true" => "r#true",
+        "type" => "r#type",
+        "unsafe" => "r#unsafe",
+        "use" => "r#use",
+        "where" => "r#where",
+        "while" => "r#while",
+
+        // Reserved keywords.
+        "abstract" => "r#abstract",
+        "become" => "r#become",
+        "box" => "r#box",
+        "do" => "r#do",
+        "final" => "r#final",
+        "gen" => "r#gen",
+        "macro" => "r#macro",
+        "override" => "r#override",
+        "priv" => "r#priv",
+        "try" => "r#try",
+        "typeof" => "r#typeof",
+        "unsized" => "r#unsized",
+        "virtual" => "r#virtual",
+        "yield" => "r#yield",
+
+        // Weak keywords. Not necessary to r#-prefix these.
+        // "macro_rules" => "r#macro_rules",
+        // "raw" => "r#raw",
+        // "safe" => "r#safe",
+        // "union" => "r#union",
+        _ => return None,
+    })
+}
+
+pub(crate) fn handle_keyword(name: &str) -> &str {
+    keyword(name).unwrap_or(name)
+}
+
+/// Algorithm described in:
+/// <https://clang.llvm.org/docs/AutomaticReferenceCounting.html#auditing-of-c-retainable-pointer-interfaces>
+///
+/// > A function obeys the create/copy naming convention if its name
+/// > contains as a substring:
+/// > - either “Create” or “Copy” not followed by a lowercase letter, or
+/// > - either “create” or “copy” not followed by a lowercase letter and
+/// >   not preceded by any letter, whether uppercase or lowercase.
+///
+/// See also Clang's implementation:
+/// <https://github.com/llvm/llvm-project/blob/llvmorg-19.1.6/clang/lib/Analysis/CocoaConventions.cpp#L97-L145>
+/// <https://github.com/llvm/llvm-project/blob/llvmorg-19.1.6/clang/lib/Analysis/RetainSummaryManager.cpp>
+pub(crate) fn follows_create_rule(name: &str) -> bool {
+    static RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"(Create|Copy)([^a-z]|$)|([^a-zA-Z]|^)(create|copy)([^a-z]|$)").unwrap()
+    });
+
+    RE.is_match(name)
+}
+
+/// Whether the function name contains a word like "retain" or "free", and
+/// thus is likely to have an effect on memory-management.
+pub(crate) fn might_manage_memory(name: &str) -> bool {
+    for word in lowercase_words(name) {
+        if matches!(
+            &*word,
+            "retain" | "release" | "free" | "dispose" | "destroy"
+        ) {
+            return true;
+        }
+    }
+    false
 }
 
 #[cfg(test)]
@@ -513,6 +721,10 @@ mod tests {
             ],
         );
         check("UTF__8", &["UTF", "_", "_", "8"]);
+        check(
+            "CFStringBuiltInEncodings",
+            &["CF", "String", "Built", "In", "Encodings"],
+        );
     }
 
     #[test]
@@ -618,13 +830,47 @@ mod tests {
             ],
             "NEHotspotConfigurationEAPTLSVersion_",
         );
+
+        check(
+            "CFStringBuiltInEncodings",
+            [
+                "kCFStringEncodingMacRoman",
+                "kCFStringEncodingWindowsLatin1",
+                "kCFStringEncodingISOLatin1",
+                "kCFStringEncodingNextStepLatin",
+            ],
+            "kCFStringEncoding",
+        );
+
+        check(
+            "SecureDownloadTrustCallbackResult",
+            [
+                "kSecureDownloadDoNotEvaluateSigner",
+                "kSecureDownloadEvaluateSigner",
+                "kSecureDownloadFailEvaluation",
+            ],
+            "kSecureDownload",
+        );
+
+        check(
+            "_XCTAssertionType",
+            [
+                "_XCTAssertion_Fail",
+                "_XCTAssertion_Nil",
+                "_XCTAssertion_NotNil",
+            ],
+            "_XCTAssertion_",
+        );
     }
 
     #[test]
     fn test_cf_fn() {
         #[track_caller]
         fn check(fn_name: &str, type_name: &str, expected: &str) {
-            assert_eq!(cf_fn_name(fn_name, type_name, false, true), expected);
+            assert_eq!(
+                shorten_name_when_on_parent(fn_name, type_name, false, true),
+                expected
+            );
         }
 
         // Successful cases.
@@ -652,7 +898,95 @@ mod tests {
         check("FooBar", "FooRef", "bar");
         check("FooBar", "MutableFooRef", "bar");
 
+        check("sec_trust_create", "SecTrust", "new");
+        check("sec_trust_create", "SecTrustRef", "new");
+        assert_eq!(
+            shorten_name_when_on_parent("sec_trust_create", "SecTrustRef", true, true),
+            ""
+        );
+
+        assert_eq!(
+            shorten_name_when_on_parent("nw_txt_record_find_key", "NWTxtRecord", true, true),
+            "find_key"
+        );
+        check(
+            "nw_ws_metadata_get_opcode",
+            "NWProtocolMetadata",
+            "ws_get_opcode",
+        );
+        check(
+            "nw_multicast_group_descriptor_set_specific_source",
+            "nw_group_descriptor_t",
+            "multicast_set_specific_source",
+        );
+
         // check("AbcDef", "AbcDef", "");
         // check("Ac", "Bc", None);
+    }
+
+    #[test]
+    fn test_index() {
+        assert!(is_likely_bounds_affecting("idx"));
+        assert!(is_likely_bounds_affecting("idx1"));
+        assert!(is_likely_bounds_affecting("idx2"));
+        assert!(is_likely_bounds_affecting("index"));
+        assert!(!is_likely_bounds_affecting("the_array"));
+        assert!(is_likely_bounds_affecting("range"));
+    }
+
+    #[test]
+    fn test_last_selector_piece() {
+        assert_eq!(last_selector_piece("foo"), "foo");
+        assert_eq!(last_selector_piece("foo:"), "foo");
+        assert_eq!(last_selector_piece("foo:bar:"), "bar");
+        assert_eq!(last_selector_piece("foo:bar:xyz:"), "xyz");
+        assert_eq!(last_selector_piece("foo:bar::"), "");
+    }
+
+    #[test]
+    fn test_async_completion_handler_method() {
+        assert!(is_completion_handler_param_name(last_selector_piece(
+            "fetchShareParticipantWithUserRecordID:completionHandler:"
+        )));
+        assert!(is_completion_handler_param_name(last_selector_piece(
+            "signData:withSecureElementPass:completion:"
+        )));
+    }
+
+    #[test]
+    fn snake() {
+        assert_eq!(to_snake_case("FooBar"), "foo_bar");
+        assert_eq!(to_snake_case("foo_bar"), "foo_bar");
+        assert_eq!(to_snake_case("_"), "_");
+        assert_eq!(to_snake_case("___Foo"), "___foo");
+        assert_eq!(to_snake_case("fooBar"), "foo_bar");
+    }
+
+    #[test]
+    fn test_follows_create_rule() {
+        assert!(follows_create_rule("ThingCreate"));
+        assert!(follows_create_rule("CreateThing"));
+        assert!(follows_create_rule("CopyCreateThing"));
+        assert!(follows_create_rule("create_thing"));
+        assert!(follows_create_rule("thing_create"));
+
+        assert!(!follows_create_rule("Created"));
+        assert!(!follows_create_rule("created"));
+        assert!(!follows_create_rule("GetAbc"));
+        assert!(!follows_create_rule("recreate"));
+
+        assert!(follows_create_rule("CreatedCopy"));
+
+        // A few real-world examples
+        assert!(follows_create_rule("dispatch_data_create"));
+        assert!(follows_create_rule("dispatch_data_create_map"));
+        assert!(!follows_create_rule("dispatch_data_get_size"));
+        assert!(follows_create_rule("MTLCreateSystemDefaultDevice"));
+        assert!(follows_create_rule("MTLCopyAllDevices"));
+        assert!(!follows_create_rule("MTLRemoveDeviceObserver"));
+        assert!(follows_create_rule("CFArrayCreate"));
+        assert!(follows_create_rule("CFArrayCreateCopy"));
+        assert!(!follows_create_rule("CFArrayGetCount"));
+        assert!(!follows_create_rule("CFArrayGetValues"));
     }
 }

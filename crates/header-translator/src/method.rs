@@ -1,18 +1,24 @@
 use core::panic;
+use std::borrow::Cow;
 use std::fmt;
 
 use clang::{Entity, EntityKind, ObjCAttributes, ObjCQualifiers};
 
 use crate::availability::Availability;
-use crate::config::{self, MethodData, TypeOverride};
+use crate::config::MethodData;
 use crate::context::Context;
 use crate::display_helper::FormatterFn;
 use crate::documentation::Documentation;
-use crate::id::ItemTree;
-use crate::immediate_children;
+use crate::id::{cfg_gate_ln, ItemTree};
+use crate::name_translation::{
+    self, handle_keyword, is_likely_bounds_affecting, param_name, to_snake_case,
+};
 use crate::objc2_utils::in_selector_family;
-use crate::rust_type::{MethodArgumentQualifier, Ty};
+use crate::rust_type::{MethodArgumentQualifier, SafetyProperty, Ty};
+use crate::stmt::parse_param_children;
+use crate::thread_safety::ThreadSafety;
 use crate::unexposed_attr::UnexposedAttr;
+use crate::{immediate_children, Config, Location};
 
 impl MethodArgumentQualifier {
     pub fn parse(qualifiers: ObjCQualifiers) -> Self {
@@ -57,6 +63,7 @@ pub(crate) struct MethodModifiers {
     sendable: Option<bool>,
     pub(crate) mainthreadonly: bool,
     must_use: bool,
+    swift_async: Option<bool>,
 }
 
 impl MethodModifiers {
@@ -67,63 +74,38 @@ impl MethodModifiers {
             EntityKind::UnexposedAttr => {
                 if let Some(attr) = UnexposedAttr::parse(&entity, context) {
                     match attr {
-                        UnexposedAttr::ReturnsRetained => {
-                            this.returns_retained = true;
-                        }
-                        UnexposedAttr::ReturnsNotRetained => {
-                            this.returns_not_retained = true;
-                        }
-                        UnexposedAttr::NonIsolated => {
-                            this.non_isolated = true;
-                        }
-                        UnexposedAttr::Sendable => {
-                            this.sendable = Some(true);
-                        }
-                        UnexposedAttr::NonSendable => {
-                            this.sendable = Some(false);
-                        }
-                        UnexposedAttr::UIActor => {
-                            this.mainthreadonly = true;
-                        }
-                        UnexposedAttr::NoThrow => {
-                            // TODO: Use this somehow?
-                        }
+                        UnexposedAttr::ReturnsRetained => this.returns_retained = true,
+                        UnexposedAttr::ReturnsNotRetained => this.returns_not_retained = true,
+                        UnexposedAttr::NonIsolated => this.non_isolated = true,
+                        UnexposedAttr::Sendable => this.sendable = Some(true),
+                        UnexposedAttr::NonSendable => this.sendable = Some(false),
+                        UnexposedAttr::UIActor => this.mainthreadonly = true,
+                        UnexposedAttr::SwiftAsync => this.swift_async = Some(true),
+                        UnexposedAttr::NonSwiftAsync => this.swift_async = Some(false),
+                        UnexposedAttr::NoThrow => {} // TODO: Use this somehow?
+                        UnexposedAttr::FullyUnavailable => {} // Handled in Availability::parse.
                         attr => error!(?attr, "unknown attribute on method"),
                     }
                 }
             }
-            EntityKind::ObjCReturnsInnerPointer => {
-                this.returns_inner_pointer = true;
-            }
-            EntityKind::NSConsumesSelf => {
-                this.consumes_self = true;
-            }
+            EntityKind::ObjCReturnsInnerPointer => this.returns_inner_pointer = true,
+            EntityKind::NSConsumesSelf => this.consumes_self = true,
             EntityKind::NSReturnsAutoreleased => {
                 error!("found NSReturnsAutoreleased, which requires manual handling");
             }
-            EntityKind::NSReturnsRetained => {
-                this.returns_retained = true;
-            }
-            EntityKind::NSReturnsNotRetained => {
-                this.returns_not_retained = true;
-            }
-            EntityKind::ObjCDesignatedInitializer => {
-                this.designated_initializer = true;
-            }
+            EntityKind::NSReturnsRetained => this.returns_retained = true,
+            EntityKind::NSReturnsNotRetained => this.returns_not_retained = true,
+            EntityKind::ObjCDesignatedInitializer => this.designated_initializer = true,
             EntityKind::ObjCRequiresSuper => {
                 // TODO: Can we use this for something?
                 // <https://clang.llvm.org/docs/AttributeReference.html#objc-requires-super>
             }
-            EntityKind::WarnUnusedResultAttr => {
-                this.must_use = true;
-            }
+            EntityKind::WarnUnusedResultAttr => this.must_use = true,
             EntityKind::ObjCClassRef
             | EntityKind::ObjCProtocolRef
             | EntityKind::TypeRef
             | EntityKind::ParmDecl
-            | EntityKind::ObjCNSObject => {
-                // Ignore
-            }
+            | EntityKind::ObjCNSObject => {} // Ignore
             EntityKind::IbActionAttr | EntityKind::IbOutletAttr => {
                 // TODO: Do we want to do something special here?
             }
@@ -154,6 +136,7 @@ pub enum MemoryManagement {
     RetainedNew { returns_not_retained: bool },
     RetainedInit,
     RetainedNone { returns_retained: bool },
+    InnerPointer,
     Normal,
 }
 
@@ -175,13 +158,7 @@ impl MemoryManagement {
             in_selector_family(bytes, b"new"),
             in_selector_family(bytes, b"init"),
         ) {
-            (true, false, false, false, false) => {
-                // It's not really worth the effort to support these, since
-                // they're only defined on `NSObject` and `NSProxy`, and we
-                // have it in `ClassType` anyhow.
-                error!("the `alloc` method-family requires manual handling");
-                "alloc"
-            }
+            (true, false, false, false, false) => "alloc",
             (false, true, false, false, false) => "copy",
             (false, false, true, false, false) => "mutableCopy",
             (false, false, false, true, false) => "new",
@@ -206,7 +183,13 @@ impl MemoryManagement {
                 modifiers.designated_initializer,
                 selector_family,
             ) {
-                (false, false, true, false, false, "alloc") => Self::RetainedAlloc,
+                (false, false, true, false, false, "alloc") => {
+                    // It's not really worth the effort to support these, since
+                    // they're only defined on `NSObject` and `NSProxy`, and we
+                    // have it in `ClassType` anyhow.
+                    error!("the `alloc` method-family requires manual handling");
+                    Self::RetainedAlloc
+                }
                 (false, false, true, false, false, "copy") => Self::RetainedCopy {
                     returns_not_retained: false,
                 },
@@ -224,6 +207,9 @@ impl MemoryManagement {
                 },
                 (false, false, false, true, false, "new") => Self::RetainedNew {
                     returns_not_retained: true,
+                },
+                (false, false, false, false, false, "new") => Self::RetainedNone {
+                    returns_retained: false,
                 },
                 // For the `init` family there's another restriction:
                 // > must be instance methods
@@ -249,6 +235,7 @@ impl MemoryManagement {
                 (false, false, returns_retained, _, false, "none") => {
                     Self::RetainedNone { returns_retained }
                 }
+                (true, false, false, _, false, "none") => Self::InnerPointer,
                 data => {
                     error!(?data, "invalid MemoryManagement retainable attributes");
                     Self::RetainedNone {
@@ -275,6 +262,46 @@ impl MemoryManagement {
     }
 }
 
+/// <https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjectiveC/Chapters/ocProperties.html>
+/// <https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ProgrammingWithObjectiveC/EncapsulatingData/EncapsulatingData.html#//apple_ref/doc/uid/TP40011210-CH5-SW3>.
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Default)]
+pub enum PropertyKind {
+    /// By default, properties are retained.
+    #[default]
+    Normal,
+    /// The object is copied into the property when set. These are retained.
+    Copy,
+    /// The object is weakly referenced by the property.
+    Weak,
+    /// Whether the property is marked as not internally retained,
+    /// neither strongly nor weakly.
+    UnsafeRetained,
+}
+
+impl PropertyKind {
+    fn parse(attrs: Option<ObjCAttributes>) -> Self {
+        let Some(attrs) = attrs else {
+            return Self::Normal;
+        };
+
+        let retained = attrs.retain || attrs.strong;
+
+        let unsafe_retained = attrs.assign || attrs.unsafe_retained;
+
+        match (retained, attrs.copy, attrs.weak, unsafe_retained) {
+            (true, false, false, false) => Self::Normal,
+            (false, true, false, false) => Self::Copy,
+            (false, false, true, false) => Self::Weak,
+            (false, false, false, true) => Self::UnsafeRetained,
+            (false, false, false, false) => Self::Normal,
+            _ => {
+                error!(?attrs, "unclear property attributes");
+                Self::Normal
+            }
+        }
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Method {
@@ -286,13 +313,11 @@ pub struct Method {
     memory_management: MemoryManagement,
     arguments: Vec<(String, Ty)>,
     result_type: Ty,
-    is_error: bool,
-    safe: bool,
+    pub safe: bool,
     is_pub: bool,
     // Thread-safe, even on main-thread only (@MainActor/@UIActor) classes
     non_isolated: bool,
-    mainthreadonly: bool,
-    weak_property: bool,
+    requires_main_thread_marker: bool,
     must_use: bool,
     encoding: String,
     documentation: Documentation,
@@ -308,47 +333,60 @@ pub struct PartialProperty<'tu> {
     pub attributes: Option<ObjCAttributes>,
 }
 
-fn mainthreadonly_override<'a>(
-    result_type: &Ty,
-    argument_types: impl IntoIterator<Item = &'a Ty>,
-    parent_is_mainthreadonly: bool,
-    is_class: bool,
-    mainthreadonly_modifier: bool,
-) -> bool {
-    let mut result_type_requires_mainthreadmarker =
-        result_type.requires_mainthreadmarker(parent_is_mainthreadonly);
+struct MainThreadInfo {
+    result_type_requires_marker: bool,
+    any_argument_provides_marker: bool,
+}
 
-    let mut any_argument_provides_mainthreadmarker = argument_types
-        .into_iter()
-        .any(|arg_ty| arg_ty.provides_mainthreadmarker(parent_is_mainthreadonly));
+impl MainThreadInfo {
+    fn new<'a>(
+        result_type: &Ty,
+        argument_types: impl IntoIterator<Item = &'a Ty>,
+        parent_is_mainthreadonly: bool,
+        is_class: bool,
+    ) -> MainThreadInfo {
+        let mut result_type_requires_marker =
+            result_type.requires_mainthreadmarker(parent_is_mainthreadonly);
 
-    if parent_is_mainthreadonly {
-        if is_class {
-            // Assume the method needs main thread if it's
-            // declared on a main thread only class.
-            result_type_requires_mainthreadmarker = true;
-        } else {
-            // Method takes `&self` or `&mut self`, or is
-            // an initialization method, all of which
-            // already require the main thread.
-            //
-            // Note: Initialization methods can be passed
-            // `None`, but in that case the return will
-            // always be NULL.
-            any_argument_provides_mainthreadmarker = true;
+        let mut any_argument_provides_marker = argument_types
+            .into_iter()
+            .any(|arg_ty| arg_ty.provides_mainthreadmarker(parent_is_mainthreadonly));
+
+        if parent_is_mainthreadonly {
+            if is_class {
+                // Assume the method needs main thread if it's
+                // declared on a main thread only class.
+                result_type_requires_marker = true;
+            } else {
+                // Method takes `&self` or `&mut self`, or is
+                // an initialization method, all of which
+                // already require the main thread.
+                //
+                // Note: Initialization methods can be passed
+                // `None`, but in that case the return will
+                // always be NULL.
+                any_argument_provides_marker = true;
+            }
+        }
+
+        Self {
+            result_type_requires_marker,
+            any_argument_provides_marker,
         }
     }
 
-    if any_argument_provides_mainthreadmarker {
-        // MainThreadMarker can be retrieved via `MainThreadOnly::mtm`
-        // inside these methods, and hence passing it is redundant.
-        false
-    } else if result_type_requires_mainthreadmarker {
-        true
-    } else {
-        // If neither, then we respect any annotation
-        // the method may have had before
-        mainthreadonly_modifier
+    fn method_requires_marker(&self, mainthreadonly_modifier: bool) -> bool {
+        if self.any_argument_provides_marker {
+            // MainThreadMarker can be retrieved via `MainThreadOnly::mtm`
+            // inside these methods, and hence passing it is redundant.
+            false
+        } else if self.result_type_requires_marker {
+            true
+        } else {
+            // If neither, then we respect any annotation
+            // the method may have had before
+            mainthreadonly_modifier
+        }
     }
 }
 
@@ -363,7 +401,8 @@ impl Method {
             && self.is_class
             && self.arguments.is_empty()
             && self.safe
-            && !self.mainthreadonly
+            && !self.requires_main_thread_marker
+            && self.availability.is_available_non_deprecated()
     }
 
     /// Takes `EntityKind::ObjCPropertyDecl`.
@@ -391,12 +430,18 @@ impl Method {
     pub(crate) fn parse_method(
         entity: Entity<'_>,
         data: MethodData,
-        parent_is_mainthreadonly: bool,
+        parent_thread_safety: &ThreadSafety,
         is_pub: bool,
+        is_protocol: bool,
         context: &Context<'_>,
     ) -> Option<(bool, Method)> {
         let selector = entity.get_name().expect("method selector");
         let _span = debug_span!("method", selector).entered();
+
+        // TODO: Strip these from function name?
+        // selector.ends_with("error:")
+        // || selector.ends_with("AndReturnError:")
+        // || selector.ends_with("WithError:")
 
         if data.skipped {
             return None;
@@ -418,11 +463,18 @@ impl Method {
             "retain" | "release" | "autorelease" | "dealloc" if !is_class => {
                 return None;
             }
+            // Skip inherent `initWithCoder:` methods, these are already
+            // present in `NSCoding`.
+            "initWithCoder:" if !is_protocol => {
+                // NOTE: `UIGestureRecognizer` has this method but doesn't
+                // implement `NSCoding`, have filed FB23297847 for it.
+                return None;
+            }
             _ => {}
         }
 
         if entity.is_variadic() {
-            warn!("can't handle variadic method");
+            debug!(?selector, "can't handle variadic method");
             return None;
         }
 
@@ -445,40 +497,23 @@ impl Method {
                 let qualifier = entity
                     .get_objc_qualifiers()
                     .map(MethodArgumentQualifier::parse);
-                let mut sendable = None;
-                let mut no_escape = false;
 
-                immediate_children(&entity, |entity, _span| match entity.get_kind() {
-                    EntityKind::ObjCClassRef
-                    | EntityKind::ObjCProtocolRef
-                    | EntityKind::TypeRef
-                    | EntityKind::ParmDecl => {
-                        // Ignore
-                    }
-                    // `ns_consumed`, `cf_consumed` and `os_consumed`
-                    EntityKind::NSConsumed => {
-                        error!("found NSConsumed, which requires manual handling");
-                    }
-                    EntityKind::UnexposedAttr => {
-                        if let Some(attr) = UnexposedAttr::parse(&entity, context) {
-                            match attr {
-                                UnexposedAttr::Sendable => sendable = Some(true),
-                                UnexposedAttr::NonSendable => sendable = Some(false),
-                                UnexposedAttr::NoEscape => no_escape = true,
-                                attr => error!(?attr, "unknown attribute on method argument"),
-                            }
-                        }
-                    }
-                    // For some reason we recurse into array types
-                    EntityKind::IntegerLiteral => {}
-                    _ => error!("unknown"),
-                });
+                let (sendable, no_escape, out_pointer_retained) =
+                    parse_param_children(&entity, context);
 
                 let ty = entity.get_type().expect("argument type");
-                let mut ty = Ty::parse_method_argument(ty, qualifier, sendable, no_escape, context);
+                let mut ty = Ty::parse_function_argument(
+                    ty,
+                    qualifier,
+                    sendable,
+                    no_escape,
+                    out_pointer_retained,
+                    false,
+                    context,
+                );
 
                 if let Some(ty_or) = data.arguments.get(&index) {
-                    apply_type_override(&mut ty, ty_or);
+                    ty.apply_override(ty_or);
                 }
 
                 (name, ty)
@@ -493,21 +528,6 @@ impl Method {
             );
         }
 
-        let is_error = if let Some((_, ty)) = arguments.last() {
-            ty.argument_is_error_out()
-        } else {
-            false
-        };
-
-        // TODO: Strip these from function name?
-        // selector.ends_with("error:")
-        // || selector.ends_with("AndReturnError:")
-        // || selector.ends_with("WithError:")
-
-        if is_error {
-            arguments.pop();
-        }
-
         if let Some(qualifiers) = entity.get_objc_qualifiers() {
             error!(?qualifiers, "unsupported qualifiers on return type");
         }
@@ -515,6 +535,7 @@ impl Method {
         let result_type = entity.get_result_type().expect("method return type");
         let default_nonnull = (selector == "init" && !is_class) || (selector == "new" && is_class);
         let mut result_type = Ty::parse_method_return(result_type, default_nonnull, context);
+        result_type.apply_override(&data.return_);
 
         if result_type.needs_simd() || arguments.iter().any(|(_, arg_ty)| arg_ty.needs_simd()) {
             debug!("simd types are not yet possible in methods");
@@ -535,21 +556,124 @@ impl Method {
             result_type.try_fix_related_result_type();
         }
 
-        let fn_name = selector.trim_end_matches(':').replace(':', "_");
+        let fn_name = if let Some(renamed) = &data.renamed {
+            renamed.clone()
+        } else {
+            selector.trim_end_matches(':').replace(':', "_")
+        };
 
-        let mainthreadonly = mainthreadonly_override(
+        let main_thread_info = MainThreadInfo::new(
             &result_type,
             arguments.iter().map(|(_, ty)| ty),
-            parent_is_mainthreadonly,
+            parent_thread_safety.inferred_mainthreadonly(),
             is_class,
-            modifiers.mainthreadonly,
         );
 
-        apply_type_override(&mut result_type, &data.return_);
+        // <https://github.com/swiftlang/swift-evolution/blob/main/proposals/0297-concurrency-objc.md#asynchronous-completion-handler-methods>
+        //
+        // Determine if this ABI-wise can be an asynchronous
+        // completion-handler method. This is true if the method's last
+        // parameter is a block which returns `void`.
+        let potentially_async_completion_handler = arguments
+            .last()
+            .map(|(_, arg_ty)| arg_ty.is_block_returning_void())
+            .unwrap_or(false)
+            && result_type == Ty::VOID;
+
+        // Next, determine if the naming makes it an inferred
+        let last_selector_piece = name_translation::last_selector_piece(&selector);
+        let implicitly_inferred_async_completion_handler =
+            name_translation::is_completion_handler_param_name(last_selector_piece)
+                || name_translation::strip_completion_handler_suffix(last_selector_piece).is_some()
+                || arguments
+                    .last()
+                    .map(|(arg_name, _)| {
+                        name_translation::is_completion_handler_param_name(arg_name)
+                    })
+                    .unwrap_or(false);
+
+        // And now we know whether the method is an async completion handler
+        // method.
+        //
+        // TODO: At some point, we should probably strip the completion
+        // handler and emit an `async fn`, see:
+        // https://github.com/madsmtm/objc2/issues/279.
+        let is_async = potentially_async_completion_handler
+            && modifiers
+                .swift_async
+                .unwrap_or(implicitly_inferred_async_completion_handler);
+
+        // Finally, use this to mark the block as sendable, as required by:
+        // <https://github.com/swiftlang/swift-evolution/blob/main/proposals/0463-sendable-completion-handlers.md>
+        //
+        // We only do this when the method isn't in a main thread only
+        // context, because in those cases the block is likely going to be run
+        // on the main thread too.
+        if is_async && !main_thread_info.any_argument_provides_marker && !modifiers.mainthreadonly {
+            arguments.last_mut().unwrap().1.default_block_to_sendable();
+        }
 
         let encoding = entity
             .get_objc_type_encoding()
             .expect("method to have encoding");
+
+        // Methods may come from different libraries than the currently parsed
+        // one, such as with inherited `init` methods.
+        //
+        // We still want the default safety of the current library though.
+        let default_safety = &context
+            .try_library(context.current_library)
+            .unwrap()
+            .default_safety;
+
+        let mut any_argument_bounds_affecting = false;
+        let mut safety = arguments
+            .iter()
+            .fold(SafetyProperty::Safe, |mut safety, (arg_name, arg_ty)| {
+                if !default_safety.bounds_checked_internally
+                    && is_likely_bounds_affecting(arg_name)
+                    && arg_ty.can_affect_bounds()
+                {
+                    any_argument_bounds_affecting = true;
+                    safety = safety.merge(SafetyProperty::new_unknown(format!(
+                        "`{arg_name}` might not be bounds-checked"
+                    )));
+                }
+                safety.merge(arg_ty.safety_in_method_argument(&to_snake_case(arg_name)))
+            })
+            .merge(result_type.safety_in_fn_return());
+
+        // Probably overly conservative
+        if !default_safety.bounds_checked_internally
+            && !any_argument_bounds_affecting
+            && is_likely_bounds_affecting(&selector)
+            && arguments
+                .iter()
+                .any(|(_, arg_ty)| arg_ty.can_affect_bounds())
+        {
+            safety = safety.merge(SafetyProperty::new_unknown(
+                "This might not be bounds-checked",
+            ));
+        }
+
+        let safe = if let Some(unsafe_) = data.unsafe_ {
+            if safety.is_unsafe() && !unsafe_ {
+                // TODO(breaking): Disallow these.
+                error!(?selector, ?arguments, "unsafe method was marked as safe");
+            }
+            !unsafe_
+        } else {
+            safety.is_safe() && default_safety.automatically_safe
+        };
+
+        let mut documentation = Documentation::from_entity(&entity, context);
+
+        if let Some(safety) = safety.to_safety_comment() {
+            if data.unsafe_ != Some(false) {
+                documentation.add("# Safety");
+                documentation.add(safety);
+            }
+        }
 
         Some((
             modifiers.designated_initializer,
@@ -562,15 +686,14 @@ impl Method {
                 memory_management,
                 arguments,
                 result_type,
-                is_error,
-                safe: data.unsafe_.safe(),
+                safe,
                 is_pub,
                 non_isolated: modifiers.non_isolated,
-                mainthreadonly,
-                weak_property: false,
+                requires_main_thread_marker: main_thread_info
+                    .method_requires_marker(modifiers.mainthreadonly),
                 must_use: modifiers.must_use,
                 encoding,
-                documentation: Documentation::from_entity(&entity, context),
+                documentation,
             },
         ))
     }
@@ -580,7 +703,7 @@ impl Method {
         property: PartialProperty<'_>,
         getter_data: MethodData,
         setter_data: Option<MethodData>,
-        parent_is_mainthreadonly: bool,
+        parent_thread_safety: &ThreadSafety,
         is_pub: bool,
         context: &Context<'_>,
     ) -> (Option<Method>, Option<Method>) {
@@ -610,7 +733,32 @@ impl Method {
 
         let modifiers = MethodModifiers::parse(&entity, context);
 
-        let is_copy = attributes.map(|a| a.copy).unwrap_or(false);
+        let kind = PropertyKind::parse(attributes);
+
+        // Properties are atomic by default, but only if synthethized. It is
+        // unclear if properties that `!nonatomic` are guaranteed to be
+        // atomic, see https://github.com/madsmtm/objc2/issues/757.
+        //
+        // As such, we consider atomic-ness a `Option<bool>`, where `None`
+        // means "not specified".
+        let atomic = match (
+            attributes.map(|a| a.atomic).unwrap_or(false),
+            attributes.map(|a| a.nonatomic).unwrap_or(false),
+        ) {
+            (false, false) => None,
+            (true, false) => Some(true),
+            (false, true) => Some(false),
+            (true, true) => {
+                error!("a property cannot both be atomic and nonatomic");
+                None
+            }
+        };
+
+        // See `parse_method`, we intentionally look up in current library.
+        let default_safety = &context
+            .try_library(context.current_library)
+            .unwrap()
+            .default_safety;
 
         if let Some(qualifiers) = entity.get_objc_qualifiers() {
             error!(?qualifiers, "properties do not support qualifiers");
@@ -621,12 +769,20 @@ impl Method {
             .expect("method to have encoding");
 
         let getter = if !getter_data.skipped {
-            let mut ty = Ty::parse_property_return(
+            let mut ty = Ty::parse_property_getter(
                 entity.get_type().expect("property type"),
-                is_copy,
+                kind == PropertyKind::Copy,
                 modifiers.sendable,
                 context,
             );
+
+            ty.apply_override(&getter_data.return_);
+
+            if kind == PropertyKind::Copy && ty.is_class_with_mutable_in_name() {
+                // Unclear what the semantics are here? How can this be of
+                // the correct type if the type is immutably copied?
+                warn!(?getter_sel, "property is both `copy` and a mutable object");
+            }
 
             if ty.needs_simd() {
                 debug!("simd types are not yet possible in properties");
@@ -635,35 +791,89 @@ impl Method {
 
             let memory_management = MemoryManagement::new(is_class, &getter_sel, &ty, modifiers);
 
-            let mainthreadonly = mainthreadonly_override(
+            let main_thread_info = MainThreadInfo::new(
                 &ty,
                 &[],
-                parent_is_mainthreadonly,
+                parent_thread_safety.inferred_mainthreadonly(),
                 is_class,
-                modifiers.mainthreadonly,
             );
 
-            apply_type_override(&mut ty, &getter_data.return_);
+            let mut documentation = Documentation::from_entity(&entity, context);
+
+            let mut safety = ty.safety_in_fn_return();
+            if kind == PropertyKind::UnsafeRetained && !ty.is_primitive_or_record() {
+                // We cannot mark these as safe, since the pointer is not
+                // guaranteed to remain valid while being stored inside the
+                // class.
+                //
+                // TODO(breaking): Make these return raw pointers instead.
+                if !ty.is_object_like_ptr() {
+                    if !safety.is_unsafe() {
+                        safety = safety.merge(SafetyProperty::new_unsafe(
+                            "You must ensure this is still alive",
+                        ));
+                    }
+                } else {
+                    safety = safety.merge(SafetyProperty::new_unsafe(
+                        "This is not retained internally, you must ensure the object is still alive",
+                    ));
+                }
+            }
+            if atomic == Some(false)
+                && parent_thread_safety.inferred_sendable()
+                && !(is_class && setter_sel.is_none())
+            {
+                // `nonatomic` properties on sendable classes are not safe
+                // by default (unless they are readonly class-properties, then
+                // the nonatomic-ness in the header is probably incorrect,
+                // since they are global).
+                safety = safety.merge(SafetyProperty::new_unknown("This might not be thread-safe"));
+                documentation.add("This property is not atomic.");
+                // TODO: Should we document atomic-ness in further cases?
+            };
+
+            // Note: getters are safe even if bounds affecting.
+
+            let safe = if let Some(unsafe_) = getter_data.unsafe_ {
+                if safety.is_unsafe() && !unsafe_ {
+                    // TODO(breaking): Disallow these.
+                    error!(?getter_sel, ?ty, "unsafe property was marked as safe");
+                }
+                !unsafe_
+            } else {
+                safety.is_safe() && default_safety.automatically_safe
+            };
+
+            if let Some(safety) = safety.to_safety_comment() {
+                if getter_data.unsafe_ != Some(false) {
+                    documentation.add("# Safety");
+                    documentation.add(safety);
+                }
+            }
+
+            let fn_name = if let Some(renamed) = &getter_data.renamed {
+                renamed.clone()
+            } else {
+                getter_sel.clone()
+            };
 
             Some(Method {
                 selector: getter_sel.clone(),
-                fn_name: getter_sel.clone(),
+                fn_name,
                 availability: availability.clone(),
                 is_class,
                 is_optional: entity.is_objc_optional(),
                 memory_management,
                 arguments: Vec::new(),
                 result_type: ty,
-                is_error: false,
-                safe: getter_data.unsafe_.safe(),
+                safe,
                 is_pub,
                 non_isolated: modifiers.non_isolated,
-                mainthreadonly,
-                // Don't show `weak`-ness on getters
-                weak_property: false,
+                requires_main_thread_marker: main_thread_info
+                    .method_requires_marker(modifiers.mainthreadonly),
                 must_use: modifiers.must_use,
                 encoding: encoding.clone(),
-                documentation: Documentation::from_entity(&entity, context),
+                documentation,
             })
         } else {
             None
@@ -672,28 +882,97 @@ impl Method {
         let setter = if let Some(selector) = setter_sel {
             let setter_data = setter_data.expect("setter_data must be present if setter_sel was");
             if !setter_data.skipped {
-                let result_type = Ty::VOID_RESULT;
-                let mut ty = Ty::parse_property(
+                let result_type = Ty::VOID;
+                let mut ty = Ty::parse_property_setter(
                     entity.get_type().expect("property type"),
-                    is_copy,
+                    kind == PropertyKind::Copy,
                     modifiers.sendable,
                     context,
                 );
 
-                let fn_name = selector.strip_suffix(':').unwrap().to_string();
+                if let Some(ty_or) = setter_data.arguments.get(&0) {
+                    ty.apply_override(ty_or);
+                }
+
+                let fn_name = if let Some(renamed) = &setter_data.renamed {
+                    renamed.clone()
+                } else {
+                    selector.strip_suffix(':').unwrap().to_string()
+                };
+
                 let memory_management =
                     MemoryManagement::new(is_class, &selector, &result_type, modifiers);
 
-                let mainthreadonly = mainthreadonly_override(
+                let main_thread_info = MainThreadInfo::new(
                     &result_type,
                     std::iter::once(&ty),
-                    parent_is_mainthreadonly,
+                    parent_thread_safety.inferred_mainthreadonly(),
                     is_class,
-                    modifiers.mainthreadonly,
                 );
 
-                if let Some(ty_or) = setter_data.arguments.get(&0) {
-                    apply_type_override(&mut ty, ty_or);
+                let mut safety = ty.safety_in_fn_argument(&to_snake_case(&name));
+                if kind == PropertyKind::UnsafeRetained && !ty.is_primitive_or_record() {
+                    // We could _possibly_ allow these to be safe, but let's
+                    // not for now, they interact weirdly with the getters
+                    // (which have to be unsafe).
+                    safety = safety.merge(SafetyProperty::new_unsafe(
+                        "This is unretained, you must ensure the object is kept alive while in use",
+                    ));
+                }
+                if atomic == Some(false) && parent_thread_safety.inferred_sendable() {
+                    // `nonatomic` properties on sendable classes are not safe
+                    // by default.
+                    safety =
+                        safety.merge(SafetyProperty::new_unknown("This might not be thread-safe"));
+                };
+                if !default_safety.bounds_checked_internally
+                    && is_likely_bounds_affecting(&selector)
+                    && ty.can_affect_bounds()
+                {
+                    safety = safety.merge(SafetyProperty::new_unknown(
+                        "This might not be bounds-checked",
+                    ));
+                }
+
+                let safe = if let Some(unsafe_) = setter_data.unsafe_ {
+                    if safety.is_unsafe() && !unsafe_ {
+                        // TODO(breaking): Disallow these.
+                        error!(?selector, ?ty, "unsafe property setter was marked as safe");
+                    }
+                    !unsafe_
+                } else {
+                    safety.is_safe() && default_safety.automatically_safe
+                };
+
+                // Do not emit normal docs on setters, otherwise we'd be
+                // duplicating the documentation across getter and setter.
+                let mut documentation = Documentation::empty();
+                documentation.add(format!("Setter for [`{getter_sel}`][Self::{getter_sel}]."));
+
+                // Only show `weak`-ness and `copy`-ness on setters (that's
+                // where it's most relevant).
+                match kind {
+                    PropertyKind::Copy => {
+                        if context.current_library == "Foundation" {
+                            documentation.add("This is [copied][crate::NSCopying::copy] when set.");
+                        } else {
+                            documentation.add(
+                                "This is [copied][objc2_foundation::NSCopying::copy] when set.",
+                            );
+                        }
+                    }
+                    PropertyKind::Weak => {
+                        documentation
+                            .add("This is a [weak property][objc2::topics::weak_property].");
+                    }
+                    _ => {}
+                }
+
+                if let Some(safety) = safety.to_safety_comment() {
+                    if setter_data.unsafe_ != Some(false) {
+                        documentation.add("# Safety");
+                        documentation.add(safety);
+                    }
                 }
 
                 Some(Method {
@@ -705,15 +984,14 @@ impl Method {
                     memory_management,
                     arguments: vec![(name, ty)],
                     result_type,
-                    is_error: false,
-                    safe: setter_data.unsafe_.safe(),
+                    safe,
                     is_pub,
                     non_isolated: modifiers.non_isolated,
-                    mainthreadonly,
-                    weak_property: attributes.map(|a| a.weak).unwrap_or(false),
+                    requires_main_thread_marker: main_thread_info
+                        .method_requires_marker(modifiers.mainthreadonly),
                     must_use: modifiers.must_use,
                     encoding,
-                    documentation: Documentation::property_setter(&getter_sel),
+                    documentation,
                 })
             } else {
                 None
@@ -736,16 +1014,75 @@ impl Method {
         }
     }
 
+    pub(crate) fn valid_to_override_as(&self, new: &Self) -> bool {
+        debug_assert_eq!(self.id(), new.id());
+
+        // Hard requirement: Memory management must be equal.
+        if self.memory_management != new.memory_management {
+            return false;
+        }
+
+        // Init methods are (probably) valid to override however you want.
+        if self.memory_management == MemoryManagement::RetainedInit {
+            return true; // Success!
+        }
+
+        // Thread-safety attributes must be equal.
+        if self.requires_main_thread_marker != new.requires_main_thread_marker
+            || self.non_isolated != new.non_isolated
+        {
+            return false;
+        }
+
+        // The new result types must be a subtypes of the overwritten type.
+        //
+        // E.g. the following is allowed:
+        // ```
+        // impl Superclass {
+        //     fn method(&self) -> Retained<NSObject>;
+        // }
+        // impl Subclass {
+        //     fn method(&self) -> Retained<NSString>;
+        // }
+        // ```
+        if !new.result_type.is_subtype_of(&self.result_type) {
+            return false;
+        }
+
+        // This should be impossible apart from when translating `NSError`
+        // methods.
+        if self.arguments.len() != new.arguments.len() {
+            return false;
+        }
+
+        // The old argument types must be subtypes of the new argument types.
+        //
+        // E.g. the following is allowed:
+        // ```
+        // impl Superclass {
+        //     fn method(&self, obj: &NSString);
+        // }
+        // impl Subclass {
+        //     fn method(&self, obj: &NSObject);
+        // }
+        // ```
+        self.arguments
+            .iter()
+            .zip(&new.arguments)
+            .all(|((_, this), (_, new))| this.is_subtype_of(new))
+    }
+
     pub(crate) fn required_items(&self) -> impl Iterator<Item = ItemTree> {
+        if !self.availability.is_available() {
+            return Vec::new().into_iter();
+        }
+
         let mut items = Vec::new();
         for (_, arg_ty) in &self.arguments {
             items.extend(arg_ty.required_items());
         }
         items.extend(self.result_type.required_items());
-        if self.is_error {
-            items.push(ItemTree::nserror());
-        }
-        if self.mainthreadonly {
+        if self.requires_main_thread_marker {
             items.push(ItemTree::main_thread_marker());
         }
         items.into_iter()
@@ -766,9 +1103,6 @@ impl Method {
                 for (_, arg_ty) in &self.arguments {
                     write!(f, "{},", arg_ty.method_argument_encoding_type())?;
                 }
-                if self.is_error {
-                    write!(f, "*mut *mut NSError,")?;
-                }
                 write!(f, "), {}>(", self.result_type.method_return_encoding_type())?;
                 if self.is_class {
                     write!(f, "metaclass")?;
@@ -785,174 +1119,173 @@ impl Method {
             Ok(())
         })
     }
-}
 
-impl fmt::Display for Method {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let _span = debug_span!("method", self.fn_name).entered();
+    pub fn fmt<'a>(
+        &'a self,
+        implied_items: impl IntoIterator<Item = ItemTree> + Clone + 'a,
+        location: &'a Location,
+        config: &'a Config,
+    ) -> impl fmt::Display + 'a {
+        FormatterFn(move |f| {
+            let _span = debug_span!("method", self.selector).entered();
 
-        // TODO: Use this somehow?
-        // if self.non_isolated {
-        //     writeln!(f, "// non_isolated")?;
-        // }
+            if !self.availability.is_available() {
+                // Unavailable methods aren't ever useful to emit.
+                //
+                // If they're `init`/`new` methods, we can statically prevent
+                // the user from calling them, so there we don't have to worry
+                // about correctness.
+                //
+                // If they're not constructors, the user might still call them
+                // through the super chain. If they're marked unavailable
+                // though, the framework is gonna contain checks internally
+                // that will either throw an exception or just not work.
+                //
+                // For example, `-[NSOpenPanel setShowsContentTypes:]` throws
+                // a `NSInternalInconsistencyException`.
+                writeln!(
+                    f,
+                    "        // {}{} (unavailable)",
+                    if self.is_class { "+" } else { "-" },
+                    self.selector
+                )?;
+                return Ok(());
+            }
 
-        if self.weak_property {
+            let mut arguments = &self.arguments[..];
+            let mut error_trailing = "";
+            let mut result_type = Cow::Borrowed(&self.result_type);
+            if let Some(((_, ty), rest)) = arguments.split_last() {
+                if let Some(error) = ty.argument_as_error_out() {
+                    if let Some(new_result) = self.result_type.convert_to_result(error) {
+                        result_type = Cow::Owned(new_result);
+                        arguments = rest;
+                        error_trailing = "_";
+                    }
+                }
+            }
+
+            // TODO: Use this somehow?
+            // if self.non_isolated {
+            //     writeln!(f, "// non_isolated")?;
+            // }
+
+            //
+            // Attributes
+            //
+
+            let cfg_gate = cfg_gate_ln(
+                self.required_items(),
+                implied_items.clone(),
+                config,
+                location,
+            );
+            write!(f, "{cfg_gate}")?;
+            write!(f, "{}", self.documentation.fmt(None))?;
+            write!(f, "{}", self.availability)?;
+
+            if self.must_use {
+                writeln!(f, "        #[must_use]")?;
+            }
+
+            if self.is_optional {
+                writeln!(f, "        #[optional]")?;
+            }
+
             writeln!(
                 f,
-                "        /// This is a [weak property][objc2::topics::weak_property]."
+                "        #[unsafe(method({}{}))]",
+                self.selector, error_trailing
             )?;
-        }
 
-        //
-        // Attributes
-        //
-
-        write!(f, "{}", self.documentation.fmt(None))?;
-        write!(f, "{}", self.availability)?;
-
-        if self.must_use {
-            writeln!(f, "        #[must_use]")?;
-        }
-
-        if self.is_optional {
-            writeln!(f, "        #[optional]")?;
-        }
-
-        let error_trailing = if self.is_error { "_" } else { "" };
-        writeln!(
-            f,
-            "        #[unsafe(method({}{}))]",
-            self.selector, error_trailing
-        )?;
-
-        let (method_family, attr) = match &self.memory_management {
-            MemoryManagement::RetainedAlloc => ("alloc", None),
-            MemoryManagement::RetainedCopy {
-                returns_not_retained: false,
-            } => ("copy", None),
-            MemoryManagement::RetainedCopy {
-                returns_not_retained: true,
-            } => ("none", Some("returns_not_retained")),
-            MemoryManagement::RetainedMutableCopy {
-                returns_not_retained: false,
-            } => ("mutableCopy", None),
-            MemoryManagement::RetainedMutableCopy {
-                returns_not_retained: true,
-            } => ("none", Some("returns_not_retained")),
-            MemoryManagement::RetainedNew {
-                returns_not_retained: false,
-            } => ("new", None),
-            MemoryManagement::RetainedNew {
-                returns_not_retained: true,
-            } => ("none", Some("returns_not_retained")),
-            MemoryManagement::RetainedInit => ("init", None),
-            MemoryManagement::RetainedNone {
-                returns_retained: false,
-            } => ("none", None),
-            MemoryManagement::RetainedNone {
-                returns_retained: true,
-            } => ("copy", Some("returns_retained")),
-            MemoryManagement::Normal => ("none", None),
-        };
-        if let Some(attr) = attr {
-            writeln!(
-                f,
-                "        // required for soundness, method has `{attr}` attribute."
-            )?;
-        }
-        writeln!(f, "        #[unsafe(method_family = {method_family})]")?;
-
-        //
-        // Signature
-        //
-
-        write!(f, "        ")?;
-        if self.is_pub {
-            write!(f, "pub ")?;
-        }
-
-        if !self.safe {
-            write!(f, "unsafe ")?;
-        }
-        write!(f, "fn {}(", handle_reserved(&self.fn_name))?;
-
-        // Receiver
-        if let MemoryManagement::RetainedInit = self.memory_management {
-            write!(f, "this: Allocated<Self>, ")?;
-        } else if self.is_class {
-            // Insert nothing; a class method is assumed
-        } else {
-            write!(f, "&self, ")?;
-        }
-
-        // Arguments
-        for (param, arg_ty) in &self.arguments {
-            let param = handle_reserved(&crate::to_snake_case(param));
-            write!(f, "{param}: {}, ", arg_ty.method_argument())?;
-        }
-        if self.mainthreadonly {
-            write!(f, "mtm: MainThreadMarker")?;
-        }
-        write!(f, ")")?;
-
-        // Result
-        if self.is_error {
-            write!(f, "{}", self.result_type.method_return_with_error())?;
-        } else {
-            write!(f, "{}", self.result_type.method_return())?;
-        }
-        writeln!(f, ";")?;
-
-        Ok(())
-    }
-}
-
-pub(crate) fn handle_reserved(name: &str) -> String {
-    // try to parse name as an identifier
-    if let Ok(ident) = syn::parse_str::<syn::Ident>(name) {
-        ident.to_string()
-    }
-    // try to parse as a raw identifier (NOTE: does not handle `self` or `super`)
-    else if let Ok(ident) = syn::parse_str::<syn::Ident>(&format!("r#{name}")) {
-        ident.to_string()
-    }
-    // translate whatever remains unchanged (needed for, e.g., `_`)
-    else if name == "self" {
-        "self_".into()
-    } else if name == "Self" {
-        "r#Self".into()
-    } else if name == "super" {
-        "super_".into()
-    } else if name == "_" {
-        // Hack: Assumes that there are not other fields / parameters with the
-        // name `_`.
-        "param1".into()
-    } else {
-        name.into()
-    }
-}
-
-pub(crate) fn apply_type_override(ty: &mut Ty, or: &TypeOverride) {
-    if let Some(nullability) = &or.nullability {
-        let c_nullability = match nullability {
-            config::Nullability::Nullable => clang::Nullability::Nullable,
-            config::Nullability::NonNull => clang::Nullability::NonNull,
-        };
-
-        let check_and_set_nullability = |current_nullability: &mut clang::Nullability| {
-            if *current_nullability == c_nullability {
-                warn!("nullability already set to {:?}", current_nullability);
+            let (method_family, attr) = match &self.memory_management {
+                MemoryManagement::RetainedAlloc => ("alloc", None),
+                MemoryManagement::RetainedCopy {
+                    returns_not_retained: false,
+                } => ("copy", None),
+                MemoryManagement::RetainedCopy {
+                    returns_not_retained: true,
+                } => ("none", Some("returns_not_retained")),
+                MemoryManagement::RetainedMutableCopy {
+                    returns_not_retained: false,
+                } => ("mutableCopy", None),
+                MemoryManagement::RetainedMutableCopy {
+                    returns_not_retained: true,
+                } => ("none", Some("returns_not_retained")),
+                MemoryManagement::RetainedNew {
+                    returns_not_retained: false,
+                } => ("new", None),
+                MemoryManagement::RetainedNew {
+                    returns_not_retained: true,
+                } => ("none", Some("returns_not_retained")),
+                MemoryManagement::RetainedInit => ("init", None),
+                MemoryManagement::RetainedNone {
+                    returns_retained: false,
+                } => ("none", None),
+                MemoryManagement::RetainedNone {
+                    returns_retained: true,
+                } => ("copy", Some("returns_retained")),
+                MemoryManagement::InnerPointer => ("none", None),
+                MemoryManagement::Normal => ("none", None),
+            };
+            if let Some(attr) = attr {
+                writeln!(
+                    f,
+                    "        // required for soundness, method has `{attr}` attribute."
+                )?;
             }
-            *current_nullability = c_nullability;
-        };
+            writeln!(f, "        #[unsafe(method_family = {method_family})]")?;
 
-        match ty {
-            Ty::Pointer { nullability, .. }
-            | Ty::Sel { nullability, .. }
-            | Ty::IncompleteArray { nullability, .. } => {
-                check_and_set_nullability(nullability);
+            //
+            // Signature
+            //
+
+            write!(f, "        ")?;
+            if self.is_pub {
+                write!(f, "pub ")?;
             }
-            _ => panic!("unexpected type: {:?}", ty),
-        };
+
+            if !self.safe {
+                write!(f, "unsafe ")?;
+            }
+            write!(f, "fn {}(", handle_keyword(&self.fn_name))?;
+
+            // Receiver
+            if let MemoryManagement::RetainedInit = self.memory_management {
+                write!(f, "this: Allocated<Self>, ")?;
+            } else if self.is_class {
+                // Insert nothing; a class method is assumed
+            } else {
+                write!(f, "&self, ")?;
+            }
+
+            // Arguments
+            for (param, arg_ty) in arguments {
+                let param = param_name(param);
+                write!(f, "{param}: {}, ", arg_ty.method_argument())?;
+            }
+            if self.requires_main_thread_marker {
+                write!(f, "mtm: MainThreadMarker")?;
+            }
+            write!(f, ")")?;
+
+            // Result
+            if let MemoryManagement::InnerPointer = self.memory_management {
+                write!(
+                    f,
+                    "{}",
+                    result_type.prefix_return(result_type.method_return_inner_pointer())
+                )?;
+            } else {
+                write!(
+                    f,
+                    "{}",
+                    result_type.prefix_return(result_type.method_return())
+                )?;
+            }
+            writeln!(f, ";")?;
+
+            Ok(())
+        })
     }
 }
