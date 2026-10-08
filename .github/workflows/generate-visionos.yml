@@ -65,6 +65,9 @@ jobs:
           s = p.read_text()
           for line in ('maccatalyst = "14.0"\n', 'ios = "11.0"\n'):
               s = s.replace(line, "")
+          # ARKit's visionOS headers use a GameController trait, and the crate needs the dependency that
+          # provides it - which is what this key is for.
+          s = s.replace('required-crates = []', 'required-crates = ["objc2-game-controller"]')
           s = s.replace(
               "# ARKit is generated for iOS, and does not include\n"
               "# the visionOS module required here.\n"
